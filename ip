@@ -1,0 +1,110 @@
+#!/bin/bash
+
+# Cài đặt các gói cần thiết
+echo "Installing necessary packages..."
+if [ -f /etc/redhat-release ]; then
+    yum -y install gcc net-tools bsdtar zip make curl wget nano >/dev/null 2>&1
+    yum -y groupinstall "Development Tools"
+    yum -y install gcc zlib-devel openssl-devel readline-devel ncurses-devel wget tar dnsmasq net-tools iptables-services nano >/dev/null 2>&1
+elif [ -f /etc/debian_version ]; then
+    apt-get update >/dev/null 2>&1
+    apt-get install -y gcc net-tools bsdtar zip make curl wget nano >/dev/null 2>&1
+else
+    echo "Unsupported OS"
+    exit 1
+fi
+echo "Package installation complete."
+
+# Lấy tên của card mạng
+interface=$(ip link show | awk -F': ' '/^[0-9]+:/ {print $2}')
+
+# Hiển thị tên của card mạng
+echo "Tên của card mạng là: $interface"
+
+# Lấy địa chỉ IPv6
+echo "Lấy địa chỉ IPv6 cho giao diện mạng $interface..."
+IP6=$(ip -6 addr show "$interface" | grep -oP '(?<=inet6\s)[\da-f:]+' | grep -v ^::1 | head -n 1)
+if [ -z "$IP6" ]; then
+    echo "Không thể lấy địa chỉ IPv6 cho giao diện mạng $interface, thử sử dụng phương thức khác."
+    IP6=$(curl -6 -s icanhazip.com)
+fi
+
+# Kiểm tra nếu không lấy được địa chỉ IPv6
+if [ -z "$IP6" ]; then
+    echo "Không thể lấy được địa chỉ IPv6 cho giao diện mạng $interface. Vui lòng kiểm tra kết nối mạng và thử lại sau."
+    exit 1
+fi
+
+# Lấy địa chỉ IPv4
+IP4=$(curl -4 -s icanhazip.com)
+if [ -z "$IP4" ]; then
+    echo "Không thể lấy được địa chỉ IPv4. Vui lòng kiểm tra kết nối mạng và thử lại sau."
+    exit 1
+fi
+
+# Lấy gateway IPv4
+IPV4_GATEWAY=$(ip route | grep default | awk '{print $3}')
+if [ -z "$IPV4_GATEWAY" ]; then
+    echo "Không thể lấy được gateway IPv4. Vui lòng kiểm tra kết nối mạng và thử lại sau."
+    exit 1
+fi
+
+# Lấy gateway IPv6
+IPV6_GATEWAY=$(ip -6 route | grep default | awk '{print $3}')
+if [ -z "$IPV6_GATEWAY" ]; then
+    echo "Không thể lấy được gateway IPv6. Vui lòng kiểm tra kết nối mạng và thử lại sau."
+    exit 1
+fi
+
+# Function to configure IPv6
+configure_ipv6() {
+    # CentOS configuration
+    if [ -f /etc/sysconfig/network-scripts/ifcfg-"$interface" ]; then
+        cat <<EOF >/etc/sysconfig/network-scripts/ifcfg-"$interface"
+TYPE=Ethernet
+NAME=$interface
+DEVICE=$interface
+ONBOOT=yes
+BOOTPROTO=dhcp
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+IPV6_ADDR_GEN_MODE=eui64
+IPADDR=$IP4
+NETMASK=255.255.255.0
+GATEWAY=$IPV4_GATEWAY
+DNS1=8.8.8.8
+IPV6ADDR=$IP6/64
+IPV6_DEFAULTGW=$IPV6_GATEWAY
+EOF
+        service network restart
+    # Ubuntu configuration using Netplan
+    elif [ -f /etc/netplan/01-netcfg.yaml ]; then
+        cat <<EOF >/etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  ethernets:
+    $interface:
+      dhcp4: true
+      addresses:
+        - $IP4/24
+        - $IP6/64
+      gateway4: $IPV4_GATEWAY
+      gateway6: $IPV6_GATEWAY
+      nameservers:
+        addresses:
+          - 8.8.8.8
+          - 2001:4860:4860::8888
+EOF
+        sudo netplan apply
+    else
+        echo "Unsupported OS or missing network configuration files."
+        exit 1
+    fi
+
+    echo "IPv6 configured as $IP6 for network interface $interface"
+}
+
+# Execute function to configure IPv6
+configure_ipv6

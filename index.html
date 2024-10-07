@@ -108,7 +108,7 @@
             return otp;
         }
 
-        // Hàm cập nhật mã TOTP và thời gian đếm ngược
+        // Hàm cập nhật mã TOTP và sao chép vào clipboard
         async function updateCodes() {
             const secretInput = document.getElementById('secret-key');
             const secret = secretInput.value.trim();
@@ -137,42 +137,27 @@
             countdownElement.textContent = `Thời gian còn lại: ${timeRemaining}s`;
         }
 
-        // Hàm tự động dán nội dung từ clipboard vào ô nhập liệu
-        async function autoPaste() {
-            try {
-                const text = await navigator.clipboard.readText();
-                const secretInput = document.getElementById('secret-key');
-                secretInput.value = text.trim();
-                updateCodes();
-            } catch (err) {
-                // Không cần xử lý lỗi hoặc thông báo
-            }
-        }
+        // Lắng nghe sự kiện dán (paste) và tự động sinh mã TOTP khi dán
+        document.addEventListener('DOMContentLoaded', () => {
+            const secretInput = document.getElementById('secret-key');
 
-        // Kích hoạt tự động cập nhật mã khi người dùng nhập key
-        function handleKeyInput() {
-            updateCodes();
-        }
+            // Lắng nghe sự kiện paste
+            secretInput.addEventListener('paste', () => {
+                setTimeout(updateCodes, 100);  // Gọi updateCodes sau khi dán
+            });
+        });
 
         // Tự động cập nhật mã TOTP và thời gian mỗi giây
         setInterval(updateCodes, 1000);
-
-        // Dán nội dung từ clipboard ngay khi trang tải xong
-        document.addEventListener('DOMContentLoaded', () => {
-            autoPaste();
-        });
     </script>
 </head>
 <body>
 
     <div class="container">
         <h2>2FA Authentication</h2>
-        <textarea id="secret-key" rows="5" class="key-input" placeholder="Dán hoặc nhập Key 2FA..." oninput="handleKeyInput()"></textarea>
+        <textarea id="secret-key" rows="5" class="key-input" placeholder="Dán hoặc nhập Key 2FA..."></textarea>
         <p><strong id="auth-code"></strong></p>
         <span class="countdown" id="countdown"></span>
-        <button type="button" onclick="autoPaste()" class="btn btn-primary btn-tone btn-nw">
-            LẤY CODE
-        </button>
     </div>
 
 </body>

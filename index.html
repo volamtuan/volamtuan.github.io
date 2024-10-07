@@ -172,16 +172,16 @@
     </script>
 </head>
 <body>
-</head>
-<body>
 
-<h1 class="text-center">
-   <h2>2FA Authentication</h2>
-        <textarea id="secret-key" for="secret-key" rows="5" class="key-input" placeholder="Dán Key 2FA..." onclick="autoPaste()"></textarea>
+    <div class="container">
+        <h2>2FA Authentication</h2>
+        <textarea id="secret-key" rows="5" class="key-input" placeholder="Dán Key 2FA..." onclick="autoPaste()"></textarea>
         <p><strong id="auth-code"></strong></p>
         <span class="countdown" id="countdown"></span>
+        <button type="button" onclick="autoPaste()" class="btn btn-primary btn-tone btn-nw">
+            LẤY CODE
+        </button>
     </div>
-        </div>
-    </div>
+
 </body>
 </html>

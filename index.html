@@ -118,7 +118,7 @@
             return otp;
         }
 
-        // Hàm cập nhật mã TOTP
+        // Hàm cập nhật mã TOTP và sao chép vào clipboard
         async function updateCodes() {
             const secretInput = document.getElementById('secret-key');
             const secret = secretInput.value.trim();
@@ -126,13 +126,20 @@
             const countdownElement = document.getElementById('countdown');
 
             if (secret.length === 0) {
-                codeElement.textContent = '';
+                codeElement.textContent = 'Nhập hoặc dán key 2FA';
                 countdownElement.textContent = '';
                 return;
             }
 
             const code = generateTOTP(secret);
             codeElement.textContent = code;
+
+            // Sao chép mã TOTP vào clipboard
+            try {
+                await navigator.clipboard.writeText(code);
+            } catch (err) {
+                console.error('Không thể sao chép mã: ', err);
+            }
 
             // Cập nhật thời gian đếm ngược
             const epoch = Math.round(new Date().getTime() / 1000.0);
@@ -153,7 +160,7 @@
             const codeElement = document.getElementById('auth-code');
             codeElement.addEventListener('click', async () => {
                 const code = codeElement.textContent.trim();
-                if (code.length > 0) {
+                if (code.length > 0 && code !== 'Nhập hoặc dán key 2FA') {
                     try {
                         await navigator.clipboard.writeText(code);
                         alert("Mã 2FA đã được sao chép vào clipboard!");

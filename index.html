@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>2FA Authentication</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: vertical;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px;
+            font-size: 1.1em;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+            font-size: 1.1em;
+        }
+
+        .result-section {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        #resultItems {
+            max-height: 200px; /* Đặt chiều cao tối đa cho div */
+            overflow-y: auto; /* Cho phép cuộn */
+            padding: 10px; /* Thêm khoảng cách bên trong */
+            border: 1px solid #ccc; /* Viền cho div */
+            border-radius: 5px; /* Bo góc cho div */
+            background-color: #f9f9f9; /* Màu nền cho div */
+        }
+    </style>
+    <script>
+        // Hàm base32 decode
+        function base32tohex(base32) {
+            const base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+            let bits = "";
+            let hex = "";
+
+            for (let i = 0; i < base32.length; i++) {
+                const val = base32chars.indexOf(base32.charAt(i).toUpperCase());
+                if (val === -1) {
+                    // Nếu có ký tự không hợp lệ, bỏ qua hoặc xử lý lỗi
+                    continue;
+                }
+                bits += val.toString(2).padStart(5, '0');
+            }
+
+            for (let i = 0; i + 4 <= bits.length; i += 4) {
+                const chunk = bits.substr(i, 4);
+                hex += parseInt(chunk, 2).toString(16);
+            }
+
+            return hex;
+        }
+
+        // Hàm tạo mã TOTP
+        function generateTOTP(secret) {
+            const epoch = Math.round(new Date().getTime() / 1000.0);
+            const time = Math.floor(epoch / 30).toString(16).padStart(16, '0');
+
+            const key = base32tohex(secret);
+            const shaObj = new jsSHA("SHA-1", "HEX");
+            shaObj.setHMACKey(key, "HEX");
+            shaObj.update(time);
+
+            const hmac = shaObj.getHMAC("HEX");
+
+            const offset = parseInt(hmac.substring(hmac.length - 1), 16);
+            let otp = (parseInt(hmac.substr(offset * 2, 8), 16) & 0x7fffffff) + '';
+            otp = otp.substr(otp.length - 6, 6);
+
+            return otp;
+        }
+
+        // Hàm cập nhật mã TOTP và thời gian đếm ngược
+        async function updateCodes() {
+            const secretInput = document.getElementById('secret-key');
+            const secret = secretInput.value.trim();
+            const codeElement = document.getElementById('auth-code');
+            const countdownElement = document.getElementById('countdown');
+
+            if (secret.length === 0) {
+                codeElement.textContent = '';
+                countdownElement.textContent = '';
+                return;
+            }
+
+            const code = generateTOTP(secret);
+            codeElement.textContent = code;
+
+            // Sao chép mã TOTP vào clipboard
+            try {
+                await navigator.clipboard.writeText(code);
+            } catch (err) {
+                alert('Failed to copy code to clipboard: ' + err);
+            }
+
+            // Cập nhật thời gian đếm ngược
+            const epoch = Math.round(new Date().getTime() / 1000.0);
+            const timeRemaining = 30 - (epoch % 30);
+            countdownElement.textContent = `Thời gian còn lại: ${timeRemaining}s`;
+        }
+
+        // Hàm tự động dán nội dung từ clipboard vào ô nhập liệu
+        async function autoPaste() {
+            try {
+                const text = await navigator.clipboard.readText();
+                const secretInput = document.getElementById('secret-key');
+                secretInput.value = text.trim();
+                updateCodes();
+            } catch (err) {
+                alert('Failed to read clipboard contents: ' + err);
+            }
+        }
+
+        // Tự động cập nhật mã TOTP và thời gian mỗi giây
+        setInterval(updateCodes, 1000);
+
+        // Dán nội dung từ clipboard ngay khi trang tải xong
+        document.addEventListener('DOMContentLoaded', () => {
+            autoPaste();
+        });
+    </script>
+</head>
+<body>
+</head>
+<body>
+
+<h1 class="text-center">
+   <h2>2FA Authentication</h2>
+        <textarea id="secret-key" for="secret-key" rows="5" class="key-input" placeholder="Dán Key 2FA..." onclick="autoPaste()"></textarea>
+        <p><strong id="auth-code"></strong></p>
+        <span class="countdown" id="countdown"></span>
+    </div>
+        
+                </form>
+
+                <hr>
+                </div>
+            </section>
+        </div>
+    </div>
+</body>
+</html>

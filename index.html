@@ -61,21 +61,19 @@
             font-size: 1.1em;
         }
 
-        .result-section {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background-color: #f9f9f9;
+        .countdown {
+            font-size: 1.1em;
+            color: #333;
         }
 
-        #resultItems {
-            max-height: 200px; /* Đặt chiều cao tối đa cho div */
-            overflow-y: auto; /* Cho phép cuộn */
-            padding: 10px; /* Thêm khoảng cách bên trong */
-            border: 1px solid #ccc; /* Viền cho div */
-            border-radius: 5px; /* Bo góc cho div */
-            background-color: #f9f9f9; /* Màu nền cho div */
+        #auth-code {
+            cursor: pointer;
+            color: blue;
+            text-decoration: underline;
+        }
+
+        #auth-code:hover {
+            color: #0056b3;
         }
     </style>
     <script>
@@ -88,7 +86,6 @@
             for (let i = 0; i < base32.length; i++) {
                 const val = base32chars.indexOf(base32.charAt(i).toUpperCase());
                 if (val === -1) {
-                    // Nếu có ký tự không hợp lệ, bỏ qua hoặc xử lý lỗi
                     continue;
                 }
                 bits += val.toString(2).padStart(5, '0');
@@ -121,7 +118,7 @@
             return otp;
         }
 
-        // Hàm cập nhật mã TOTP và thời gian đếm ngược
+        // Hàm cập nhật mã TOTP
         async function updateCodes() {
             const secretInput = document.getElementById('secret-key');
             const secret = secretInput.value.trim();
@@ -137,50 +134,47 @@
             const code = generateTOTP(secret);
             codeElement.textContent = code;
 
-            // Sao chép mã TOTP vào clipboard
-            try {
-                await navigator.clipboard.writeText(code);
-            } catch (err) {
-                alert('Failed to copy code to clipboard: ' + err);
-            }
-
             // Cập nhật thời gian đếm ngược
             const epoch = Math.round(new Date().getTime() / 1000.0);
             const timeRemaining = 30 - (epoch % 30);
             countdownElement.textContent = `Thời gian còn lại: ${timeRemaining}s`;
         }
 
-        // Hàm tự động dán nội dung từ clipboard vào ô nhập liệu
-        async function autoPaste() {
-            try {
-                const text = await navigator.clipboard.readText();
-                const secretInput = document.getElementById('secret-key');
-                secretInput.value = text.trim();
-                updateCodes();
-            } catch (err) {
-                alert('Failed to read clipboard contents: ' + err);
-            }
-        }
+        // Lắng nghe sự kiện dán (paste) và tự động sinh mã TOTP khi dán
+        document.addEventListener('DOMContentLoaded', () => {
+            const secretInput = document.getElementById('secret-key');
+
+            // Lắng nghe sự kiện paste
+            secretInput.addEventListener('paste', () => {
+                setTimeout(updateCodes, 100);  // Gọi updateCodes sau khi dán
+            });
+
+            // Khi người dùng nhấp vào mã 2FA để sao chép
+            const codeElement = document.getElementById('auth-code');
+            codeElement.addEventListener('click', async () => {
+                const code = codeElement.textContent.trim();
+                if (code.length > 0) {
+                    try {
+                        await navigator.clipboard.writeText(code);
+                        alert("Mã 2FA đã được sao chép vào clipboard!");
+                    } catch (err) {
+                        console.error("Không thể sao chép mã: ", err);
+                    }
+                }
+            });
+        });
 
         // Tự động cập nhật mã TOTP và thời gian mỗi giây
         setInterval(updateCodes, 1000);
-
-        // Dán nội dung từ clipboard ngay khi trang tải xong
-        document.addEventListener('DOMContentLoaded', () => {
-            autoPaste();
-        });
     </script>
 </head>
 <body>
 
     <div class="container">
         <h2>2FA Authentication</h2>
-        <textarea id="secret-key" rows="5" class="key-input" placeholder="Dán Key 2FA..." onclick="autoPaste()"></textarea>
-        <p><strong id="auth-code"></strong></p>
+        <textarea id="secret-key" rows="5" class="key-input" placeholder="Dán hoặc nhập Key 2FA..."></textarea>
+        <p><strong id="auth-code">Nhấn để sao chép mã</strong></p>
         <span class="countdown" id="countdown"></span>
-        <button type="button" onclick="autoPaste()" class="btn btn-primary btn-tone btn-nw">
-            LẤY CODE
-        </button>
     </div>
 
 </body>

@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>2FA Authentication</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.min.css">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Công cụ Xử lý Text</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -16,11 +18,12 @@
         h2 {
             text-align: center;
             color: #333;
+            margin-bottom: 30px;
         }
 
         .container {
-            max-width: 600px;
-            margin: 50px auto;
+            max-width: 800px;
+            margin: 0 auto;
             background-color: #fff;
             padding: 20px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -33,7 +36,6 @@
             font-size: 1em;
             border: 1px solid #ccc;
             border-radius: 5px;
-            resize: vertical;
             margin-bottom: 20px;
         }
 
@@ -47,6 +49,7 @@
             cursor: pointer;
             width: 100%;
             transition: background-color 0.3s;
+            margin-top: 10px;
         }
 
         button:hover {
@@ -60,129 +63,347 @@
             border-radius: 8px;
             font-size: 1.1em;
         }
-
-        .countdown {
-            font-size: 1.1em;
-            color: #333;
-        }
-
-        #auth-code {
-            cursor: pointer;
-            color: blue;
-            text-decoration: underline;
-        }
-
-        #auth-code:hover {
-            color: #0056b3;
-        }
     </style>
-    <script>
-        // Hàm base32 decode
-        function base32tohex(base32) {
-            const base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-            let bits = "";
-            let hex = "";
+</head>
+<body>
 
-            for (let i = 0; i < base32.length; i++) {
-                const val = base32chars.indexOf(base32.charAt(i).toUpperCase());
-                if (val === -1) {
-                    continue;
-                }
-                bits += val.toString(2).padStart(5, '0');
+<div class="container">
+    <h2 class="text-center">Công cụ Xử lý Text</h2>
+
+    <!-- Tabs điều hướng -->
+    <ul class="nav nav-tabs" id="myTab" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="cut-tab" data-toggle="tab" href="#cut" role="tab" aria-controls="cut" aria-selected="true">Cắt Chuỗi</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="remove-duplicates-tab" data-toggle="tab" href="#remove-duplicates" role="tab" aria-controls="remove-duplicates" aria-selected="false">Lọc Trùng</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="merge-tab" data-toggle="tab" href="#merge" role="tab" aria-controls="merge" aria-selected="false">Ghép File</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="email-check-tab" data-toggle="tab" href="#email-check" role="tab" aria-controls="email-check" aria-selected="false">Check Email Facebook</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="filter-tab" data-toggle="tab" href="#filter" role="tab" aria-controls="filter" aria-selected="false">Lọc Chuỗi</a>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="myTabContent">
+        <!-- Tab Cắt Chuỗi -->
+        <div class="tab-pane fade show active" id="cut" role="tabpanel" aria-labelledby="cut-tab">
+            <h4 class="section-title">Cắt Chuỗi</h4>
+            <form>
+                <div class="form-group">
+                    <label for="cutInput">Nội dung cần cắt</label>
+                    <textarea id="cutInput" rows="5" class="form-control" placeholder="Nhập nội dung cần cắt..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="delimiter">Ngăn cách bởi ký tự</label>
+                    <input type="text" id="delimiter" class="form-control" value="|" />
+                </div>
+
+                <div class="form-group">
+                    <label for="excludeLines">Dòng không cần cắt (số dòng)</label>
+                    <input type="number" id="excludeLines" class="form-control" value="0" />
+                </div>
+
+                <div class="form-group">
+                    <label for="start">Bắt đầu từ vị trí</label>
+                    <input type="number" id="start" class="form-control" value="1" />
+                </div>
+
+                <div class="form-group">
+                    <label for="end">Kết thúc ở vị trí</label>
+                    <input type="number" id="end" class="form-control" value="1" />
+                </div>
+
+                <button type="button" onclick="cutString()" class="btn btn-warning">Cắt chuỗi</button>
+
+                <div class="result mt-3">
+                    <label for="cutResult">Kết quả</label>
+                    <textarea id="cutResult" class="form-control" readonly></textarea>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tab Lọc Trùng -->
+        <div class="tab-pane fade" id="remove-duplicates" role="tabpanel" aria-labelledby="remove-duplicates-tab">
+            <h4 class="section-title">Lọc Trùng</h4>
+            <form>
+                <div class="form-group">
+                    <label for="filterInput">Nội dung cần lọc</label>
+                    <textarea id="filterInput" rows="5" class="form-control" placeholder="Nhập nội dung cần lọc trùng..."></textarea>
+                </div>
+
+                <button type="button" onclick="removeDuplicates()" class="btn btn-warning">Lọc trùng</button>
+
+                <div class="result mt-3">
+                    <label for="filterResult">Kết quả</label>
+                    <textarea id="filterResult" class="form-control" readonly></textarea>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tab Ghép File -->
+        <div class="tab-pane fade" id="merge" role="tabpanel" aria-labelledby="merge-tab">
+            <h4 class="section-title">Ghép File</h4>
+            <form>
+                <div class="form-group">
+                    <label for="mergeInput1">Nội dung 1</label>
+                    <textarea id="mergeInput1" rows="5" class="form-control" placeholder="Nhập nội dung 1..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="mergeInput2">Nội dung 2</label>
+                    <textarea id="mergeInput2" rows="5" class="form-control" placeholder="Nhập nội dung 2..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="mergeDelimiter">Ngăn cách giữa 2 dòng</label>
+                    <input type="text" id="mergeDelimiter" class="form-control" placeholder="Nhập ký tự ngăn cách..." />
+                </div>
+
+                <button type="button" onclick="mergeFiles()" class="btn btn-warning">Ghép file</button>
+
+                <div class="result mt-3">
+                    <label for="mergeResult">Kết quả</label>
+                    <textarea id="mergeResult" class="form-control" readonly></textarea>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tab Check Email Facebook -->
+        <div class="tab-pane fade" id="email-check" role="tabpanel" aria-labelledby="email-check-tab">
+            <h4 class="section-title">Check Valid Email Facebook</h4>
+            <div class="form-group">
+                <textarea id="emails" class="form-control" rows="7" placeholder="Nhập mail cần kiểm tra (mỗi email một dòng)..."></textarea>
+                <button id="checkEmails" class="btn btn-success mt-2">Kiểm tra</button>
+            </div>
+            <button type="button" class="btn btn-secondary">
+                Tổng số email đã nhập: <span class="badge badge-gray" id="total">0</span>
+            </button>
+
+            <button type="button" class="btn btn-danger mt-2">
+                Tổng số email có liên kết: <span class="badge badge-gray" id="total_live">0</span>
+            </button>
+            <textarea id="mailyes" class="form-control" rows="5" placeholder="Mail có liên kết" readonly></textarea>
+
+            <button type="button" class="btn btn-primary mt-2">
+                Tổng số email không có liên kết: <span class="badge badge-gray" id="total_die">0</span>
+            </button>
+            <textarea id="mailno" class="form-control" rows="5" placeholder="Mail không có liên kết" readonly></textarea>
+        </div>
+
+        <!-- Tab Lọc Chuỗi -->
+        <div class="tab-pane fade" id="filter" role="tabpanel" aria-labelledby="filter-tab">
+            <h4 class="section-title">Lọc Chuỗi</h4>
+            <form>
+                <div class="form-group">
+                    <label for="inputText">Nội dung</label>
+                    <textarea id="inputText" rows="5" class="form-control" placeholder="Nhập nội dung tại đây..."></textarea>
+                </div>
+
+                <!-- Các từ cần lọc -->
+                <div class="form-group">
+                    <label for="filterWords">Nhập từ để lọc (ngăn cách bằng dấu phẩy)</label>
+                    <textarea id="filterWords" rows="2" class="form-control" placeholder="Nhập các từ chứa hoặc không chứa..."></textarea>
+                </div>
+
+                <!-- Các nút lọc -->
+                <button class="btn btn-success mt-2" type="button" onclick="filterContains()">Lọc chứa từ</button>
+                <button class="btn btn-danger mt-2" type="button" onclick="filterNotContains()">Lọc không chứa từ</button>
+
+                <!-- Kết quả -->
+                <div class="form-group mt-3">
+                    <label for="outputText">Kết quả</label>
+                    <textarea id="outputText" rows="5" class="form-control" readonly placeholder="Kết quả sẽ hiển thị tại đây..."></textarea>
+                </div>
+
+                <!-- Hiển thị trạng thái -->
+                <div class="status">
+                    <span id="status">Tổng: 0, Lọc: 0</span>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
+<!-- Các hàm JavaScript -->
+<script>
+// Hàm Cắt Chuỗi
+function cutString() {
+    var inputText = document.getElementById("cutInput").value.trim();
+    var delimiter = document.getElementById("delimiter").value;
+    var start = parseInt(document.getElementById("start").value) - 1;
+    var end = parseInt(document.getElementById("end").value) - 1;
+    var excludeLines = parseInt(document.getElementById("excludeLines").value); 
+
+    if (!inputText || !delimiter || isNaN(start) || isNaN(end)) {
+        alert("Vui lòng điền đầy đủ thông tin.");
+        return;
+    }
+
+    var lines = inputText.split("\n");
+    var result = [];
+
+    lines.forEach((line, index) => {
+        if (index + 1 !== excludeLines) {
+            var parts = line.split(delimiter);
+            if (parts.length > end) {
+                result.push(parts.slice(start, end + 1).join(delimiter));
             }
-
-            for (let i = 0; i + 4 <= bits.length; i += 4) {
-                const chunk = bits.substr(i, 4);
-                hex += parseInt(chunk, 2).toString(16);
-            }
-
-            return hex;
         }
+    });
 
-        // Hàm tạo mã TOTP
-        function generateTOTP(secret) {
-            const epoch = Math.round(new Date().getTime() / 1000.0);
-            const time = Math.floor(epoch / 30).toString(16).padStart(16, '0');
+    document.getElementById("cutResult").value = result.join("\n");
+}
 
-            const key = base32tohex(secret);
-            const shaObj = new jsSHA("SHA-1", "HEX");
-            shaObj.setHMACKey(key, "HEX");
-            shaObj.update(time);
+// Hàm Lọc Trùng
+function removeDuplicates() {
+    var inputText = document.getElementById("filterInput").value.trim();
+    if (!inputText) {
+        alert("Vui lòng nhập nội dung.");
+        return;
+    }
 
-            const hmac = shaObj.getHMAC("HEX");
+    var lines = inputText.split("\n");
+    var uniqueLines = Array.from(new Set(lines));
 
-            const offset = parseInt(hmac.substring(hmac.length - 1), 16);
-            let otp = (parseInt(hmac.substr(offset * 2, 8), 16) & 0x7fffffff) + '';
-            otp = otp.substr(otp.length - 6, 6);
+    document.getElementById("filterResult").value = uniqueLines.join("\n");
+}
 
-            return otp;
-        }
+// Hàm Ghép File
+function mergeFiles() {
+    var input1 = document.getElementById("mergeInput1").value.trim().split("\n");
+    var input2 = document.getElementById("mergeInput2").value.trim().split("\n");
+    var delimiter = document.getElementById("mergeDelimiter").value;
 
-        // Hàm cập nhật mã TOTP và sao chép vào clipboard
-        async function updateCodes() {
-            const secretInput = document.getElementById('secret-key');
-            const secret = secretInput.value.trim();
-            const codeElement = document.getElementById('auth-code');
-            const countdownElement = document.getElementById('countdown');
+    if (!input1 || !input2 || !delimiter) {
+        alert("Vui lòng nhập đầy đủ các trường.");
+        return;
+    }
 
-            if (secret.length === 0) {
-                codeElement.textContent = 'Nhập hoặc dán key 2FA';
-                countdownElement.textContent = '';
-                return;
-            }
+    var maxLength = Math.max(input1.length, input2.length);
+    var result = [];
 
-            const code = generateTOTP(secret);
-            codeElement.textContent = code;
+    for (var i = 0; i < maxLength; i++) {
+        var line1 = input1[i] || "";
+        var line2 = input2[i] || "";
+        result.push(line1 + delimiter + line2);
+    }
 
-            // Sao chép mã TOTP vào clipboard
-            try {
-                await navigator.clipboard.writeText(code);
-            } catch (err) {
-                console.error('Không thể sao chép mã: ', err);
-            }
+    document.getElementById("mergeResult").value = result.join("\n");
+}
 
-            // Cập nhật thời gian đếm ngược
-            const epoch = Math.round(new Date().getTime() / 1000.0);
-            const timeRemaining = 30 - (epoch % 30);
-            countdownElement.textContent = `Thời gian còn lại: ${timeRemaining}s`;
-        }
+// Hàm Lọc Chuỗi chứa từ
+function filterContains() {
+    var inputText = document.getElementById("inputText").value.split("\n");
+    var searchTerms = document.getElementById("filterWords").value.toLowerCase().split(",").map(term => term.trim());
+    var results = inputText.filter(line => searchTerms.some(term => line.toLowerCase().includes(term)));
+    document.getElementById("outputText").value = results.join("\n");
+    document.getElementById("status").innerText = `Tổng: ${inputText.length}, Lọc chứa: ${results.length}`;
+}
 
-        // Lắng nghe sự kiện dán (paste) và tự động sinh mã TOTP khi dán
-        document.addEventListener('DOMContentLoaded', () => {
-            const secretInput = document.getElementById('secret-key');
+// Hàm Lọc Chuỗi không chứa từ
+function filterNotContains() {
+    var inputText = document.getElementById("inputText").value.split("\n");
+    var searchTerms = document.getElementById("filterWords").value.toLowerCase().split(",").map(term => term.trim());
+    var results = inputText.filter(line => !searchTerms.some(term => line.toLowerCase().includes(term)));
+    document.getElementById("outputText").value = results.join("\n");
+    document.getElementById("status").innerText = `Tổng: ${inputText.length}, Lọc không chứa: ${results.length}`;
+}
+</script>
 
-            // Lắng nghe sự kiện paste
-            secretInput.addEventListener('paste', () => {
-                setTimeout(updateCodes, 100);  // Gọi updateCodes sau khi dán
-            });
+<script>
+    $(document).ready(function() {
+        let emails = [];
+        let countYes = 0; // Đếm email có liên kết
+        let countNo = 0; // Đếm email không có liên kết
 
-            // Khi người dùng nhấp vào mã 2FA để sao chép
-            const codeElement = document.getElementById('auth-code');
-            codeElement.addEventListener('click', async () => {
-                const code = codeElement.textContent.trim();
-                if (code.length > 0 && code !== 'Nhập hoặc dán key 2FA') {
-                    try {
-                        await navigator.clipboard.writeText(code);
-                        alert("Mã 2FA đã được sao chép vào clipboard!");
-                    } catch (err) {
-                        console.error("Không thể sao chép mã: ", err);
-                    }
+        // Sự kiện click để bắt đầu kiểm tra email
+        $('#checkEmails').click(function() {
+            emails = $('#emails').val().trim().split('\n').map(function(line) {
+                return line.trim();
+            }).filter(Boolean); // Lọc bỏ các email trống
+
+            $('#resultItems').html(''); // Xóa kết quả trước đó
+            $('#mailyes').val(''); // Xóa nội dung của textarea chứa email có liên kết
+            $('#mailno').val(''); // Xóa nội dung của textarea chứa email không có liên kết
+            $('#total').text(emails.length); // Cập nhật tổng số email
+
+            countYes = 0;
+            countNo = 0;
+
+            // Duyệt qua danh sách email và kiểm tra từng email
+            emails.forEach(function(email) {
+                if (email !== '') {
+                    checkEmail(email, function(isLinked) {
+                        if (isLinked) {
+                            $('#mailyes').val((i, val) => val + email + '\n');
+                            countYes++;
+                        } else {
+                            $('#mailno').val((i, val) => val + email + '\n');
+                            countNo++;
+                        }
+                        $('#total_live').text(countYes); // Cập nhật số lượng email có liên kết
+                        $('#total_die').text(countNo);   // Cập nhật số lượng email không có liên kết
+                    });
                 }
             });
         });
 
-        // Tự động cập nhật mã TOTP và thời gian mỗi giây
-        setInterval(updateCodes, 1000);
-    </script>
-</head>
-<body>
+        // Kiểm tra lại những email không có liên kết
+        $('#checkAgain').click(function() {
+            $('#mailno').val().split('\n').forEach(function(email) {
+                if (email.trim() !== '') {
+                    checkEmail(email.trim(), function(isLinked) {
+                        if (isLinked) {
+                            $('#mailyes').val((i, val) => val + email + '\n');
+                        }
+                    });
+                }
+            });
+        });
 
-    <div class="container">
-        <h2>2FA Authentication</h2>
-        <textarea id="secret-key" rows="5" class="key-input" placeholder="Dán hoặc nhập Key 2FA..."></textarea>
-        <p><strong id="auth-code">Nhấn để sao chép mã</strong></p>
-        <span class="countdown" id="countdown"></span>
-    </div>
+        // Hàm kiểm tra email với API
+        function checkEmail(email, callback) {
+            $.ajax({
+                url: 'http://103.161.17.194/fb2.php', // Đường dẫn API kiểm tra email
+                type: 'GET',
+                data: { mail: email },
+                success: function(response) {
+                    $('#resultItems').append('<div class="result-item">' + response + '</div>'); // Hiển thị kết quả
+                    callback(response.includes('Mail Có Liên kết Facebook'));
+                },
+                error: function() {
+                    $('#resultItems').append('<div class="result-item error">Đã xảy ra lỗi khi kiểm tra email: ' + email + '</div>');
+                    callback(false); // Nếu lỗi xảy ra, giả định email không có liên kết
+                }
+            });
+        }
 
+        // Tự động sao chép nội dung khi nhấp vào textarea chứa kết quả
+        $('#mailyes, #mailno').click(function() {
+            copyToClipboard($(this).val());
+        });
+
+        // Hàm sao chép vào clipboard
+        function copyToClipboard(text) {
+            const tempInput = document.createElement("textarea");
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            alert("Đã sao chép vào clipboard!");
+        }
+    });
+</script>
 </body>
 </html>

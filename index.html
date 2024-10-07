@@ -1,12 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <title>Công cụ Xử lý Text</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/3.2.0/sha.js"></script>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -18,12 +12,11 @@
         h2 {
             text-align: center;
             color: #333;
-            margin-bottom: 30px;
         }
 
         .container {
-            max-width: 800px;
-            margin: 0 auto;
+            max-width: 600px;
+            margin: 50px auto;
             background-color: #fff;
             padding: 20px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -36,6 +29,7 @@
             font-size: 1em;
             border: 1px solid #ccc;
             border-radius: 5px;
+            resize: vertical;
             margin-bottom: 20px;
         }
 
@@ -49,7 +43,6 @@
             cursor: pointer;
             width: 100%;
             transition: background-color 0.3s;
-            margin-top: 10px;
         }
 
         button:hover {
@@ -62,6 +55,23 @@
             background-color: #e9ecef;
             border-radius: 8px;
             font-size: 1.1em;
+        }
+
+        .result-section {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        #resultItems {
+            max-height: 200px; /* Đặt chiều cao tối đa cho div */
+            overflow-y: auto; /* Cho phép cuộn */
+            padding: 10px; /* Thêm khoảng cách bên trong */
+            border: 1px solid #ccc; /* Viền cho div */
+            border-radius: 5px; /* Bo góc cho div */
+            background-color: #f9f9f9; /* Màu nền cho div */
         }
     </style>
 </head>

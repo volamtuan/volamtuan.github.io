@@ -61,21 +61,9 @@
             font-size: 1.1em;
         }
 
-        .result-section {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background-color: #f9f9f9;
-        }
-
-        #resultItems {
-            max-height: 200px; /* Đặt chiều cao tối đa cho div */
-            overflow-y: auto; /* Cho phép cuộn */
-            padding: 10px; /* Thêm khoảng cách bên trong */
-            border: 1px solid #ccc; /* Viền cho div */
-            border-radius: 5px; /* Bo góc cho div */
-            background-color: #f9f9f9; /* Màu nền cho div */
+        .countdown {
+            font-size: 1.1em;
+            color: #333;
         }
     </style>
     <script>
@@ -88,7 +76,6 @@
             for (let i = 0; i < base32.length; i++) {
                 const val = base32chars.indexOf(base32.charAt(i).toUpperCase());
                 if (val === -1) {
-                    // Nếu có ký tự không hợp lệ, bỏ qua hoặc xử lý lỗi
                     continue;
                 }
                 bits += val.toString(2).padStart(5, '0');
@@ -137,11 +124,11 @@
             const code = generateTOTP(secret);
             codeElement.textContent = code;
 
-            // Sao chép mã TOTP vào clipboard
+            // Sao chép mã TOTP vào clipboard (không hiển thị thông báo)
             try {
                 await navigator.clipboard.writeText(code);
             } catch (err) {
-                alert('Failed to copy code to clipboard: ' + err);
+                // Không cần xử lý lỗi hoặc thông báo
             }
 
             // Cập nhật thời gian đếm ngược
@@ -158,8 +145,13 @@
                 secretInput.value = text.trim();
                 updateCodes();
             } catch (err) {
-                alert('Failed to read clipboard contents: ' + err);
+                // Không cần xử lý lỗi hoặc thông báo
             }
+        }
+
+        // Kích hoạt tự động cập nhật mã khi người dùng nhập key
+        function handleKeyInput() {
+            updateCodes();
         }
 
         // Tự động cập nhật mã TOTP và thời gian mỗi giây
@@ -172,22 +164,16 @@
     </script>
 </head>
 <body>
-</head>
-<body>
 
-<h1 class="text-center">
-   <h2>2FA Authentication</h2>
-        <textarea id="secret-key" for="secret-key" rows="5" class="key-input" placeholder="Dán Key 2FA..." onclick="autoPaste()"></textarea>
+    <div class="container">
+        <h2>2FA Authentication</h2>
+        <textarea id="secret-key" rows="5" class="key-input" placeholder="Dán hoặc nhập Key 2FA..." oninput="handleKeyInput()"></textarea>
         <p><strong id="auth-code"></strong></p>
         <span class="countdown" id="countdown"></span>
+        <button type="button" onclick="autoPaste()" class="btn btn-primary btn-tone btn-nw">
+            LẤY CODE
+        </button>
     </div>
-        
-                </form>
 
-                <hr>
-                </div>
-            </section>
-        </div>
-    </div>
 </body>
 </html>

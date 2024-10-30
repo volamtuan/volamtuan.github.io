@@ -1,0 +1,101 @@
+#!/bin/bash
+
+# Hàm log
+function log() {
+   echo "$(date -u +"%Y-%m-%dT%H:%M:%SZ") [install] $1"
+}
+
+# Kiểm tra hệ điều hành và trình quản lý gói (Ubuntu/Debian vs CentOS/RHEL)
+if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ]; then
+    OS="ubuntu"
+    PKG_MGR="apt"
+    UFW="ufw"
+elif [ -f /etc/redhat-release ]; then
+    OS="centos"
+    PKG_MGR="yum"
+    UFW="firewalld"
+else
+    log "Unsupported operating system."
+    exit 1
+fi
+
+log "Detected operating system: $OS"
+
+# Cập nhật và cài đặt các gói cần thiết
+log "Cài đặt Tor Proxy..."
+if [ "$OS" == "ubuntu" ]; then
+    sudo apt update && sudo apt install tor ufw curl net-tools -y
+elif [ "$OS" == "centos" ]; then
+    sudo yum install epel-release -y
+    sudo yum install tor firewalld curl net-tools -y
+    sudo systemctl start firewalld
+    sudo systemctl enable firewalld
+fi
+
+# Cấu hình firewall mở các cổng cần thiết
+log "Configuring firewall..."
+if [ "$OS" == "ubuntu" ]; then
+    sudo ufw allow 10000:11000/tcp
+    sudo ufw allow 20000:21000/tcp
+    sudo ufw allow 30000:31000/tcp
+    sudo ufw allow 40000:41000/tcp
+    sudo ufw allow 50000:51000/tcp
+    sudo ufw reload
+elif [ "$OS" == "centos" ]; then
+    sudo firewall-cmd --permanent --add-port=10000-11000/tcp
+    sudo firewall-cmd --permanent --add-port=20000-21000/tcp
+    sudo firewall-cmd --permanent --add-port=30000-31000/tcp
+    sudo firewall-cmd --permanent --add-port=40000-41000/tcp
+    sudo firewall-cmd --permanent --add-port=50000-51000/tcp
+    sudo firewall-cmd --reload
+fi
+
+# Cài đặt cấu hình cho Tor
+log "Downloading new Tor configuration..."
+sudo rm -f /etc/tor/torrc
+sudo curl -o /etc/tor/torrc https://volamtuan.github.io/torrc
+
+# Khởi động lại dịch vụ Tor
+log "Restarting Tor service..."
+sudo systemctl restart tor
+sudo systemctl enable tor
+sudo systemctl start tor
+
+# Kiểm tra các cổng proxy đang lắng nghe
+log "Kiểm tra các cổng đang lắng nghe trong dải cổng chỉ định..."
+netstat -tuln | grep -E '(:100[0-9]{2}|:10[1-9][0-9]{2}|:200[0-9]{2}|:20[1-9][0-9]{2}|:300[0-9]{2}|:30[1-9][0-9]{2}|:400[0-9]{2}|:40[1-9][0-9]{2}|:500[0-9]{2}|:50[1-9][0-9]{2})'
+
+# Kiểm tra một số proxy qua các cổng mẫu
+log "Kiểm tra kết nối qua các proxy mẫu..."
+curl --proxy socks5h://localhost:10000 http://ipecho.net/plain
+curl --proxy socks5h://localhost:20000 http://ipecho.net/plain
+curl --proxy socks5h://localhost:30000 http://ipecho.net/plain
+curl --proxy socks5h://localhost:40000 http://ipecho.net/plain
+curl --proxy socks5h://localhost:50000 http://ipecho.net/plain
+
+# Tạo tệp checkip.txt để lưu kết quả kiểm tra proxy
+touch checkip.txt
+
+# Hàm kiểm tra proxy
+check_proxy() {
+  local port=$1
+  echo "Đang Check Proxy Cổng: $port:" | tee -a checkip.txt
+  ip=$(curl --proxy socks5h://127.0.0.1:$port https://ifconfig.me 2>/dev/null)
+  echo "IP: $ip" | tee -a checkip.txt
+  if [ -n "$ip" ]; then
+    country=$(curl -s https://ipinfo.io/${ip}/country)
+    echo "Quốc Gia: $country" | tee -a checkip.txt
+  else
+    echo "Failed to get IP for port $port" | tee -a checkip.txt
+  fi
+  echo -e "\n" | tee -a checkip.txt
+}
+
+# Xuất hàm check_proxy để xargs có thể sử dụng
+export -f check_proxy
+
+# Tạo danh sách các cổng cần kiểm tra
+ports=$(seq 10000 11000 && seq 20000 21000 && seq 30000 31000 && seq 40000 41000 && seq 50000 51000)
+
+# Sử dụng xargs để thực thi 10 luồng song song
+echo "$ports" | tr ' ' '\n' | xargs -n 1 -P 10 -I {} bash -c 'check_proxy "$@"' _ {}

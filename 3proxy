@@ -52,9 +52,7 @@ auth none
 log /usr/local/etc/3proxy/logs/3proxy.log D
 logformat "L%d-%m-%Y %H:%M:%S %p %C:%R %E %U"
 
-allow * * 14.224.163.75
 allow 127.0.0.1
-deny * * *
 
 $(awk -F "/" '{print "" \
 "allow *" $1 "\n" \
@@ -171,10 +169,9 @@ bash /etc/rc.local
 
 gen_proxy_file_for_user
 firewall-cmd --permanent --zone=public --add-port=20000-25000/tcp
+ip -6 addr | grep inet6 | wc -l
+
 systemctl daemon-reload
 systemctl enable rc-local
 systemctl enable 3proxy
 systemctl start 3proxy
-echo "Starting Proxy"
-echo "So Luong IPv6 Hien Tai:"
-ip -6 addr | grep inet6 | wc -l

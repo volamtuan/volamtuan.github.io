@@ -1,4 +1,15 @@
-#!/bin/sh
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+setup_environment() {
+    echo "Cài đặt các gói cần thiết"
+    yum -y install gcc net-tools bsdtar zip make >/dev/null
+    yum install make wget curl jq git iptables-services -y >/dev/null
+    sudo yum update -y >/dev/null
+    sudo yum install ipv6toolkit -y >/dev/null
+    sudo apt-get update >/dev/null
+    sudo apt-get install ipv6toolkit >/dev/null
+}
 
 # Hàm tạo chuỗi ngẫu nhiên
 random() {
@@ -26,8 +37,8 @@ install_3proxy() {
     mkdir -p /usr/local/etc/3proxy/logs
     mkdir -p /usr/local/etc/3proxy/stat
     cp src/3proxy /usr/local/etc/3proxy/bin/
-    cp ./scripts/rc.d/proxy.sh /etc/init.d/3proxy
-    chmod +x /etc/init.d/3proxy
+    #cp ./scripts/rc.d/proxy.sh /etc/init.d/3proxy
+    #chmod +x /etc/init.d/3proxy
     chkconfig 3proxy on
     cd $WORKDIR
 }

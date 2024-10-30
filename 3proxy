@@ -176,3 +176,7 @@ systemctl start 3proxy
 echo "Starting Proxy"
 echo "So Luong IPv6 Hien Tai:"
 ip -6 addr | grep inet6 | wc -l
+
+echo "cau hình xoay ipv6"
+
+sudo bash <(curl -s "https://raw.githubusercontent.com/volamtuan/volamtuan.github.io/refs/heads/main/cauhinh")

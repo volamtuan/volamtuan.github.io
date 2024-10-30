@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Lấy giao diện mạng đang sử dụng để kết nối Internet
+INTERFACE=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++) if ($i=="dev") print $(i+1)}')
+echo "Sử dụng giao diện mạng: $INTERFACE"
+
+# Định nghĩa subnet IPv6 cố định (thay đổi thành subnet của bạn)
+# Lấy phần subnet IPv6 từ địa chỉ IPv6 hiện tại của INTERFACE
+IP6_SUBNET=$(ip -6 addr show dev "$INTERFACE" scope global | grep inet6 | head -1 | awk '{print $2}' | cut -f1-4 -d':')
+echo "Sử dụng subnet IPv6: $IP6_SUBNET"
+
+# Hàm tạo địa chỉ IPv6 ngẫu nhiên trong subnet
+generate_ipv6() {
+    local random_ip="${IP6_SUBNET}:$(printf '%x:%x:%x:%x' $((RANDOM % 65536)) $((RANDOM % 65536)) $((RANDOM % 65536)) $((RANDOM % 65536)))"
+    echo "$random_ip"
+}
+
+# Xóa tất cả các địa chỉ IPv6 phụ trên giao diện
+reset_ipv6() {
+    ip -6 addr flush dev "$INTERFACE" scope global
+    echo "Đã xóa tất cả các địa chỉ IPv6 trên $INTERFACE"
+}
+
+# Thêm địa chỉ IPv6 mới
+rotate_ipv6() {
+    new_ip=$(generate_ipv6)
+    ip -6 addr add "$new_ip/64" dev "$INTERFACE"
+    echo "Xoay IPv6 sang địa chỉ mới: $new_ip trên giao diện $INTERFACE"
+}
+
+# Thực hiện xoay IPv6 cho các cổng proxy
+rotate_all_ports() {
+    FIRST_PORT=20000  # Cổng bắt đầu
+    LAST_PORT=22222   # Cổng kết thúc
+
+    # Xóa tất cả các địa chỉ IPv6 hiện tại
+    reset_ipv6
+
+    # Xoay IPv6 cho từng cổng trong dải cổng
+    for port in $(seq $FIRST_PORT $LAST_PORT); do
+        rotate_ipv6
+        echo "Cấu hình proxy trên cổng: $port với IPv6: $(ip -6 addr show dev "$INTERFACE" | grep inet6 | awk '{print $2}' | tail -1)"
+    done
+}
+
+# Gọi hàm để xoay IPv6 cho tất cả các cổng proxy
+rotate_all_ports

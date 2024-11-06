@@ -1,0 +1,103 @@
+#!/bin/bash
+
+# Bước 1: Tạo Dockerfile
+echo "Tạo Dockerfile cho Docker image..."
+cat <<EOF > Dockerfile
+FROM ubuntu
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Cài đặt các gói cần thiết
+RUN apt-get update && \
+    apt-get install -y tor privoxy curl net-tools && \
+    rm -rf /var/lib/apt/lists/*
+
+# Sao chép script khởi động vào container
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
+# Mở một dải cổng cho Privoxy và Tor
+EXPOSE 20000-25000 10000-15000
+
+# Chạy script khởi động khi container khởi động
+CMD ["/start.sh"]
+EOF
+
+# Bước 2: Tạo script khởi động cho nhiều phiên bản Tor và Privoxy
+echo "Tạo start.sh để khởi động nhiều phiên bản Tor và Privoxy..."
+cat <<'EOF' > start.sh
+#!/bin/bash
+
+# Số lượng phiên bản muốn chạy
+NUM_INSTANCES=50  # Điều chỉnh số lượng phiên bản trong một container
+
+for i in $(seq 1 $NUM_INSTANCES)
+do
+  # Tính toán cổng cho Privoxy (HTTP) và Tor (SOCKS5)
+  port_http=$((20000 + i - 1))
+  port_socks=$((10000 + i - 1))
+
+  # Tạo cấu hình cho Privoxy
+  privoxy_config="/etc/privoxy/config_$i"
+  cat <<EOF_CONFIG > $privoxy_config
+listen-address 0.0.0.0:$port_http
+forward-socks5t / 127.0.0.1:$port_socks .
+EOF_CONFIG
+
+  # Tạo cấu hình cho Tor
+  tor_config="/etc/tor/torrc_$i"
+  cat <<EOF_CONFIG > $tor_config
+SocksPort 127.0.0.1:$port_socks
+Log notice stdout
+NewCircuitPeriod 30
+CookieAuthentication 1
+MaxCircuitDirtiness 3600
+ExitNodes {ca}, {uk}, {lu}, {us}, {eu}, {lu}, {mx}
+StrictNodes 1
+EOF_CONFIG
+
+  # Khởi động Privoxy và Tor
+  privoxy --no-daemon $privoxy_config &
+  tor -f $tor_config &
+done
+
+# Duy trì container hoạt động
+/bin/bash -c "trap : TERM INT; sleep infinity & wait"
+EOF
+
+# Bước 3: Build Docker image
+echo "Build Docker image..."
+docker build -t docker-multi-tor .
+
+# Bước 4: Khởi động nhiều container với dải cổng tùy chỉnh
+echo "Khởi động nhiều container với dải cổng tùy chỉnh..."
+NUM_CONTAINERS=10  # Số lượng container muốn chạy
+PORTS_PER_CONTAINER=100  # Số lượng cổng cho mỗi container
+
+for k in $(seq 1 $NUM_CONTAINERS)
+do
+  echo "Starting container group $k..."
+
+  # Xác định dải cổng cho mỗi container
+  start_http=$((20000 + PORTS_PER_CONTAINER * (k - 1)))
+  end_http=$((start_http + PORTS_PER_CONTAINER - 1))
+
+  start_socks=$((10000 + PORTS_PER_CONTAINER * (k - 1)))
+  end_socks=$((start_socks + PORTS_PER_CONTAINER - 1))
+
+  # Khởi động container
+  docker run --restart=always -d \
+    $(for i in $(seq $start_http $end_http); do echo -p $i:$i; done) \
+    $(for j in $(seq $start_socks $end_socks); do echo -p $j:$j; done) \
+    docker-multi-tor
+
+  # Kiểm tra lỗi
+  if [ $? -ne 0 ]; then
+    echo "Failed to start container group $k. Exiting loop."
+    break
+  fi
+
+  # Nghỉ 1 giây để giảm tải
+  sleep 1
+done
+
+echo "Hoàn thành quá trình cài đặt và khởi động các container!"

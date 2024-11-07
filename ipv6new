@@ -1,0 +1,48 @@
+# Kiểm tra trạng thái kết nối và chỉ thay đổi nếu cổng đang sử dụng
+check_connection() {
+    local port=$1
+    ss -tuln | grep ":$port" > /dev/null
+    return $?
+}
+
+# Cập nhật IPv6 một cách an toàn
+safe_update_ipv6() {
+    local port=$1
+    current_ip=$(awk -v port="$port" -F "/" '$4 == port {print $5}' ${WORKDATA})
+
+    # Kiểm tra xem cổng có kết nối không
+    if check_connection $port; then
+        # Gán IPv6 mới trước
+        new_ip6=$(gen64 $IP6)
+        ip -6 addr add "$new_ip6/64" dev $interface
+
+        # Cập nhật lại dữ liệu trong WORKDATA
+        sed -i "s/$port\/$current_ip/$port\/$new_ip6/" ${WORKDATA}
+        
+        # Kiểm tra lại cổng đã có kết nối với IPv6 mới chưa
+        if check_connection $port; then
+            # Xóa IPv6 cũ sau khi kết nối ổn định
+            ip -6 addr del "$current_ip/64" dev $interface
+            echo "Cập nhật IPv6 cho cổng $port thành $new_ip6"
+        else
+            echo "Không thể kết nối với IPv6 mới. Giữ nguyên cổng $port"
+            # Xóa IPv6 mới nếu kết nối không thành công
+            ip -6 addr del "$new_ip6/64" dev $interface
+        fi
+    else
+        echo "Cổng $port không có kết nối, không cập nhật IPv6."
+    fi
+}
+
+# Tự động cập nhật IPv6 cho các cổng
+auto_update_ipv6() {
+    seq $FIRST_PORT $LAST_PORT | while read port; do
+        safe_update_ipv6 $port
+    done
+}
+
+# Thiết lập cron job để tự động cập nhật IPv6
+setup_auto_ipv6_update() {
+    echo "Thiết lập tự động cập nhật IPv6 mỗi phút..."
+    (crontab -l 2>/dev/null; echo "* * * * * /bin/bash $0 auto_update_ipv6") | crontab -
+}

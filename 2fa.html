@@ -152,6 +152,14 @@
             if (code) {
                 codeElement.textContent = code;
                 countdownElement.style.display = 'block'; // Hiển thị thời gian đếm ngược
+                // Tự động sao chép mã TOTP vào clipboard
+                navigator.clipboard.writeText(code)
+                    .then(() => {
+                        console.log('2FA code copied to clipboard');
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy code to clipboard: ', err);
+                    });
             } else {
                 codeElement.textContent = 'Key không hợp lệ';
                 countdownElement.style.display = 'none'; // Ẩn thời gian đếm ngược nếu key không hợp lệ
@@ -199,19 +207,6 @@
             }
         }, 1000);
 
-        // Thêm sự kiện nhấp vào mã TOTP để sao chép
-        document.getElementById('auth-code').addEventListener('click', function () {
-            const code = this.textContent.trim();
-            if (code && code !== '' && code !== 'Key không hợp lệ') {
-                navigator.clipboard.writeText(code)
-                    .then(() => {
-                        alert('2FA đã được sao chép');
-                    })
-                    .catch(err => {
-                        console.error('Không thể sao chép mã 2FA: ', err);
-                    });
-            }
-        });
     </script>
 
 </body>

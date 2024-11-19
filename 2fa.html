@@ -2,10 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2FA Authentication</title>
     <style>
-        /* CSS tùy chỉnh */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -72,7 +71,6 @@
             background-color: #c82333;
         }
     </style>
-    <!-- Thêm thư viện jsSHA -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/2.4.2/sha.js"></script>
 </head>
 <body>
@@ -86,7 +84,6 @@
     </div>
 
     <script>
-        // Hàm chuyển đổi base32 sang hex
         function base32tohex(base32) {
             const base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
             let bits = "";
@@ -111,7 +108,6 @@
             return hex;
         }
 
-        // Hàm tạo mã TOTP
         function generateTOTP(secret) {
             try {
                 const epoch = Math.floor(Date.now() / 1000);
@@ -135,7 +131,7 @@
             }
         }
 
-        // Hàm cập nhật mã TOTP
+        // Hàm cập nhật mã TOTP và tự động sao chép
         function updateCode() {
             const secretInput = document.getElementById('secret-key');
             const secret = secretInput.value.trim().replace(/\s+/g, ''); // Loại bỏ khoảng trắng
@@ -152,13 +148,14 @@
             if (code) {
                 codeElement.textContent = code;
                 countdownElement.style.display = 'block'; // Hiển thị thời gian đếm ngược
+
                 // Tự động sao chép mã TOTP vào clipboard
                 navigator.clipboard.writeText(code)
                     .then(() => {
-                        console.log('2FA code copied to clipboard');
+                        console.log('Mã TOTP đã được sao chép!');
                     })
                     .catch(err => {
-                        console.error('Failed to copy code to clipboard: ', err);
+                        console.error('Không thể sao chép mã TOTP: ', err);
                     });
             } else {
                 codeElement.textContent = 'Key không hợp lệ';
@@ -193,8 +190,21 @@
 
         // Lắng nghe sự kiện thay đổi trong ô nhập liệu
         document.getElementById('secret-key').addEventListener('input', function () {
-            updateCode();
+            updateCode(); // Cập nhật mã TOTP khi có sự thay đổi
             updateCountdown(); // Cập nhật thời gian đếm ngược khi key thay đổi
+
+            // Tự động sao chép auth-code ngay sau khi mã TOTP được tạo
+            const codeElement = document.getElementById('auth-code');
+            const code = codeElement.textContent.trim();
+            if (code && code !== '' && code !== 'Key không hợp lệ') {
+                navigator.clipboard.writeText(code)
+                    .then(() => {
+                        console.log('Mã TOTP đã được sao chép tự động!');
+                    })
+                    .catch(err => {
+                        console.error('Không thể sao chép mã TOTP: ', err);
+                    });
+            }
         });
 
         // Cập nhật mã TOTP và thời gian đếm ngược mỗi giây
@@ -207,7 +217,41 @@
             }
         }, 1000);
 
-    </script>
+        // Lắng nghe sự kiện click trên auth-code để sao chép khi nhấp vào mã
+        document.getElementById('auth-code').addEventListener('click', function () {
+            const code = this.textContent.trim();
+            if (code && code !== 'Key không hợp lệ') {
+                navigator.clipboard.writeText(code)
+                    .then(() => {
+                        console.log('Mã TOTP đã được sao chép!');
+                    })
+                    .catch(err => {
+                        console.error('Không thể sao chép mã TOTP: ', err);
+                    });
+            }
+        });
 
+        // Hàm tự động dán nội dung từ clipboard vào ô nhập liệu
+        async function autoPaste() {
+            try {
+                const text = await navigator.clipboard.readText();
+                const secretInput = document.getElementById('secret-key');
+                secretInput.value = text.trim();
+                updateCode();
+                updateCountdown();
+            } catch (err) {
+                console.error('Không thể dán nội dung từ clipboard:', err);
+            }
+        }
+
+        // Lắng nghe sự kiện dán
+        document.getElementById('secret-key').addEventListener('paste', function () {
+            setTimeout(updateCode, 0); // Đợi dữ liệu được dán trước khi xử lý
+        });
+
+        // Tự động dán nội dung khi mở trang
+        window.onload = autoPaste;
+
+    </script>
 </body>
 </html>

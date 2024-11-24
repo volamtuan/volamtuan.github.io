@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiểm Tra Proxy</title>
+
+    <!-- jQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
+    <style>
+        /* Cấu trúc chung */
+        html {
+            padding-bottom: 120px;
+            min-height: 100%;
+            box-sizing: border-box;
+            position: relative;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            color: #494949;
+            font-size: 1.1em;
+            background-color: #fefefe;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .content {
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        /* Khung form */
+        form {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        textarea, select, input[type="submit"] {
+            width: 100%;
+            margin-bottom: 20px;
+            padding: 10px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        select {
+            background-color: #f9f9f9;
+        }
+
+        input[type="submit"] {
+            background-color: #51c7f9;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #08a9ed;
+        }
+
+        /* Khu vực hiển thị proxy */
+        .proxy-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        .proxy-box {
+            width: 48%;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .proxy-box h5 {
+            margin-bottom: 10px;
+            font-size: 1.2em;
+            color: #333;
+        }
+
+        .proxy-box textarea {
+            font-family: monospace;
+            font-size: 1em;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            resize: none;
+        }
+
+        .btn-copy {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 12px;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+
+        .btn-copy:hover {
+            background-color: #218838;
+        }
+
+        /* Thông báo thành công */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px;
+            background: #4CAF50;
+            color: #fff;
+            border-radius: 5px;
+            font-size: 14px;
+            display: none;
+            z-index: 9999;
+        }
+
+        /* Phản hồi từ các proxy */
+        .live-heading, .die-heading {
+            font-size: 1.3em;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .live-heading {
+            color: #28a745;
+        }
+
+        .die-heading {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="content">
+        <h1>Kiểm Tra Proxy</h1>
+
+        <form id="proxy-form">
+            <textarea name="ip_proxy" placeholder="Nhập danh sách proxy, mỗi proxy một dòng..."></textarea>
+            <select name="selected_proxy">
+                <option value="http" selected>HTTP</option>
+                <option value="socks5">SOCKS5</option>
+            </select>
+            <input type="submit" value="Kiểm Tra Proxy" />
+        </form>
+
+        <div class="proxy-container">
+            <div class="proxy-box" id="live-proxy-container">
+                <h5 class="live-heading">Proxy LIVE</h5>
+                <textarea id="live-proxies" rows="4" readonly></textarea>
+                <a href="#" class="btn-copy" id="copy-live">Sao chép LIVE</a>
+            </div>
+            <div class="proxy-box" id="die-proxy-container">
+                <h5 class="die-heading">Proxy DIE</h5>
+                <textarea id="die-proxies" rows="4" readonly></textarea>
+                <a href="#" class="btn-copy" id="copy-die">Sao chép DIE</a>
+            </div>
+        </div>
+
+        <div id="result-container"></div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        $(document).ready(function() {
+
+            function showToast(message) {
+                var toast = $('#toast');
+                toast.text(message).fadeIn(400).delay(2000).fadeOut(400);
+            }
+
+            function copyToClipboard(elementId) {
+                var textarea = document.getElementById(elementId);
+                textarea.select();
+                document.execCommand('copy');
+                showToast('Đã sao chép vào clipboard!');
+            }
+
+            // Bấm nút Copy LIVE
+            $("#copy-live").click(function() {
+                copyToClipboard("live-proxies");
+            });
+
+            // Bấm nút Copy DIE
+            $("#copy-die").click(function() {
+                copyToClipboard("die-proxies");
+            });
+
+            $("#proxy-form").submit(function(event) {
+                event.preventDefault();
+                var proxies = $(this).find('textarea[name="ip_proxy"]').val().split('\n');
+                var selectedProxy = $(this).find('select[name="selected_proxy"]').val();
+
+                if (proxies.length > 1000) {
+                    alert("Bạn chỉ được kiểm tra tối đa 1000 proxy mỗi lần.");
+                    return;
+                }
+
+                $("#live-proxies").val('');
+                $("#die-proxies").val('');
+                var chunkSize = 10;
+                var chunks = [];
+
+                for (var i = 0; i < proxies.length; i += chunkSize) {
+                    chunks.push(proxies.slice(i, i + chunkSize));
+                }
+
+                checkProxiesSequentially(chunks, selectedProxy);
+            });
+
+            function checkProxiesSequentially(chunks, selectedProxy) {
+                var liveCount = 0;
+                var dieCount = 0;
+                var remainingProxiesCount = chunks.flat().length;
+
+                chunks.forEach(function(chunk, index) {
+                    var ajaxRequests = chunk.map(function(proxy) {
+                        return new Promise(function(resolve) {
+                            $.ajax({
+                                type: "POST",
+                                url: "http://103.161.17.194:3000/check-proxies",
+                                contentType: "application/json",
+                                data: JSON.stringify({
+                                    proxies: [proxy.trim()],
+                                    proxyType: selectedProxy
+                                }),
+                                success: function(response) {
+                                    response.live.forEach(function(proxyData) {
+                                        liveCount++;
+                                        $("#live-proxies").val(function(_, val) {
+                                            return val + proxyData.proxy + " - " + proxyData.ip + " - " + proxyData.country + "\n";
+                                        });
+                                    });
+                                    response.dead.forEach(function(proxyData) {
+                                        dieCount++;
+                                        $("#die-proxies").val(function(_, val) {
+                                            return val + proxyData.proxy + " - " + proxyData.ip + "\n";
+                                        });
+                                    });
+
+                                    remainingProxiesCount--;
+                                    $("#result-container").html("Còn lại " + remainingProxiesCount + " proxy. (LIVE: " + liveCount + " / DIE: " + dieCount + ")");
+                                    resolve();
+                                }
+                            });
+                        });
+                    });
+
+                    Promise.all(ajaxRequests).then(function() {
+                        if (index === chunks.length - 1) {
+                            $("#result-container").html("Đã kiểm tra xong tất cả proxy. (LIVE: " + liveCount + " / DIE: " + dieCount + ")");
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

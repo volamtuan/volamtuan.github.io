@@ -1,162 +1,123 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kiểm Tra Email qua Proxy</title>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-
-    <style>
-        /* Cấu trúc chung */
-        html {
-            padding-bottom: 120px;
-            min-height: 100%;
-            box-sizing: border-box;
-            position: relative;
-            font-family: Arial, sans-serif;
-        }
-
+<style>
         body {
-            color: #494949;
-            font-size: 1.1em;
-            background-color: #fefefe;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
-
-        .content {
-            width: 100%;
-            max-width: 1200px;
-            padding: 20px;
-        }
-
-        h1 {
-            text-align: center;
-            font-size: 2.5em;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
             color: #333;
-            margin-bottom: 30px;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
 
-        /* Khung form */
-        form {
-            background: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 900px;
         }
 
-        textarea, select, input[type="submit"] {
-            width: 100%;
+        h2 {
+            color: #4CAF50;
+            text-align: center;
+            font-size: 24px;
             margin-bottom: 20px;
-            padding: 10px;
-            font-size: 1em;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-sizing: border-box;
+        }
+
+        h3 {
+            color: #444;
+            margin-top: 30px;
+            font-size: 20px;
+        }
+
+        form {
+            margin-bottom: 20px;
         }
 
         textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
             resize: vertical;
-            min-height: 120px;
         }
 
-        select {
-            background-color: #f9f9f9;
-        }
-
-        input[type="submit"] {
-            background-color: #51c7f9;
+        button {
+            background-color: #4CAF50;
             color: white;
             border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 4px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            margin-top: 15px;
+            width: 100%;
         }
 
-        input[type="submit"]:hover {
-            background-color: #08a9ed;
+        button:hover {
+            background-color: #45a049;
         }
 
-        /* Khu vực hiển thị proxy */
-        .proxy-container {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 30px;
-        }
-
-        .proxy-box {
-            width: 48%;
-            background-color: #fff;
-            padding: 15px;
-            border-radius: 5px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .proxy-box h5 {
-            margin-bottom: 10px;
-            font-size: 1.2em;
-            color: #333;
-        }
-
-        .proxy-box textarea {
-            font-family: monospace;
-            font-size: 1em;
+        #result-container {
+            margin-top: 20px;
+            font-size: 16px;
             padding: 10px;
             border: 1px solid #ccc;
-            border-radius: 5px;
+            border-radius: 4px;
             background-color: #f9f9f9;
-            resize: none;
         }
 
-        .btn-copy {
-            display: inline-block;
-            margin-top: 10px;
-            padding: 8px 12px;
-            background-color: #28a745;
-            color: white;
-            border-radius: 5px;
-            text-decoration: none;
-        }
-
-        .btn-copy:hover {
-            background-color: #218838;
-        }
-
-        /* Thông báo thành công */
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px;
-            background: #4CAF50;
-            color: #fff;
-            border-radius: 5px;
+        .proxy-list {
+            width: 100%;
+            padding: 12px;
             font-size: 14px;
-            display: none;
-            z-index: 9999;
-        }
-
-        /* Phản hồi từ các proxy */
-        .live-heading, .die-heading {
-            font-size: 1.3em;
-            font-weight: bold;
-            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #f1f1f1;
+            resize: vertical;
+            height: 150px;
+            margin-top: 10px;
             margin-bottom: 10px;
+            font-family: monospace;
         }
 
-        .live-heading {
-            color: #28a745;
-        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+                width: 100%;
+            }
 
-        .die-heading {
-            color: #dc3545;
+            textarea {
+                font-size: 12px;
+                padding: 8px;
+            }
+
+            button {
+                padding: 10px;
+                font-size: 14px;
+            }
+
+            h2 {
+                font-size: 20px;
+            }
+
+            h3 {
+                font-size: 18px;
+            }
         }
     </style>
 </head>
 <body>
+
+</head>
+<body>
+
+        <div class="container">
     <h1>Kiểm Tra Email qua Proxy</h1>
     <textarea id="emailList" rows="10" cols="50" placeholder="Nhập danh sách email, mỗi email cách nhau bằng dấu phẩy hoặc xuống dòng..."></textarea>
     <br><br>

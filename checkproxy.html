@@ -91,21 +91,39 @@
             font-size: 14px;
             margin-top: 10px;
         }
+
+        .summary {
+            margin-top: 20px;
+            font-size: 16px;
+        }
+
+        .summary span {
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
 
-    <div class="center-container">
+    <div class="container">
         <h1>Proxy Checker with Authentication</h1>
-        <textarea id="proxyInput" placeholder="Nhập danh sách proxy, mỗi proxy một dòng..."></textarea>
+        <p><span>Tổng số proxy:</span> <span id="total-proxies">0</span></p>
+        <textarea id="proxyInput" placeholder="Nhập list proxy một dòng Ví dụ: 192.168.0.1:8080 hoặc 192.168.0.1:8080:user:password"></textarea>
 
         <button id="checkButton">Kiểm tra Proxy</button>
 
         <div class="results" id="results"></div>
+        <div class="summary" id="summary">
+       
+           
+        <p><span>Proxy LIVE:</span> <span id="live-count">0</span></p>
+        <textarea id="live-proxies" class="proxy-list" readonly></textarea><br>
 
-        <h3></h3>
-        <textarea id="live-proxies" class="proxy-list" readonly" placeholder="Danh Sách Proxy LIVE"></textarea><br>
-        <textarea id="die-proxies" class="proxy-list" readonly" placeholder="Danh Sách Proxy DIE"></textarea><br>
+        <p><span>Proxy LIVE:</span> <span id="live-count">0</span></p>
+        <textarea id="die-proxies" class="proxy-list" readonly></textarea><br>
+
+       
+
+        </div>
     </div>
 
     <script>
@@ -114,6 +132,9 @@
             const resultsDiv = document.getElementById('results');
             const liveProxiesTextarea = document.getElementById('live-proxies');
             const dieProxiesTextarea = document.getElementById('die-proxies');
+            const totalProxiesSpan = document.getElementById('total-proxies');
+            const liveCountSpan = document.getElementById('live-count');
+            const dieCountSpan = document.getElementById('die-count');
 
             resultsDiv.innerHTML = '';  // Clear previous results
             liveProxiesTextarea.value = '';  // Clear live proxies
@@ -128,6 +149,10 @@
             this.textContent = 'Đang kiểm tra...';
 
             const proxies = proxyInput.split('\n').map(proxy => proxy.trim()).filter(proxy => proxy);
+            let liveCount = 0;
+            let dieCount = 0;
+
+            totalProxiesSpan.textContent = proxies.length;  // Cập nhật tổng số proxy
 
             // Kiểm tra từng proxy ngay lập tức và cập nhật kết quả
             proxies.forEach(proxy => {
@@ -142,17 +167,29 @@
                 .then(data => {
                     if (data.error) {
                         dieProxiesTextarea.value += proxy + '\n';  // Thêm proxy vào danh sách DIE ngay lập tức
+                        dieCount++;
                     } else {
                         const { status, proxy: checkedProxy, ip, country } = data;
                         if (status === 'LIVE') {
-                            liveProxiesTextarea.value += `${checkedProxy} | IP: ${ip} | Quốc gia: ${country}\n`;  // Thêm proxy vào danh sách LIVE ngay lập tức
+                            liveProxiesTextarea.value += `Proxy: ${checkedProxy} | IP: ${ip} | Quốc gia: ${country}\n`;  // Thêm proxy vào danh sách LIVE ngay lập tức
+                            liveCount++;
                         } else {
                             dieProxiesTextarea.value += proxy + '\n';  // Thêm proxy vào danh sách DIE ngay lập tức
+                            dieCount++;
                         }
                     }
+
+                    // Cập nhật số lượng proxy live và die
+                    liveCountSpan.textContent = liveCount;
+                    dieCountSpan.textContent = dieCount;
                 })
                 .catch(error => {
                     dieProxiesTextarea.value += proxy + '\n';  // Thêm proxy vào danh sách DIE nếu có lỗi
+                    dieCount++;
+
+                    // Cập nhật số lượng proxy live và die
+                    liveCountSpan.textContent = liveCount;
+                    dieCountSpan.textContent = dieCount;
                 });
             });
 

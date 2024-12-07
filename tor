@@ -57,14 +57,13 @@ fi
 # Cài đặt cấu hình cho Tor
 log "Downloading new Tor configuration..."
 sudo rm -f /etc/tor/torrc
-sudo curl -o /etc/tor/torrc https://volamtuan.github.io/torrc
+sudo curl -o /etc/tor/torrc https://volamtuan.github.io/torrc1
 
 # Khởi động lại dịch vụ Tor
 log "Restarting Tor service..."
 sudo systemctl restart tor
 sudo systemctl enable tor
-ỏ
-
+sudo systemctl start tor
 log "Installation and configuration completed successfully!"
 
 # Kiểm tra trạng thái của các cổng đang mở

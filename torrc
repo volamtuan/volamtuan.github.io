@@ -5196,11 +5196,19 @@ SocksPort 0.0.0.0:50997
 SocksPort 0.0.0.0:50998
 SocksPort 0.0.0.0:50999
 SocksPort 0.0.0.0:51000
-NewCircuitPeriod 300
-CookieAuthentication 1
 MaxCircuitDirtiness 3600
+NewCircuitPeriod 300
+BandwidthRate 1 MB
+BandwidthBurst 1 MB
+DNSPort 0
+UseEntryGuards 0
+AutomapHostsOnResolve 0
+BandwidthRate 1 MB
+BandwidthBurst 1 MB
+CookieAuthentication 1
+LearnCircuitBuildTimeout 1
+ExitRelay 0
 EntryNodes {fi},{no},{pl},{fr},{hr},{ch},{lu},{bg},{se},{lt},{de},{cz},{ro},{nl},{gb}
 MiddleNodes {fi},{no},{pl},{fr},{hr},{md},{ch},{it},{lu},{bg},{se},{lt},{dk},{de},{cz},{ro},{nl},{hu},{gb},{at}
-ExitNodes {us},{pl},{fr},{ch},{lu},{se},{de},{ro},{nl},{at}
+ExitNodes {us},{ca},{uk}
 StrictNodes 1
-

@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# Số lượng container cần tạo
+NUM_CONTAINERS=500
+
+# Mảng chứa các cổng đã được sử dụng
+PORT_8119_START=8119
+PORT_9050_START=9050
+
+# Ngưỡng tài nguyên
+MIN_RAM_MB=500    # RAM tối thiểu còn trống (MB)
+MAX_CPU_USAGE=80  # Mức sử dụng CPU tối đa (%)
+
+# Hàm kiểm tra tài nguyên hệ thống
+check_system_resources() {
+    # Kiểm tra RAM (dung lượng RAM còn trống)
+    available_memory=$(free -m | awk '/Mem:/ { print $7 }')  # MB
+
+    # Kiểm tra CPU (mức sử dụng CPU hiện tại)
+    cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print 100 - $8}')
+
+    # Kiểm tra nếu không đủ tài nguyên
+    if [ "$available_memory" -lt "$MIN_RAM_MB" ]; then
+        echo "Không đủ RAM! Cần ít nhất $MIN_RAM_MB MB. RAM còn lại: $available_memory MB."
+        return 1
+    fi
+
+    if (( $(echo "$cpu_usage > $MAX_CPU_USAGE" | bc -l) )); then
+        echo "Mức sử dụng CPU quá cao! Đang sử dụng $cpu_usage%. Giới hạn: $MAX_CPU_USAGE%."
+        return 1
+    fi
+
+    return 0
+}
+
+for i in $(seq 0 $((NUM_CONTAINERS - 1))); do
+    # Kiểm tra tài nguyên trước khi tạo container
+    check_system_resources
+    if [ $? -ne 0 ]; then
+        echo "Tài nguyên không đủ. Dừng việc tạo container."
+        exit 1
+    fi
+
+    # Tạo tên container
+    CONTAINER_NAME="tor$i"
+
+    # Xác định các cổng
+    PORT_8119=$((PORT_8119_START + i))
+    PORT_9050=$((PORT_9050_START + i))
+
+    # Chạy container Docker
+    docker run --restart=always -d \
+        --name "$CONTAINER_NAME" \
+        -p "$PORT_8119:8119" -p "$PORT_9050:9050" \
+        -e "TOR_COUNTRY=US" -e "TOR_REBUILD_INTERVAL=3600" \
+        vltpro/tor
+
+    if [ $? -eq 0 ]; then
+        echo "Đã tạo container $CONTAINER_NAME với các cổng: $PORT_8119, $PORT_9050"
+    else
+        echo "Lỗi khi tạo container $CONTAINER_NAME"
+    fi
+done

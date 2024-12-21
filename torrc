@@ -1,0 +1,1208 @@
+## Configuration file for a typical Tor user
+## Last updated 9 October 2013 for Tor 0.2.5.2-alpha.
+## (may or may not work for much older or much newer versions of Tor.)
+##
+## Lines that begin with "## " try to explain what's going on. Lines
+## that begin with just "#" are disabled commands: you can enable them
+## by removing the "#" symbol.
+##
+## See 'man tor', or https://www.torproject.org/docs/tor-manual.html,
+## for more options you can use in this file.
+##
+## Tor will look for this file in various places based on your platform:
+## https://www.torproject.org/docs/faq#torrc
+
+## Tor opens a socks proxy on port 9050 by default -- even if you don't
+## configure one below. Set "SocksPort 0" if you plan to run Tor only
+## as a relay, and not make any local application connections yourself.
+#SocksPort 9050 # Default: Bind to localhost:9050 for local connections.
+#SocksPort 192.168.0.1:9100 # Bind to this address:port too.
+
+## Entry policies to allow/deny SOCKS requests based on IP address.
+## First entry that matches wins. If no SocksPolicy is set, we accept
+## all (and only) requests that reach a SocksPort. Untrusted users who
+## can access your SocksPort may be able to learn about the connections
+## you make.
+#SocksPolicy accept 192.168.0.0/16
+#SocksPolicy reject *
+
+## Logs go to stdout at level "notice" unless redirected by something
+## else, like one of the below lines. You can have as many Log lines as
+## you want.
+##
+## We advise using "notice" in most cases, since anything more verbose
+## may provide sensitive information to an attacker who obtains the logs.
+##
+## Send all messages of level 'notice' or higher to /var/log/tor/notices.log
+#Log notice file /var/log/tor/notices.log
+## Send every possible message to /var/log/tor/debug.log
+#Log debug file /var/log/tor/debug.log
+## Use the system log instead of Tor's logfiles
+#Log notice syslog
+## To send all messages to stderr:
+#Log debug stderr
+
+## Uncomment this to start the process in the background... or use
+## --runasdaemon 1 on the command line. This is ignored on Windows;
+## see the FAQ entry if you want Tor to run as an NT service.
+#RunAsDaemon 1
+
+## The directory for keeping all the keys/etc. By default, we store
+## things in $HOME/.tor on Unix, and in Application Data\tor on Windows.
+#DataDirectory /var/lib/tor
+
+## The port on which Tor will listen for local connections from Tor
+## controller applications, as documented in control-spec.txt.
+#ControlPort 9051
+## If you enable the controlport, be sure to enable one of these
+## authentication methods, to prevent attackers from accessing it.
+#HashedControlPassword 16:872860B76453A77D60CA2BB8C1A7042072093276A3D701AD684053EC4C
+#CookieAuthentication 1
+
+############### This section is just for location-hidden services ###
+
+## Once you have configured a hidden service, you can look at the
+## contents of the file ".../hidden_service/hostname" for the address
+## to tell people.
+##
+## HiddenServicePort x y:z says to redirect requests on port x to the
+## address y:z.
+
+#HiddenServiceDir /var/lib/tor/hidden_service/
+#HiddenServicePort 80 127.0.0.1:80
+
+#HiddenServiceDir /var/lib/tor/other_hidden_service/
+#HiddenServicePort 80 127.0.0.1:80
+#HiddenServicePort 22 127.0.0.1:22
+
+################ This section is just for relays #####################
+#
+## See https://www.torproject.org/docs/tor-doc-relay for details.
+
+## Required: what port to advertise for incoming Tor connections.
+#ORPort 9001
+## If you want to listen on a port other than the one advertised in
+## ORPort (e.g. to advertise 443 but bind to 9090), you can do it as
+## follows.  You'll need to do ipchains or other port forwarding
+## yourself to make this work.
+#ORPort 443 NoListen
+#ORPort 127.0.0.1:9090 NoAdvertise
+
+## The IP address or full DNS name for incoming connections to your
+## relay. Leave commented out and Tor will guess.
+#Address noname.example.com
+
+## If you have multiple network interfaces, you can specify one for
+## outgoing traffic to use.
+# OutboundBindAddress 10.0.0.5
+
+## A handle for your relay, so people don't have to refer to it by key.
+#Nickname ididnteditheconfig
+
+## Define these to limit how much relayed traffic you will allow. Your
+## own traffic is still unthrottled. Note that RelayBandwidthRate must
+## be at least 20 KB.
+## Note that units for these config options are bytes per second, not bits
+## per second, and that prefixes are binary prefixes, i.e. 2^10, 2^20, etc.
+#RelayBandwidthRate 100 KB  # Throttle traffic to 100KB/s (800Kbps)
+#RelayBandwidthBurst 200 KB # But allow bursts up to 200KB/s (1600Kbps)
+
+## Use these to restrict the maximum traffic per day, week, or month.
+## Note that this threshold applies separately to sent and received bytes,
+## not to their sum: setting "4 GB" may allow up to 8 GB total before
+## hibernating.
+##
+## Set a maximum of 4 gigabytes each way per period.
+#AccountingMax 4 GB
+## Each period starts daily at midnight (AccountingMax is per day)
+#AccountingStart day 00:00
+## Each period starts on the 3rd of the month at 15:00 (AccountingMax
+## is per month)
+#AccountingStart month 3 15:00
+
+## Administrative contact information for this relay or bridge. This line
+## can be used to contact you if your relay or bridge is misconfigured or
+## something else goes wrong. Note that we archive and publish all
+## descriptors containing these lines and that Google indexes them, so
+## spammers might also collect them. You may want to obscure the fact that
+## it's an email address and/or generate a new address for this purpose.
+#ContactInfo Random Person <nobody AT example dot com>
+## You might also include your PGP or GPG fingerprint if you have one:
+#ContactInfo 0xFFFFFFFF Random Person <nobody AT example dot com>
+
+## Uncomment this to mirror directory information for others. Please do
+## if you have enough bandwidth.
+#DirPort 9030 # what port to advertise for directory connections
+## If you want to listen on a port other than the one advertised in
+## DirPort (e.g. to advertise 80 but bind to 9091), you can do it as
+## follows.  below too. You'll need to do ipchains or other port
+## forwarding yourself to make this work.
+#DirPort 80 NoListen
+#DirPort 127.0.0.1:9091 NoAdvertise
+## Uncomment to return an arbitrary blob of html on your DirPort. Now you
+## can explain what Tor is if anybody wonders why your IP address is
+## contacting them. See contrib/tor-exit-notice.html in Tor's source
+## distribution for a sample.
+#DirPortFrontPage /etc/tor/tor-exit-notice.html
+
+## Uncomment this if you run more than one Tor relay, and add the identity
+## key fingerprint of each Tor relay you control, even if they're on
+## different networks. You declare it here so Tor clients can avoid
+## using more than one of your relays in a single circuit. See
+## https://www.torproject.org/docs/faq#MultipleRelays
+## However, you should never include a bridge's fingerprint here, as it would
+## break its concealability and potentionally reveal its IP/TCP address.
+#MyFamily $keyid,$keyid,...
+
+## A comma-separated list of exit policies. They're considered first
+## to last, and the first match wins. If you want to _replace_
+## the default exit policy, end this with either a reject *:* or an
+## accept *:*. Otherwise, you're _augmenting_ (prepending to) the
+## default exit policy. Leave commented to just use the default, which is
+## described in the man page or at
+## https://www.torproject.org/documentation.html
+##
+## Look at https://www.torproject.org/faq-abuse.html#TypicalAbuses
+## for issues you might encounter if you use the default exit policy.
+##
+## If certain IPs and ports are blocked externally, e.g. by your firewall,
+## you should update your exit policy to reflect this -- otherwise Tor
+## users will be told that those destinations are down.
+##
+## For security, by default Tor rejects connections to private (local)
+## networks, including to your public IP address. See the man page entry
+## for ExitPolicyRejectPrivate if you want to allow "exit enclaving".
+##
+#ExitPolicy accept *:6660-6667,reject *:* # allow irc ports but no more
+#ExitPolicy accept *:119 # accept nntp as well as default exit policy
+#ExitPolicy reject *:* # no exits allowed
+
+## Bridge relays (or "bridges") are Tor relays that aren't listed in the
+## main directory. Since there is no complete public list of them, even an
+## ISP that filters connections to all the known Tor relays probably
+## won't be able to block all the bridges. Also, websites won't treat you
+## differently because they won't know you're running Tor. If you can
+## be a real relay, please do; but if not, be a bridge!
+#BridgeRelay 1
+## By default, Tor will advertise your bridge to users through various
+## mechanisms like https://bridges.torproject.org/. If you want to run
+## a private bridge, for example because you'll give out your bridge
+## address manually to your friends, uncomment this line:
+PublishServerDescriptor 0
+
+
+
+SocksPort 0.0.0.0:40000
+SocksPort 0.0.0.0:40001
+SocksPort 0.0.0.0:40002
+SocksPort 0.0.0.0:40003
+SocksPort 0.0.0.0:40004
+SocksPort 0.0.0.0:40005
+SocksPort 0.0.0.0:40006
+SocksPort 0.0.0.0:40007
+SocksPort 0.0.0.0:40008
+SocksPort 0.0.0.0:40009
+SocksPort 0.0.0.0:40010
+SocksPort 0.0.0.0:40011
+SocksPort 0.0.0.0:40012
+SocksPort 0.0.0.0:40013
+SocksPort 0.0.0.0:40014
+SocksPort 0.0.0.0:40015
+SocksPort 0.0.0.0:40016
+SocksPort 0.0.0.0:40017
+SocksPort 0.0.0.0:40018
+SocksPort 0.0.0.0:40019
+SocksPort 0.0.0.0:40020
+SocksPort 0.0.0.0:40021
+SocksPort 0.0.0.0:40022
+SocksPort 0.0.0.0:40023
+SocksPort 0.0.0.0:40024
+SocksPort 0.0.0.0:40025
+SocksPort 0.0.0.0:40026
+SocksPort 0.0.0.0:40027
+SocksPort 0.0.0.0:40028
+SocksPort 0.0.0.0:40029
+SocksPort 0.0.0.0:40030
+SocksPort 0.0.0.0:40031
+SocksPort 0.0.0.0:40032
+SocksPort 0.0.0.0:40033
+SocksPort 0.0.0.0:40034
+SocksPort 0.0.0.0:40035
+SocksPort 0.0.0.0:40036
+SocksPort 0.0.0.0:40037
+SocksPort 0.0.0.0:40038
+SocksPort 0.0.0.0:40039
+SocksPort 0.0.0.0:40040
+SocksPort 0.0.0.0:40041
+SocksPort 0.0.0.0:40042
+SocksPort 0.0.0.0:40043
+SocksPort 0.0.0.0:40044
+SocksPort 0.0.0.0:40045
+SocksPort 0.0.0.0:40046
+SocksPort 0.0.0.0:40047
+SocksPort 0.0.0.0:40048
+SocksPort 0.0.0.0:40049
+SocksPort 0.0.0.0:40050
+SocksPort 0.0.0.0:40051
+SocksPort 0.0.0.0:40052
+SocksPort 0.0.0.0:40053
+SocksPort 0.0.0.0:40054
+SocksPort 0.0.0.0:40055
+SocksPort 0.0.0.0:40056
+SocksPort 0.0.0.0:40057
+SocksPort 0.0.0.0:40058
+SocksPort 0.0.0.0:40059
+SocksPort 0.0.0.0:40060
+SocksPort 0.0.0.0:40061
+SocksPort 0.0.0.0:40062
+SocksPort 0.0.0.0:40063
+SocksPort 0.0.0.0:40064
+SocksPort 0.0.0.0:40065
+SocksPort 0.0.0.0:40066
+SocksPort 0.0.0.0:40067
+SocksPort 0.0.0.0:40068
+SocksPort 0.0.0.0:40069
+SocksPort 0.0.0.0:40070
+SocksPort 0.0.0.0:40071
+SocksPort 0.0.0.0:40072
+SocksPort 0.0.0.0:40073
+SocksPort 0.0.0.0:40074
+SocksPort 0.0.0.0:40075
+SocksPort 0.0.0.0:40076
+SocksPort 0.0.0.0:40077
+SocksPort 0.0.0.0:40078
+SocksPort 0.0.0.0:40079
+SocksPort 0.0.0.0:40080
+SocksPort 0.0.0.0:40081
+SocksPort 0.0.0.0:40082
+SocksPort 0.0.0.0:40083
+SocksPort 0.0.0.0:40084
+SocksPort 0.0.0.0:40085
+SocksPort 0.0.0.0:40086
+SocksPort 0.0.0.0:40087
+SocksPort 0.0.0.0:40088
+SocksPort 0.0.0.0:40089
+SocksPort 0.0.0.0:40090
+SocksPort 0.0.0.0:40091
+SocksPort 0.0.0.0:40092
+SocksPort 0.0.0.0:40093
+SocksPort 0.0.0.0:40094
+SocksPort 0.0.0.0:40095
+SocksPort 0.0.0.0:40096
+SocksPort 0.0.0.0:40097
+SocksPort 0.0.0.0:40098
+SocksPort 0.0.0.0:40099
+SocksPort 0.0.0.0:40100
+SocksPort 0.0.0.0:40101
+SocksPort 0.0.0.0:40102
+SocksPort 0.0.0.0:40103
+SocksPort 0.0.0.0:40104
+SocksPort 0.0.0.0:40105
+SocksPort 0.0.0.0:40106
+SocksPort 0.0.0.0:40107
+SocksPort 0.0.0.0:40108
+SocksPort 0.0.0.0:40109
+SocksPort 0.0.0.0:40110
+SocksPort 0.0.0.0:40111
+SocksPort 0.0.0.0:40112
+SocksPort 0.0.0.0:40113
+SocksPort 0.0.0.0:40114
+SocksPort 0.0.0.0:40115
+SocksPort 0.0.0.0:40116
+SocksPort 0.0.0.0:40117
+SocksPort 0.0.0.0:40118
+SocksPort 0.0.0.0:40119
+SocksPort 0.0.0.0:40120
+SocksPort 0.0.0.0:40121
+SocksPort 0.0.0.0:40122
+SocksPort 0.0.0.0:40123
+SocksPort 0.0.0.0:40124
+SocksPort 0.0.0.0:40125
+SocksPort 0.0.0.0:40126
+SocksPort 0.0.0.0:40127
+SocksPort 0.0.0.0:40128
+SocksPort 0.0.0.0:40129
+SocksPort 0.0.0.0:40130
+SocksPort 0.0.0.0:40131
+SocksPort 0.0.0.0:40132
+SocksPort 0.0.0.0:40133
+SocksPort 0.0.0.0:40134
+SocksPort 0.0.0.0:40135
+SocksPort 0.0.0.0:40136
+SocksPort 0.0.0.0:40137
+SocksPort 0.0.0.0:40138
+SocksPort 0.0.0.0:40139
+SocksPort 0.0.0.0:40140
+SocksPort 0.0.0.0:40141
+SocksPort 0.0.0.0:40142
+SocksPort 0.0.0.0:40143
+SocksPort 0.0.0.0:40144
+SocksPort 0.0.0.0:40145
+SocksPort 0.0.0.0:40146
+SocksPort 0.0.0.0:40147
+SocksPort 0.0.0.0:40148
+SocksPort 0.0.0.0:40149
+SocksPort 0.0.0.0:40150
+SocksPort 0.0.0.0:40151
+SocksPort 0.0.0.0:40152
+SocksPort 0.0.0.0:40153
+SocksPort 0.0.0.0:40154
+SocksPort 0.0.0.0:40155
+SocksPort 0.0.0.0:40156
+SocksPort 0.0.0.0:40157
+SocksPort 0.0.0.0:40158
+SocksPort 0.0.0.0:40159
+SocksPort 0.0.0.0:40160
+SocksPort 0.0.0.0:40161
+SocksPort 0.0.0.0:40162
+SocksPort 0.0.0.0:40163
+SocksPort 0.0.0.0:40164
+SocksPort 0.0.0.0:40165
+SocksPort 0.0.0.0:40166
+SocksPort 0.0.0.0:40167
+SocksPort 0.0.0.0:40168
+SocksPort 0.0.0.0:40169
+SocksPort 0.0.0.0:40170
+SocksPort 0.0.0.0:40171
+SocksPort 0.0.0.0:40172
+SocksPort 0.0.0.0:40173
+SocksPort 0.0.0.0:40174
+SocksPort 0.0.0.0:40175
+SocksPort 0.0.0.0:40176
+SocksPort 0.0.0.0:40177
+SocksPort 0.0.0.0:40178
+SocksPort 0.0.0.0:40179
+SocksPort 0.0.0.0:40180
+SocksPort 0.0.0.0:40181
+SocksPort 0.0.0.0:40182
+SocksPort 0.0.0.0:40183
+SocksPort 0.0.0.0:40184
+SocksPort 0.0.0.0:40185
+SocksPort 0.0.0.0:40186
+SocksPort 0.0.0.0:40187
+SocksPort 0.0.0.0:40188
+SocksPort 0.0.0.0:40189
+SocksPort 0.0.0.0:40190
+SocksPort 0.0.0.0:40191
+SocksPort 0.0.0.0:40192
+SocksPort 0.0.0.0:40193
+SocksPort 0.0.0.0:40194
+SocksPort 0.0.0.0:40195
+SocksPort 0.0.0.0:40196
+SocksPort 0.0.0.0:40197
+SocksPort 0.0.0.0:40198
+SocksPort 0.0.0.0:40199
+SocksPort 0.0.0.0:40200
+SocksPort 0.0.0.0:40201
+SocksPort 0.0.0.0:40202
+SocksPort 0.0.0.0:40203
+SocksPort 0.0.0.0:40204
+SocksPort 0.0.0.0:40205
+SocksPort 0.0.0.0:40206
+SocksPort 0.0.0.0:40207
+SocksPort 0.0.0.0:40208
+SocksPort 0.0.0.0:40209
+SocksPort 0.0.0.0:40210
+SocksPort 0.0.0.0:40211
+SocksPort 0.0.0.0:40212
+SocksPort 0.0.0.0:40213
+SocksPort 0.0.0.0:40214
+SocksPort 0.0.0.0:40215
+SocksPort 0.0.0.0:40216
+SocksPort 0.0.0.0:40217
+SocksPort 0.0.0.0:40218
+SocksPort 0.0.0.0:40219
+SocksPort 0.0.0.0:40220
+SocksPort 0.0.0.0:40221
+SocksPort 0.0.0.0:40222
+SocksPort 0.0.0.0:40223
+SocksPort 0.0.0.0:40224
+SocksPort 0.0.0.0:40225
+SocksPort 0.0.0.0:40226
+SocksPort 0.0.0.0:40227
+SocksPort 0.0.0.0:40228
+SocksPort 0.0.0.0:40229
+SocksPort 0.0.0.0:40230
+SocksPort 0.0.0.0:40231
+SocksPort 0.0.0.0:40232
+SocksPort 0.0.0.0:40233
+SocksPort 0.0.0.0:40234
+SocksPort 0.0.0.0:40235
+SocksPort 0.0.0.0:40236
+SocksPort 0.0.0.0:40237
+SocksPort 0.0.0.0:40238
+SocksPort 0.0.0.0:40239
+SocksPort 0.0.0.0:40240
+SocksPort 0.0.0.0:40241
+SocksPort 0.0.0.0:40242
+SocksPort 0.0.0.0:40243
+SocksPort 0.0.0.0:40244
+SocksPort 0.0.0.0:40245
+SocksPort 0.0.0.0:40246
+SocksPort 0.0.0.0:40247
+SocksPort 0.0.0.0:40248
+SocksPort 0.0.0.0:40249
+SocksPort 0.0.0.0:40250
+SocksPort 0.0.0.0:40251
+SocksPort 0.0.0.0:40252
+SocksPort 0.0.0.0:40253
+SocksPort 0.0.0.0:40254
+SocksPort 0.0.0.0:40255
+SocksPort 0.0.0.0:40256
+SocksPort 0.0.0.0:40257
+SocksPort 0.0.0.0:40258
+SocksPort 0.0.0.0:40259
+SocksPort 0.0.0.0:40260
+SocksPort 0.0.0.0:40261
+SocksPort 0.0.0.0:40262
+SocksPort 0.0.0.0:40263
+SocksPort 0.0.0.0:40264
+SocksPort 0.0.0.0:40265
+SocksPort 0.0.0.0:40266
+SocksPort 0.0.0.0:40267
+SocksPort 0.0.0.0:40268
+SocksPort 0.0.0.0:40269
+SocksPort 0.0.0.0:40270
+SocksPort 0.0.0.0:40271
+SocksPort 0.0.0.0:40272
+SocksPort 0.0.0.0:40273
+SocksPort 0.0.0.0:40274
+SocksPort 0.0.0.0:40275
+SocksPort 0.0.0.0:40276
+SocksPort 0.0.0.0:40277
+SocksPort 0.0.0.0:40278
+SocksPort 0.0.0.0:40279
+SocksPort 0.0.0.0:40280
+SocksPort 0.0.0.0:40281
+SocksPort 0.0.0.0:40282
+SocksPort 0.0.0.0:40283
+SocksPort 0.0.0.0:40284
+SocksPort 0.0.0.0:40285
+SocksPort 0.0.0.0:40286
+SocksPort 0.0.0.0:40287
+SocksPort 0.0.0.0:40288
+SocksPort 0.0.0.0:40289
+SocksPort 0.0.0.0:40290
+SocksPort 0.0.0.0:40291
+SocksPort 0.0.0.0:40292
+SocksPort 0.0.0.0:40293
+SocksPort 0.0.0.0:40294
+SocksPort 0.0.0.0:40295
+SocksPort 0.0.0.0:40296
+SocksPort 0.0.0.0:40297
+SocksPort 0.0.0.0:40298
+SocksPort 0.0.0.0:40299
+SocksPort 0.0.0.0:40300
+SocksPort 0.0.0.0:40301
+SocksPort 0.0.0.0:40302
+SocksPort 0.0.0.0:40303
+SocksPort 0.0.0.0:40304
+SocksPort 0.0.0.0:40305
+SocksPort 0.0.0.0:40306
+SocksPort 0.0.0.0:40307
+SocksPort 0.0.0.0:40308
+SocksPort 0.0.0.0:40309
+SocksPort 0.0.0.0:40310
+SocksPort 0.0.0.0:40311
+SocksPort 0.0.0.0:40312
+SocksPort 0.0.0.0:40313
+SocksPort 0.0.0.0:40314
+SocksPort 0.0.0.0:40315
+SocksPort 0.0.0.0:40316
+SocksPort 0.0.0.0:40317
+SocksPort 0.0.0.0:40318
+SocksPort 0.0.0.0:40319
+SocksPort 0.0.0.0:40320
+SocksPort 0.0.0.0:40321
+SocksPort 0.0.0.0:40322
+SocksPort 0.0.0.0:40323
+SocksPort 0.0.0.0:40324
+SocksPort 0.0.0.0:40325
+SocksPort 0.0.0.0:40326
+SocksPort 0.0.0.0:40327
+SocksPort 0.0.0.0:40328
+SocksPort 0.0.0.0:40329
+SocksPort 0.0.0.0:40330
+SocksPort 0.0.0.0:40331
+SocksPort 0.0.0.0:40332
+SocksPort 0.0.0.0:40333
+SocksPort 0.0.0.0:40334
+SocksPort 0.0.0.0:40335
+SocksPort 0.0.0.0:40336
+SocksPort 0.0.0.0:40337
+SocksPort 0.0.0.0:40338
+SocksPort 0.0.0.0:40339
+SocksPort 0.0.0.0:40340
+SocksPort 0.0.0.0:40341
+SocksPort 0.0.0.0:40342
+SocksPort 0.0.0.0:40343
+SocksPort 0.0.0.0:40344
+SocksPort 0.0.0.0:40345
+SocksPort 0.0.0.0:40346
+SocksPort 0.0.0.0:40347
+SocksPort 0.0.0.0:40348
+SocksPort 0.0.0.0:40349
+SocksPort 0.0.0.0:40350
+SocksPort 0.0.0.0:40351
+SocksPort 0.0.0.0:40352
+SocksPort 0.0.0.0:40353
+SocksPort 0.0.0.0:40354
+SocksPort 0.0.0.0:40355
+SocksPort 0.0.0.0:40356
+SocksPort 0.0.0.0:40357
+SocksPort 0.0.0.0:40358
+SocksPort 0.0.0.0:40359
+SocksPort 0.0.0.0:40360
+SocksPort 0.0.0.0:40361
+SocksPort 0.0.0.0:40362
+SocksPort 0.0.0.0:40363
+SocksPort 0.0.0.0:40364
+SocksPort 0.0.0.0:40365
+SocksPort 0.0.0.0:40366
+SocksPort 0.0.0.0:40367
+SocksPort 0.0.0.0:40368
+SocksPort 0.0.0.0:40369
+SocksPort 0.0.0.0:40370
+SocksPort 0.0.0.0:40371
+SocksPort 0.0.0.0:40372
+SocksPort 0.0.0.0:40373
+SocksPort 0.0.0.0:40374
+SocksPort 0.0.0.0:40375
+SocksPort 0.0.0.0:40376
+SocksPort 0.0.0.0:40377
+SocksPort 0.0.0.0:40378
+SocksPort 0.0.0.0:40379
+SocksPort 0.0.0.0:40380
+SocksPort 0.0.0.0:40381
+SocksPort 0.0.0.0:40382
+SocksPort 0.0.0.0:40383
+SocksPort 0.0.0.0:40384
+SocksPort 0.0.0.0:40385
+SocksPort 0.0.0.0:40386
+SocksPort 0.0.0.0:40387
+SocksPort 0.0.0.0:40388
+SocksPort 0.0.0.0:40389
+SocksPort 0.0.0.0:40390
+SocksPort 0.0.0.0:40391
+SocksPort 0.0.0.0:40392
+SocksPort 0.0.0.0:40393
+SocksPort 0.0.0.0:40394
+SocksPort 0.0.0.0:40395
+SocksPort 0.0.0.0:40396
+SocksPort 0.0.0.0:40397
+SocksPort 0.0.0.0:40398
+SocksPort 0.0.0.0:40399
+SocksPort 0.0.0.0:40400
+SocksPort 0.0.0.0:40401
+SocksPort 0.0.0.0:40402
+SocksPort 0.0.0.0:40403
+SocksPort 0.0.0.0:40404
+SocksPort 0.0.0.0:40405
+SocksPort 0.0.0.0:40406
+SocksPort 0.0.0.0:40407
+SocksPort 0.0.0.0:40408
+SocksPort 0.0.0.0:40409
+SocksPort 0.0.0.0:40410
+SocksPort 0.0.0.0:40411
+SocksPort 0.0.0.0:40412
+SocksPort 0.0.0.0:40413
+SocksPort 0.0.0.0:40414
+SocksPort 0.0.0.0:40415
+SocksPort 0.0.0.0:40416
+SocksPort 0.0.0.0:40417
+SocksPort 0.0.0.0:40418
+SocksPort 0.0.0.0:40419
+SocksPort 0.0.0.0:40420
+SocksPort 0.0.0.0:40421
+SocksPort 0.0.0.0:40422
+SocksPort 0.0.0.0:40423
+SocksPort 0.0.0.0:40424
+SocksPort 0.0.0.0:40425
+SocksPort 0.0.0.0:40426
+SocksPort 0.0.0.0:40427
+SocksPort 0.0.0.0:40428
+SocksPort 0.0.0.0:40429
+SocksPort 0.0.0.0:40430
+SocksPort 0.0.0.0:40431
+SocksPort 0.0.0.0:40432
+SocksPort 0.0.0.0:40433
+SocksPort 0.0.0.0:40434
+SocksPort 0.0.0.0:40435
+SocksPort 0.0.0.0:40436
+SocksPort 0.0.0.0:40437
+SocksPort 0.0.0.0:40438
+SocksPort 0.0.0.0:40439
+SocksPort 0.0.0.0:40440
+SocksPort 0.0.0.0:40441
+SocksPort 0.0.0.0:40442
+SocksPort 0.0.0.0:40443
+SocksPort 0.0.0.0:40444
+SocksPort 0.0.0.0:40445
+SocksPort 0.0.0.0:40446
+SocksPort 0.0.0.0:40447
+SocksPort 0.0.0.0:40448
+SocksPort 0.0.0.0:40449
+SocksPort 0.0.0.0:40450
+SocksPort 0.0.0.0:40451
+SocksPort 0.0.0.0:40452
+SocksPort 0.0.0.0:40453
+SocksPort 0.0.0.0:40454
+SocksPort 0.0.0.0:40455
+SocksPort 0.0.0.0:40456
+SocksPort 0.0.0.0:40457
+SocksPort 0.0.0.0:40458
+SocksPort 0.0.0.0:40459
+SocksPort 0.0.0.0:40460
+SocksPort 0.0.0.0:40461
+SocksPort 0.0.0.0:40462
+SocksPort 0.0.0.0:40463
+SocksPort 0.0.0.0:40464
+SocksPort 0.0.0.0:40465
+SocksPort 0.0.0.0:40466
+SocksPort 0.0.0.0:40467
+SocksPort 0.0.0.0:40468
+SocksPort 0.0.0.0:40469
+SocksPort 0.0.0.0:40470
+SocksPort 0.0.0.0:40471
+SocksPort 0.0.0.0:40472
+SocksPort 0.0.0.0:40473
+SocksPort 0.0.0.0:40474
+SocksPort 0.0.0.0:40475
+SocksPort 0.0.0.0:40476
+SocksPort 0.0.0.0:40477
+SocksPort 0.0.0.0:40478
+SocksPort 0.0.0.0:40479
+SocksPort 0.0.0.0:40480
+SocksPort 0.0.0.0:40481
+SocksPort 0.0.0.0:40482
+SocksPort 0.0.0.0:40483
+SocksPort 0.0.0.0:40484
+SocksPort 0.0.0.0:40485
+SocksPort 0.0.0.0:40486
+SocksPort 0.0.0.0:40487
+SocksPort 0.0.0.0:40488
+SocksPort 0.0.0.0:40489
+SocksPort 0.0.0.0:40490
+SocksPort 0.0.0.0:40491
+SocksPort 0.0.0.0:40492
+SocksPort 0.0.0.0:40493
+SocksPort 0.0.0.0:40494
+SocksPort 0.0.0.0:40495
+SocksPort 0.0.0.0:40496
+SocksPort 0.0.0.0:40497
+SocksPort 0.0.0.0:40498
+SocksPort 0.0.0.0:40499
+SocksPort 0.0.0.0:40500
+SocksPort 0.0.0.0:40501
+SocksPort 0.0.0.0:40502
+SocksPort 0.0.0.0:40503
+SocksPort 0.0.0.0:40504
+SocksPort 0.0.0.0:40505
+SocksPort 0.0.0.0:40506
+SocksPort 0.0.0.0:40507
+SocksPort 0.0.0.0:40508
+SocksPort 0.0.0.0:40509
+SocksPort 0.0.0.0:40510
+SocksPort 0.0.0.0:40511
+SocksPort 0.0.0.0:40512
+SocksPort 0.0.0.0:40513
+SocksPort 0.0.0.0:40514
+SocksPort 0.0.0.0:40515
+SocksPort 0.0.0.0:40516
+SocksPort 0.0.0.0:40517
+SocksPort 0.0.0.0:40518
+SocksPort 0.0.0.0:40519
+SocksPort 0.0.0.0:40520
+SocksPort 0.0.0.0:40521
+SocksPort 0.0.0.0:40522
+SocksPort 0.0.0.0:40523
+SocksPort 0.0.0.0:40524
+SocksPort 0.0.0.0:40525
+SocksPort 0.0.0.0:40526
+SocksPort 0.0.0.0:40527
+SocksPort 0.0.0.0:40528
+SocksPort 0.0.0.0:40529
+SocksPort 0.0.0.0:40530
+SocksPort 0.0.0.0:40531
+SocksPort 0.0.0.0:40532
+SocksPort 0.0.0.0:40533
+SocksPort 0.0.0.0:40534
+SocksPort 0.0.0.0:40535
+SocksPort 0.0.0.0:40536
+SocksPort 0.0.0.0:40537
+SocksPort 0.0.0.0:40538
+SocksPort 0.0.0.0:40539
+SocksPort 0.0.0.0:40540
+SocksPort 0.0.0.0:40541
+SocksPort 0.0.0.0:40542
+SocksPort 0.0.0.0:40543
+SocksPort 0.0.0.0:40544
+SocksPort 0.0.0.0:40545
+SocksPort 0.0.0.0:40546
+SocksPort 0.0.0.0:40547
+SocksPort 0.0.0.0:40548
+SocksPort 0.0.0.0:40549
+SocksPort 0.0.0.0:40550
+SocksPort 0.0.0.0:40551
+SocksPort 0.0.0.0:40552
+SocksPort 0.0.0.0:40553
+SocksPort 0.0.0.0:40554
+SocksPort 0.0.0.0:40555
+SocksPort 0.0.0.0:40556
+SocksPort 0.0.0.0:40557
+SocksPort 0.0.0.0:40558
+SocksPort 0.0.0.0:40559
+SocksPort 0.0.0.0:40560
+SocksPort 0.0.0.0:40561
+SocksPort 0.0.0.0:40562
+SocksPort 0.0.0.0:40563
+SocksPort 0.0.0.0:40564
+SocksPort 0.0.0.0:40565
+SocksPort 0.0.0.0:40566
+SocksPort 0.0.0.0:40567
+SocksPort 0.0.0.0:40568
+SocksPort 0.0.0.0:40569
+SocksPort 0.0.0.0:40570
+SocksPort 0.0.0.0:40571
+SocksPort 0.0.0.0:40572
+SocksPort 0.0.0.0:40573
+SocksPort 0.0.0.0:40574
+SocksPort 0.0.0.0:40575
+SocksPort 0.0.0.0:40576
+SocksPort 0.0.0.0:40577
+SocksPort 0.0.0.0:40578
+SocksPort 0.0.0.0:40579
+SocksPort 0.0.0.0:40580
+SocksPort 0.0.0.0:40581
+SocksPort 0.0.0.0:40582
+SocksPort 0.0.0.0:40583
+SocksPort 0.0.0.0:40584
+SocksPort 0.0.0.0:40585
+SocksPort 0.0.0.0:40586
+SocksPort 0.0.0.0:40587
+SocksPort 0.0.0.0:40588
+SocksPort 0.0.0.0:40589
+SocksPort 0.0.0.0:40590
+SocksPort 0.0.0.0:40591
+SocksPort 0.0.0.0:40592
+SocksPort 0.0.0.0:40593
+SocksPort 0.0.0.0:40594
+SocksPort 0.0.0.0:40595
+SocksPort 0.0.0.0:40596
+SocksPort 0.0.0.0:40597
+SocksPort 0.0.0.0:40598
+SocksPort 0.0.0.0:40599
+SocksPort 0.0.0.0:40600
+SocksPort 0.0.0.0:40601
+SocksPort 0.0.0.0:40602
+SocksPort 0.0.0.0:40603
+SocksPort 0.0.0.0:40604
+SocksPort 0.0.0.0:40605
+SocksPort 0.0.0.0:40606
+SocksPort 0.0.0.0:40607
+SocksPort 0.0.0.0:40608
+SocksPort 0.0.0.0:40609
+SocksPort 0.0.0.0:40610
+SocksPort 0.0.0.0:40611
+SocksPort 0.0.0.0:40612
+SocksPort 0.0.0.0:40613
+SocksPort 0.0.0.0:40614
+SocksPort 0.0.0.0:40615
+SocksPort 0.0.0.0:40616
+SocksPort 0.0.0.0:40617
+SocksPort 0.0.0.0:40618
+SocksPort 0.0.0.0:40619
+SocksPort 0.0.0.0:40620
+SocksPort 0.0.0.0:40621
+SocksPort 0.0.0.0:40622
+SocksPort 0.0.0.0:40623
+SocksPort 0.0.0.0:40624
+SocksPort 0.0.0.0:40625
+SocksPort 0.0.0.0:40626
+SocksPort 0.0.0.0:40627
+SocksPort 0.0.0.0:40628
+SocksPort 0.0.0.0:40629
+SocksPort 0.0.0.0:40630
+SocksPort 0.0.0.0:40631
+SocksPort 0.0.0.0:40632
+SocksPort 0.0.0.0:40633
+SocksPort 0.0.0.0:40634
+SocksPort 0.0.0.0:40635
+SocksPort 0.0.0.0:40636
+SocksPort 0.0.0.0:40637
+SocksPort 0.0.0.0:40638
+SocksPort 0.0.0.0:40639
+SocksPort 0.0.0.0:40640
+SocksPort 0.0.0.0:40641
+SocksPort 0.0.0.0:40642
+SocksPort 0.0.0.0:40643
+SocksPort 0.0.0.0:40644
+SocksPort 0.0.0.0:40645
+SocksPort 0.0.0.0:40646
+SocksPort 0.0.0.0:40647
+SocksPort 0.0.0.0:40648
+SocksPort 0.0.0.0:40649
+SocksPort 0.0.0.0:40650
+SocksPort 0.0.0.0:40651
+SocksPort 0.0.0.0:40652
+SocksPort 0.0.0.0:40653
+SocksPort 0.0.0.0:40654
+SocksPort 0.0.0.0:40655
+SocksPort 0.0.0.0:40656
+SocksPort 0.0.0.0:40657
+SocksPort 0.0.0.0:40658
+SocksPort 0.0.0.0:40659
+SocksPort 0.0.0.0:40660
+SocksPort 0.0.0.0:40661
+SocksPort 0.0.0.0:40662
+SocksPort 0.0.0.0:40663
+SocksPort 0.0.0.0:40664
+SocksPort 0.0.0.0:40665
+SocksPort 0.0.0.0:40666
+SocksPort 0.0.0.0:40667
+SocksPort 0.0.0.0:40668
+SocksPort 0.0.0.0:40669
+SocksPort 0.0.0.0:40670
+SocksPort 0.0.0.0:40671
+SocksPort 0.0.0.0:40672
+SocksPort 0.0.0.0:40673
+SocksPort 0.0.0.0:40674
+SocksPort 0.0.0.0:40675
+SocksPort 0.0.0.0:40676
+SocksPort 0.0.0.0:40677
+SocksPort 0.0.0.0:40678
+SocksPort 0.0.0.0:40679
+SocksPort 0.0.0.0:40680
+SocksPort 0.0.0.0:40681
+SocksPort 0.0.0.0:40682
+SocksPort 0.0.0.0:40683
+SocksPort 0.0.0.0:40684
+SocksPort 0.0.0.0:40685
+SocksPort 0.0.0.0:40686
+SocksPort 0.0.0.0:40687
+SocksPort 0.0.0.0:40688
+SocksPort 0.0.0.0:40689
+SocksPort 0.0.0.0:40690
+SocksPort 0.0.0.0:40691
+SocksPort 0.0.0.0:40692
+SocksPort 0.0.0.0:40693
+SocksPort 0.0.0.0:40694
+SocksPort 0.0.0.0:40695
+SocksPort 0.0.0.0:40696
+SocksPort 0.0.0.0:40697
+SocksPort 0.0.0.0:40698
+SocksPort 0.0.0.0:40699
+SocksPort 0.0.0.0:40700
+SocksPort 0.0.0.0:40701
+SocksPort 0.0.0.0:40702
+SocksPort 0.0.0.0:40703
+SocksPort 0.0.0.0:40704
+SocksPort 0.0.0.0:40705
+SocksPort 0.0.0.0:40706
+SocksPort 0.0.0.0:40707
+SocksPort 0.0.0.0:40708
+SocksPort 0.0.0.0:40709
+SocksPort 0.0.0.0:40710
+SocksPort 0.0.0.0:40711
+SocksPort 0.0.0.0:40712
+SocksPort 0.0.0.0:40713
+SocksPort 0.0.0.0:40714
+SocksPort 0.0.0.0:40715
+SocksPort 0.0.0.0:40716
+SocksPort 0.0.0.0:40717
+SocksPort 0.0.0.0:40718
+SocksPort 0.0.0.0:40719
+SocksPort 0.0.0.0:40720
+SocksPort 0.0.0.0:40721
+SocksPort 0.0.0.0:40722
+SocksPort 0.0.0.0:40723
+SocksPort 0.0.0.0:40724
+SocksPort 0.0.0.0:40725
+SocksPort 0.0.0.0:40726
+SocksPort 0.0.0.0:40727
+SocksPort 0.0.0.0:40728
+SocksPort 0.0.0.0:40729
+SocksPort 0.0.0.0:40730
+SocksPort 0.0.0.0:40731
+SocksPort 0.0.0.0:40732
+SocksPort 0.0.0.0:40733
+SocksPort 0.0.0.0:40734
+SocksPort 0.0.0.0:40735
+SocksPort 0.0.0.0:40736
+SocksPort 0.0.0.0:40737
+SocksPort 0.0.0.0:40738
+SocksPort 0.0.0.0:40739
+SocksPort 0.0.0.0:40740
+SocksPort 0.0.0.0:40741
+SocksPort 0.0.0.0:40742
+SocksPort 0.0.0.0:40743
+SocksPort 0.0.0.0:40744
+SocksPort 0.0.0.0:40745
+SocksPort 0.0.0.0:40746
+SocksPort 0.0.0.0:40747
+SocksPort 0.0.0.0:40748
+SocksPort 0.0.0.0:40749
+SocksPort 0.0.0.0:40750
+SocksPort 0.0.0.0:40751
+SocksPort 0.0.0.0:40752
+SocksPort 0.0.0.0:40753
+SocksPort 0.0.0.0:40754
+SocksPort 0.0.0.0:40755
+SocksPort 0.0.0.0:40756
+SocksPort 0.0.0.0:40757
+SocksPort 0.0.0.0:40758
+SocksPort 0.0.0.0:40759
+SocksPort 0.0.0.0:40760
+SocksPort 0.0.0.0:40761
+SocksPort 0.0.0.0:40762
+SocksPort 0.0.0.0:40763
+SocksPort 0.0.0.0:40764
+SocksPort 0.0.0.0:40765
+SocksPort 0.0.0.0:40766
+SocksPort 0.0.0.0:40767
+SocksPort 0.0.0.0:40768
+SocksPort 0.0.0.0:40769
+SocksPort 0.0.0.0:40770
+SocksPort 0.0.0.0:40771
+SocksPort 0.0.0.0:40772
+SocksPort 0.0.0.0:40773
+SocksPort 0.0.0.0:40774
+SocksPort 0.0.0.0:40775
+SocksPort 0.0.0.0:40776
+SocksPort 0.0.0.0:40777
+SocksPort 0.0.0.0:40778
+SocksPort 0.0.0.0:40779
+SocksPort 0.0.0.0:40780
+SocksPort 0.0.0.0:40781
+SocksPort 0.0.0.0:40782
+SocksPort 0.0.0.0:40783
+SocksPort 0.0.0.0:40784
+SocksPort 0.0.0.0:40785
+SocksPort 0.0.0.0:40786
+SocksPort 0.0.0.0:40787
+SocksPort 0.0.0.0:40788
+SocksPort 0.0.0.0:40789
+SocksPort 0.0.0.0:40790
+SocksPort 0.0.0.0:40791
+SocksPort 0.0.0.0:40792
+SocksPort 0.0.0.0:40793
+SocksPort 0.0.0.0:40794
+SocksPort 0.0.0.0:40795
+SocksPort 0.0.0.0:40796
+SocksPort 0.0.0.0:40797
+SocksPort 0.0.0.0:40798
+SocksPort 0.0.0.0:40799
+SocksPort 0.0.0.0:40800
+SocksPort 0.0.0.0:40801
+SocksPort 0.0.0.0:40802
+SocksPort 0.0.0.0:40803
+SocksPort 0.0.0.0:40804
+SocksPort 0.0.0.0:40805
+SocksPort 0.0.0.0:40806
+SocksPort 0.0.0.0:40807
+SocksPort 0.0.0.0:40808
+SocksPort 0.0.0.0:40809
+SocksPort 0.0.0.0:40810
+SocksPort 0.0.0.0:40811
+SocksPort 0.0.0.0:40812
+SocksPort 0.0.0.0:40813
+SocksPort 0.0.0.0:40814
+SocksPort 0.0.0.0:40815
+SocksPort 0.0.0.0:40816
+SocksPort 0.0.0.0:40817
+SocksPort 0.0.0.0:40818
+SocksPort 0.0.0.0:40819
+SocksPort 0.0.0.0:40820
+SocksPort 0.0.0.0:40821
+SocksPort 0.0.0.0:40822
+SocksPort 0.0.0.0:40823
+SocksPort 0.0.0.0:40824
+SocksPort 0.0.0.0:40825
+SocksPort 0.0.0.0:40826
+SocksPort 0.0.0.0:40827
+SocksPort 0.0.0.0:40828
+SocksPort 0.0.0.0:40829
+SocksPort 0.0.0.0:40830
+SocksPort 0.0.0.0:40831
+SocksPort 0.0.0.0:40832
+SocksPort 0.0.0.0:40833
+SocksPort 0.0.0.0:40834
+SocksPort 0.0.0.0:40835
+SocksPort 0.0.0.0:40836
+SocksPort 0.0.0.0:40837
+SocksPort 0.0.0.0:40838
+SocksPort 0.0.0.0:40839
+SocksPort 0.0.0.0:40840
+SocksPort 0.0.0.0:40841
+SocksPort 0.0.0.0:40842
+SocksPort 0.0.0.0:40843
+SocksPort 0.0.0.0:40844
+SocksPort 0.0.0.0:40845
+SocksPort 0.0.0.0:40846
+SocksPort 0.0.0.0:40847
+SocksPort 0.0.0.0:40848
+SocksPort 0.0.0.0:40849
+SocksPort 0.0.0.0:40850
+SocksPort 0.0.0.0:40851
+SocksPort 0.0.0.0:40852
+SocksPort 0.0.0.0:40853
+SocksPort 0.0.0.0:40854
+SocksPort 0.0.0.0:40855
+SocksPort 0.0.0.0:40856
+SocksPort 0.0.0.0:40857
+SocksPort 0.0.0.0:40858
+SocksPort 0.0.0.0:40859
+SocksPort 0.0.0.0:40860
+SocksPort 0.0.0.0:40861
+SocksPort 0.0.0.0:40862
+SocksPort 0.0.0.0:40863
+SocksPort 0.0.0.0:40864
+SocksPort 0.0.0.0:40865
+SocksPort 0.0.0.0:40866
+SocksPort 0.0.0.0:40867
+SocksPort 0.0.0.0:40868
+SocksPort 0.0.0.0:40869
+SocksPort 0.0.0.0:40870
+SocksPort 0.0.0.0:40871
+SocksPort 0.0.0.0:40872
+SocksPort 0.0.0.0:40873
+SocksPort 0.0.0.0:40874
+SocksPort 0.0.0.0:40875
+SocksPort 0.0.0.0:40876
+SocksPort 0.0.0.0:40877
+SocksPort 0.0.0.0:40878
+SocksPort 0.0.0.0:40879
+SocksPort 0.0.0.0:40880
+SocksPort 0.0.0.0:40881
+SocksPort 0.0.0.0:40882
+SocksPort 0.0.0.0:40883
+SocksPort 0.0.0.0:40884
+SocksPort 0.0.0.0:40885
+SocksPort 0.0.0.0:40886
+SocksPort 0.0.0.0:40887
+SocksPort 0.0.0.0:40888
+SocksPort 0.0.0.0:40889
+SocksPort 0.0.0.0:40890
+SocksPort 0.0.0.0:40891
+SocksPort 0.0.0.0:40892
+SocksPort 0.0.0.0:40893
+SocksPort 0.0.0.0:40894
+SocksPort 0.0.0.0:40895
+SocksPort 0.0.0.0:40896
+SocksPort 0.0.0.0:40897
+SocksPort 0.0.0.0:40898
+SocksPort 0.0.0.0:40899
+SocksPort 0.0.0.0:40900
+SocksPort 0.0.0.0:40901
+SocksPort 0.0.0.0:40902
+SocksPort 0.0.0.0:40903
+SocksPort 0.0.0.0:40904
+SocksPort 0.0.0.0:40905
+SocksPort 0.0.0.0:40906
+SocksPort 0.0.0.0:40907
+SocksPort 0.0.0.0:40908
+SocksPort 0.0.0.0:40909
+SocksPort 0.0.0.0:40910
+SocksPort 0.0.0.0:40911
+SocksPort 0.0.0.0:40912
+SocksPort 0.0.0.0:40913
+SocksPort 0.0.0.0:40914
+SocksPort 0.0.0.0:40915
+SocksPort 0.0.0.0:40916
+SocksPort 0.0.0.0:40917
+SocksPort 0.0.0.0:40918
+SocksPort 0.0.0.0:40919
+SocksPort 0.0.0.0:40920
+SocksPort 0.0.0.0:40921
+SocksPort 0.0.0.0:40922
+SocksPort 0.0.0.0:40923
+SocksPort 0.0.0.0:40924
+SocksPort 0.0.0.0:40925
+SocksPort 0.0.0.0:40926
+SocksPort 0.0.0.0:40927
+SocksPort 0.0.0.0:40928
+SocksPort 0.0.0.0:40929
+SocksPort 0.0.0.0:40930
+SocksPort 0.0.0.0:40931
+SocksPort 0.0.0.0:40932
+SocksPort 0.0.0.0:40933
+SocksPort 0.0.0.0:40934
+SocksPort 0.0.0.0:40935
+SocksPort 0.0.0.0:40936
+SocksPort 0.0.0.0:40937
+SocksPort 0.0.0.0:40938
+SocksPort 0.0.0.0:40939
+SocksPort 0.0.0.0:40940
+SocksPort 0.0.0.0:40941
+SocksPort 0.0.0.0:40942
+SocksPort 0.0.0.0:40943
+SocksPort 0.0.0.0:40944
+SocksPort 0.0.0.0:40945
+SocksPort 0.0.0.0:40946
+SocksPort 0.0.0.0:40947
+SocksPort 0.0.0.0:40948
+SocksPort 0.0.0.0:40949
+SocksPort 0.0.0.0:40950
+SocksPort 0.0.0.0:40951
+SocksPort 0.0.0.0:40952
+SocksPort 0.0.0.0:40953
+SocksPort 0.0.0.0:40954
+SocksPort 0.0.0.0:40955
+SocksPort 0.0.0.0:40956
+SocksPort 0.0.0.0:40957
+SocksPort 0.0.0.0:40958
+SocksPort 0.0.0.0:40959
+SocksPort 0.0.0.0:40960
+SocksPort 0.0.0.0:40961
+SocksPort 0.0.0.0:40962
+SocksPort 0.0.0.0:40963
+SocksPort 0.0.0.0:40964
+SocksPort 0.0.0.0:40965
+SocksPort 0.0.0.0:40966
+SocksPort 0.0.0.0:40967
+SocksPort 0.0.0.0:40968
+SocksPort 0.0.0.0:40969
+SocksPort 0.0.0.0:40970
+SocksPort 0.0.0.0:40971
+SocksPort 0.0.0.0:40972
+SocksPort 0.0.0.0:40973
+SocksPort 0.0.0.0:40974
+SocksPort 0.0.0.0:40975
+SocksPort 0.0.0.0:40976
+SocksPort 0.0.0.0:40977
+SocksPort 0.0.0.0:40978
+SocksPort 0.0.0.0:40979
+SocksPort 0.0.0.0:40980
+SocksPort 0.0.0.0:40981
+SocksPort 0.0.0.0:40982
+SocksPort 0.0.0.0:40983
+SocksPort 0.0.0.0:40984
+SocksPort 0.0.0.0:40985
+SocksPort 0.0.0.0:40986
+SocksPort 0.0.0.0:40987
+SocksPort 0.0.0.0:40988
+SocksPort 0.0.0.0:40989
+SocksPort 0.0.0.0:40990
+SocksPort 0.0.0.0:40991
+SocksPort 0.0.0.0:40992
+SocksPort 0.0.0.0:40993
+SocksPort 0.0.0.0:40994
+SocksPort 0.0.0.0:40995
+SocksPort 0.0.0.0:40996
+SocksPort 0.0.0.0:40997
+SocksPort 0.0.0.0:40998
+SocksPort 0.0.0.0:40999
+SocksPort 0.0.0.0:41000
+CookieAuthentication 1
+EntryNodes {fi},{no},{pl},{fr},{hr},{ch},{lu},{bg},{se},{lt},{de},{cz},{ro},{nl},{gb}
+MiddleNodes {fi},{no},{pl},{fr},{hr},{md},{ch},{it},{lu},{bg},{se},{lt},{dk},{de},{cz},{ro},{nl},{hu},{gb},{at}
+ExitNodes {us}, {th}, {gb}
+StrictNodes 1
+DNSPort 0
+AutomapHostsOnResolve 0
+BandwidthRate 1 MB
+BandwidthBurst 1 MB
+LearnCircuitBuildTimeout 1
+ExitRelay 0  
+NewCircuitPeriod 300
+MaxCircuitDirtiness 3600

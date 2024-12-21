@@ -1,0 +1,94 @@
+#!/bin/bash
+
+# Kiểm tra hệ điều hành để xác định cách cấu hình mạng
+OS=$(awk -F= '/^NAME/{print $2}' /etc/os-release)
+
+# Lấy tên các card mạng (trừ lo)
+NIC_NAME=$(ip link show | awk -F: '/^[0-9]+: / { print $2 }' | grep -v 'lo')
+
+# Lấy địa chỉ IP của card mạng
+IP_ADDR=$(ip addr show $NIC_NAME | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
+
+# Nếu không có IP, thông báo lỗi và thoát
+if [ -z "$IP_ADDR" ]; then
+  echo "Không thể lấy địa chỉ IP của card mạng $NIC_NAME."
+  exit 1
+fi
+
+echo "Địa chỉ IP của card mạng $NIC_NAME là: $IP_ADDR"
+
+# Cấu hình cho Ubuntu
+if [[ $OS == "Ubuntu" ]]; then
+  echo "Cấu hình trên Ubuntu Server..."
+
+  # Mở file /etc/network/interfaces
+  echo "Đang chỉnh sửa file /etc/network/interfaces..."
+
+  cat <<EOL > /etc/network/interfaces
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# Cấu hình cho card mạng đầu tiên
+auto $NIC_NAME
+iface $NIC_NAME inet dhcp
+
+# Cấu hình thêm card mạng ảo (eth1:1 hoặc tên card mạng khác)
+auto $NIC_NAME:1
+iface $NIC_NAME:1 inet static
+  address $IP_ADDR
+  netmask 255.255.255.0
+EOL
+
+  # Khởi động lại các card mạng
+  echo "Đang khởi động lại mạng..."
+  sudo ifdown $NIC_NAME && sudo ifup $NIC_NAME
+  sudo ifup $NIC_NAME:1
+
+# Cấu hình cho CentOS
+elif [[ $OS == "CentOS Linux" ]]; then
+  echo "Cấu hình trên CentOS Server..."
+
+  # Lấy tên card mạng đầu tiên (eth1 hoặc tên khác)
+  FIRST_NIC=$(ip link show | awk -F: '/^[0-9]+: / { print $2 }' | grep -v 'lo' | head -n 1)
+
+  # Sao chép file cấu hình eth1
+  cp /etc/sysconfig/network-scripts/ifcfg-$FIRST_NIC /etc/sysconfig/network-scripts/ifcfg-$FIRST_NIC:1
+
+  # Cấu hình file /etc/sysconfig/network-scripts/ifcfg-eth1
+  echo "Đang chỉnh sửa file /etc/sysconfig/network-scripts/ifcfg-$FIRST_NIC..."
+  cat <<EOL > /etc/sysconfig/network-scripts/ifcfg-$FIRST_NIC
+TYPE="Ethernet"
+DEVICE="$FIRST_NIC"
+ONBOOT="yes"
+BOOTPROTO="static"
+NM_CONTROLLED="no"
+IPADDR="$IP_ADDR"
+NETMASK="255.255.255.0"
+GATEWAY="192.168.1.1"
+EOL
+
+  # Cấu hình file /etc/sysconfig/network-scripts/ifcfg-eth1:1
+  echo "Đang chỉnh sửa file /etc/sysconfig/network-scripts/ifcfg-$FIRST_NIC:1..."
+  cat <<EOL > /etc/sysconfig/network-scripts/ifcfg-$FIRST_NIC:1
+DEVICE="$FIRST_NIC:1"
+ONBOOT="yes"
+BOOTPROTO="static"
+NM_CONTROLLED="no"
+IPADDR="$IP_ADDR"
+NETMASK="255.255.255.0"
+EOL
+
+  # Khởi động lại các card mạng
+  echo "Đang khởi động lại mạng..."
+  sudo ifdown $FIRST_NIC && sudo ifup $FIRST_NIC
+  sudo ifup $FIRST_NIC:1
+
+else
+  echo "Không nhận diện được hệ điều hành. Vui lòng sử dụng Ubuntu hoặc CentOS."
+fi
+
+echo "Hoàn thành cấu hình IP WAN."

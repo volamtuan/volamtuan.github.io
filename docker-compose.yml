@@ -1,0 +1,1002 @@
+version: '3.3'
+services:
+  tor1:
+    image: vltpro/tor
+    container_name: tor1
+    restart: always
+    ports:
+      - "8119:8118"    # HTTP proxy
+      - "9052:9050"  # SOCKS5 proxy
+      - "9053:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor2:
+    image: vltpro/tor
+    container_name: tor2
+    restart: always
+    ports:
+      - "8120:8118"    # HTTP proxy
+      - "9054:9050"  # SOCKS5 proxy
+      - "9055:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor3:
+    image: vltpro/tor
+    container_name: tor3
+    restart: always
+    ports:
+      - "8121:8118"    # HTTP proxy
+      - "9056:9050"  # SOCKS5 proxy
+      - "9057:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor4:
+    image: vltpro/tor
+    container_name: tor4
+    restart: always
+    ports:
+      - "8122:8118"    # HTTP proxy
+      - "9058:9050"  # SOCKS5 proxy
+      - "9059:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor5:
+    image: vltpro/tor
+    container_name: tor5
+    restart: always
+    ports:
+      - "8123:8118"    # HTTP proxy
+      - "9060:9050"  # SOCKS5 proxy
+      - "9061:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor6:
+    image: vltpro/tor
+    container_name: tor6
+    restart: always
+    ports:
+      - "8124:8118"    # HTTP proxy
+      - "9062:9050"  # SOCKS5 proxy
+      - "9063:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor7:
+    image: vltpro/tor
+    container_name: tor7
+    restart: always
+    ports:
+      - "8125:8118"    # HTTP proxy
+      - "9064:9050"  # SOCKS5 proxy
+      - "9065:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor8:
+    image: vltpro/tor
+    container_name: tor8
+    restart: always
+    ports:
+      - "8126:8118"    # HTTP proxy
+      - "9066:9050"  # SOCKS5 proxy
+      - "9067:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor9:
+    image: vltpro/tor
+    container_name: tor9
+    restart: always
+    ports:
+      - "8127:8118"    # HTTP proxy
+      - "9068:9050"  # SOCKS5 proxy
+      - "9069:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor10:
+    image: vltpro/tor
+    container_name: tor10
+    restart: always
+    ports:
+      - "8128:8118"    # HTTP proxy
+      - "9070:9050"  # SOCKS5 proxy
+      - "9071:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor11:
+    image: vltpro/tor
+    container_name: tor11
+    restart: always
+    ports:
+      - "8129:8118"    # HTTP proxy
+      - "9072:9050"  # SOCKS5 proxy
+      - "9073:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor12:
+    image: vltpro/tor
+    container_name: tor12
+    restart: always
+    ports:
+      - "8130:8118"    # HTTP proxy
+      - "9074:9050"  # SOCKS5 proxy
+      - "9075:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor13:
+    image: vltpro/tor
+    container_name: tor13
+    restart: always
+    ports:
+      - "8131:8118"    # HTTP proxy
+      - "9076:9050"  # SOCKS5 proxy
+      - "9077:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor14:
+    image: vltpro/tor
+    container_name: tor14
+    restart: always
+    ports:
+      - "8132:8118"    # HTTP proxy
+      - "9078:9050"  # SOCKS5 proxy
+      - "9079:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor15:
+    image: vltpro/tor
+    container_name: tor15
+    restart: always
+    ports:
+      - "8133:8118"    # HTTP proxy
+      - "9080:9050"  # SOCKS5 proxy
+      - "9081:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor16:
+    image: vltpro/tor
+    container_name: tor16
+    restart: always
+    ports:
+      - "8134:8118"    # HTTP proxy
+      - "9082:9050"  # SOCKS5 proxy
+      - "9083:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor17:
+    image: vltpro/tor
+    container_name: tor17
+    restart: always
+    ports:
+      - "8135:8118"    # HTTP proxy
+      - "9084:9050"  # SOCKS5 proxy
+      - "9085:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor18:
+    image: vltpro/tor
+    container_name: tor18
+    restart: always
+    ports:
+      - "8136:8118"    # HTTP proxy
+      - "9086:9050"  # SOCKS5 proxy
+      - "9087:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor19:
+    image: vltpro/tor
+    container_name: tor19
+    restart: always
+    ports:
+      - "8137:8118"    # HTTP proxy
+      - "9088:9050"  # SOCKS5 proxy
+      - "9089:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor20:
+    image: vltpro/tor
+    container_name: tor20
+    restart: always
+    ports:
+      - "8138:8118"    # HTTP proxy
+      - "9090:9050"  # SOCKS5 proxy
+      - "9091:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor21:
+    image: vltpro/tor
+    container_name: tor21
+    restart: always
+    ports:
+      - "8139:8118"    # HTTP proxy
+      - "9092:9050"  # SOCKS5 proxy
+      - "9093:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor22:
+    image: vltpro/tor
+    container_name: tor22
+    restart: always
+    ports:
+      - "8140:8118"    # HTTP proxy
+      - "9094:9050"  # SOCKS5 proxy
+      - "9095:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor23:
+    image: vltpro/tor
+    container_name: tor23
+    restart: always
+    ports:
+      - "8141:8118"    # HTTP proxy
+      - "9096:9050"  # SOCKS5 proxy
+      - "9097:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor24:
+    image: vltpro/tor
+    container_name: tor24
+    restart: always
+    ports:
+      - "8142:8118"    # HTTP proxy
+      - "9098:9050"  # SOCKS5 proxy
+      - "9099:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor25:
+    image: vltpro/tor
+    container_name: tor25
+    restart: always
+    ports:
+      - "8143:8118"    # HTTP proxy
+      - "9100:9050"  # SOCKS5 proxy
+      - "9101:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor26:
+    image: vltpro/tor
+    container_name: tor26
+    restart: always
+    ports:
+      - "8144:8118"    # HTTP proxy
+      - "9102:9050"  # SOCKS5 proxy
+      - "9103:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor27:
+    image: vltpro/tor
+    container_name: tor27
+    restart: always
+    ports:
+      - "8145:8118"    # HTTP proxy
+      - "9104:9050"  # SOCKS5 proxy
+      - "9105:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor28:
+    image: vltpro/tor
+    container_name: tor28
+    restart: always
+    ports:
+      - "8146:8118"    # HTTP proxy
+      - "9106:9050"  # SOCKS5 proxy
+      - "9107:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor29:
+    image: vltpro/tor
+    container_name: tor29
+    restart: always
+    ports:
+      - "8147:8118"    # HTTP proxy
+      - "9108:9050"  # SOCKS5 proxy
+      - "9109:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor30:
+    image: vltpro/tor
+    container_name: tor30
+    restart: always
+    ports:
+      - "8148:8118"    # HTTP proxy
+      - "9110:9050"  # SOCKS5 proxy
+      - "9111:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor31:
+    image: vltpro/tor
+    container_name: tor31
+    restart: always
+    ports:
+      - "8149:8118"    # HTTP proxy
+      - "9112:9050"  # SOCKS5 proxy
+      - "9113:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor32:
+    image: vltpro/tor
+    container_name: tor32
+    restart: always
+    ports:
+      - "8150:8118"    # HTTP proxy
+      - "9114:9050"  # SOCKS5 proxy
+      - "9115:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor33:
+    image: vltpro/tor
+    container_name: tor33
+    restart: always
+    ports:
+      - "8151:8118"    # HTTP proxy
+      - "9116:9050"  # SOCKS5 proxy
+      - "9117:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor34:
+    image: vltpro/tor
+    container_name: tor34
+    restart: always
+    ports:
+      - "8152:8118"    # HTTP proxy
+      - "9118:9050"  # SOCKS5 proxy
+      - "9119:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor35:
+    image: vltpro/tor
+    container_name: tor35
+    restart: always
+    ports:
+      - "8153:8118"    # HTTP proxy
+      - "9120:9050"  # SOCKS5 proxy
+      - "9121:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor36:
+    image: vltpro/tor
+    container_name: tor36
+    restart: always
+    ports:
+      - "8154:8118"    # HTTP proxy
+      - "9122:9050"  # SOCKS5 proxy
+      - "9123:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor37:
+    image: vltpro/tor
+    container_name: tor37
+    restart: always
+    ports:
+      - "8155:8118"    # HTTP proxy
+      - "9124:9050"  # SOCKS5 proxy
+      - "9125:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor38:
+    image: vltpro/tor
+    container_name: tor38
+    restart: always
+    ports:
+      - "8156:8118"    # HTTP proxy
+      - "9126:9050"  # SOCKS5 proxy
+      - "9127:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor39:
+    image: vltpro/tor
+    container_name: tor39
+    restart: always
+    ports:
+      - "8157:8118"    # HTTP proxy
+      - "9128:9050"  # SOCKS5 proxy
+      - "9129:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor40:
+    image: vltpro/tor
+    container_name: tor40
+    restart: always
+    ports:
+      - "8158:8118"    # HTTP proxy
+      - "9130:9050"  # SOCKS5 proxy
+      - "9131:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor41:
+    image: vltpro/tor
+    container_name: tor41
+    restart: always
+    ports:
+      - "8159:8118"    # HTTP proxy
+      - "9132:9050"  # SOCKS5 proxy
+      - "9133:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor42:
+    image: vltpro/tor
+    container_name: tor42
+    restart: always
+    ports:
+      - "8160:8118"    # HTTP proxy
+      - "9134:9050"  # SOCKS5 proxy
+      - "9135:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor43:
+    image: vltpro/tor
+    container_name: tor43
+    restart: always
+    ports:
+      - "8161:8118"    # HTTP proxy
+      - "9136:9050"  # SOCKS5 proxy
+      - "9137:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor44:
+    image: vltpro/tor
+    container_name: tor44
+    restart: always
+    ports:
+      - "8162:8118"    # HTTP proxy
+      - "9138:9050"  # SOCKS5 proxy
+      - "9139:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor45:
+    image: vltpro/tor
+    container_name: tor45
+    restart: always
+    ports:
+      - "8163:8118"    # HTTP proxy
+      - "9140:9050"  # SOCKS5 proxy
+      - "9141:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor46:
+    image: vltpro/tor
+    container_name: tor46
+    restart: always
+    ports:
+      - "8164:8118"    # HTTP proxy
+      - "9142:9050"  # SOCKS5 proxy
+      - "9143:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor47:
+    image: vltpro/tor
+    container_name: tor47
+    restart: always
+    ports:
+      - "8165:8118"    # HTTP proxy
+      - "9144:9050"  # SOCKS5 proxy
+      - "9145:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor48:
+    image: vltpro/tor
+    container_name: tor48
+    restart: always
+    ports:
+      - "8166:8118"    # HTTP proxy
+      - "9146:9050"  # SOCKS5 proxy
+      - "9147:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor49:
+    image: vltpro/tor
+    container_name: tor49
+    restart: always
+    ports:
+      - "8167:8118"    # HTTP proxy
+      - "9148:9050"  # SOCKS5 proxy
+      - "9149:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor50:
+    image: vltpro/tor
+    container_name: tor50
+    restart: always
+    ports:
+      - "8168:8118"    # HTTP proxy
+      - "9150:9050"  # SOCKS5 proxy
+      - "9151:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor51:
+    image: vltpro/tor
+    container_name: tor51
+    restart: always
+    ports:
+      - "8169:8118"    # HTTP proxy
+      - "9152:9050"  # SOCKS5 proxy
+      - "9153:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor52:
+    image: vltpro/tor
+    container_name: tor52
+    restart: always
+    ports:
+      - "8170:8118"    # HTTP proxy
+      - "9154:9050"  # SOCKS5 proxy
+      - "9155:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor53:
+    image: vltpro/tor
+    container_name: tor53
+    restart: always
+    ports:
+      - "8171:8118"    # HTTP proxy
+      - "9156:9050"  # SOCKS5 proxy
+      - "9157:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor54:
+    image: vltpro/tor
+    container_name: tor54
+    restart: always
+    ports:
+      - "8172:8118"    # HTTP proxy
+      - "9158:9050"  # SOCKS5 proxy
+      - "9159:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor55:
+    image: vltpro/tor
+    container_name: tor55
+    restart: always
+    ports:
+      - "8173:8118"    # HTTP proxy
+      - "9160:9050"  # SOCKS5 proxy
+      - "9161:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor56:
+    image: vltpro/tor
+    container_name: tor56
+    restart: always
+    ports:
+      - "8174:8118"    # HTTP proxy
+      - "9162:9050"  # SOCKS5 proxy
+      - "9163:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor57:
+    image: vltpro/tor
+    container_name: tor57
+    restart: always
+    ports:
+      - "8175:8118"    # HTTP proxy
+      - "9164:9050"  # SOCKS5 proxy
+      - "9165:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor58:
+    image: vltpro/tor
+    container_name: tor58
+    restart: always
+    ports:
+      - "8176:8118"    # HTTP proxy
+      - "9166:9050"  # SOCKS5 proxy
+      - "9167:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor59:
+    image: vltpro/tor
+    container_name: tor59
+    restart: always
+    ports:
+      - "8177:8118"    # HTTP proxy
+      - "9168:9050"  # SOCKS5 proxy
+      - "9169:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor60:
+    image: vltpro/tor
+    container_name: tor60
+    restart: always
+    ports:
+      - "8178:8118"    # HTTP proxy
+      - "9170:9050"  # SOCKS5 proxy
+      - "9171:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor61:
+    image: vltpro/tor
+    container_name: tor61
+    restart: always
+    ports:
+      - "8179:8118"    # HTTP proxy
+      - "9172:9050"  # SOCKS5 proxy
+      - "9173:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor62:
+    image: vltpro/tor
+    container_name: tor62
+    restart: always
+    ports:
+      - "8180:8118"    # HTTP proxy
+      - "9174:9050"  # SOCKS5 proxy
+      - "9175:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor63:
+    image: vltpro/tor
+    container_name: tor63
+    restart: always
+    ports:
+      - "8181:8118"    # HTTP proxy
+      - "9176:9050"  # SOCKS5 proxy
+      - "9177:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor64:
+    image: vltpro/tor
+    container_name: tor64
+    restart: always
+    ports:
+      - "8182:8118"    # HTTP proxy
+      - "9178:9050"  # SOCKS5 proxy
+      - "9179:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor65:
+    image: vltpro/tor
+    container_name: tor65
+    restart: always
+    ports:
+      - "8183:8118"    # HTTP proxy
+      - "9180:9050"  # SOCKS5 proxy
+      - "9181:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor66:
+    image: vltpro/tor
+    container_name: tor66
+    restart: always
+    ports:
+      - "8184:8118"    # HTTP proxy
+      - "9182:9050"  # SOCKS5 proxy
+      - "9183:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor67:
+    image: vltpro/tor
+    container_name: tor67
+    restart: always
+    ports:
+      - "8185:8118"    # HTTP proxy
+      - "9184:9050"  # SOCKS5 proxy
+      - "9185:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor68:
+    image: vltpro/tor
+    container_name: tor68
+    restart: always
+    ports:
+      - "8186:8118"    # HTTP proxy
+      - "9186:9050"  # SOCKS5 proxy
+      - "9187:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor69:
+    image: vltpro/tor
+    container_name: tor69
+    restart: always
+    ports:
+      - "8187:8118"    # HTTP proxy
+      - "9188:9050"  # SOCKS5 proxy
+      - "9189:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor70:
+    image: vltpro/tor
+    container_name: tor70
+    restart: always
+    ports:
+      - "8188:8118"    # HTTP proxy
+      - "9190:9050"  # SOCKS5 proxy
+      - "9191:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor71:
+    image: vltpro/tor
+    container_name: tor71
+    restart: always
+    ports:
+      - "8189:8118"    # HTTP proxy
+      - "9192:9050"  # SOCKS5 proxy
+      - "9193:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor72:
+    image: vltpro/tor
+    container_name: tor72
+    restart: always
+    ports:
+      - "8190:8118"    # HTTP proxy
+      - "9194:9050"  # SOCKS5 proxy
+      - "9195:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor73:
+    image: vltpro/tor
+    container_name: tor73
+    restart: always
+    ports:
+      - "8191:8118"    # HTTP proxy
+      - "9196:9050"  # SOCKS5 proxy
+      - "9197:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor74:
+    image: vltpro/tor
+    container_name: tor74
+    restart: always
+    ports:
+      - "8192:8118"    # HTTP proxy
+      - "9198:9050"  # SOCKS5 proxy
+      - "9199:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor75:
+    image: vltpro/tor
+    container_name: tor75
+    restart: always
+    ports:
+      - "8193:8118"    # HTTP proxy
+      - "9200:9050"  # SOCKS5 proxy
+      - "9201:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor76:
+    image: vltpro/tor
+    container_name: tor76
+    restart: always
+    ports:
+      - "8194:8118"    # HTTP proxy
+      - "9202:9050"  # SOCKS5 proxy
+      - "9203:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor77:
+    image: vltpro/tor
+    container_name: tor77
+    restart: always
+    ports:
+      - "8195:8118"    # HTTP proxy
+      - "9204:9050"  # SOCKS5 proxy
+      - "9205:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor78:
+    image: vltpro/tor
+    container_name: tor78
+    restart: always
+    ports:
+      - "8196:8118"    # HTTP proxy
+      - "9206:9050"  # SOCKS5 proxy
+      - "9207:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor79:
+    image: vltpro/tor
+    container_name: tor79
+    restart: always
+    ports:
+      - "8197:8118"    # HTTP proxy
+      - "9208:9050"  # SOCKS5 proxy
+      - "9209:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor80:
+    image: vltpro/tor
+    container_name: tor80
+    restart: always
+    ports:
+      - "8198:8118"    # HTTP proxy
+      - "9210:9050"  # SOCKS5 proxy
+      - "9211:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor81:
+    image: vltpro/tor
+    container_name: tor81
+    restart: always
+    ports:
+      - "8199:8118"    # HTTP proxy
+      - "9212:9050"  # SOCKS5 proxy
+      - "9213:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor82:
+    image: vltpro/tor
+    container_name: tor82
+    restart: always
+    ports:
+      - "8200:8118"    # HTTP proxy
+      - "9214:9050"  # SOCKS5 proxy
+      - "9215:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor83:
+    image: vltpro/tor
+    container_name: tor83
+    restart: always
+    ports:
+      - "8201:8118"    # HTTP proxy
+      - "9216:9050"  # SOCKS5 proxy
+      - "9217:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor84:
+    image: vltpro/tor
+    container_name: tor84
+    restart: always
+    ports:
+      - "8202:8118"    # HTTP proxy
+      - "9218:9050"  # SOCKS5 proxy
+      - "9219:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor85:
+    image: vltpro/tor
+    container_name: tor85
+    restart: always
+    ports:
+      - "8203:8118"    # HTTP proxy
+      - "9220:9050"  # SOCKS5 proxy
+      - "9221:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor86:
+    image: vltpro/tor
+    container_name: tor86
+    restart: always
+    ports:
+      - "8204:8118"    # HTTP proxy
+      - "9222:9050"  # SOCKS5 proxy
+      - "9223:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor87:
+    image: vltpro/tor
+    container_name: tor87
+    restart: always
+    ports:
+      - "8205:8118"    # HTTP proxy
+      - "9224:9050"  # SOCKS5 proxy
+      - "9225:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor88:
+    image: vltpro/tor
+    container_name: tor88
+    restart: always
+    ports:
+      - "8206:8118"    # HTTP proxy
+      - "9226:9050"  # SOCKS5 proxy
+      - "9227:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor89:
+    image: vltpro/tor
+    container_name: tor89
+    restart: always
+    ports:
+      - "8207:8118"    # HTTP proxy
+      - "9228:9050"  # SOCKS5 proxy
+      - "9229:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor90:
+    image: vltpro/tor
+    container_name: tor90
+    restart: always
+    ports:
+      - "8208:8118"    # HTTP proxy
+      - "9230:9050"  # SOCKS5 proxy
+      - "9231:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor91:
+    image: vltpro/tor
+    container_name: tor91
+    restart: always
+    ports:
+      - "8209:8118"    # HTTP proxy
+      - "9232:9050"  # SOCKS5 proxy
+      - "9233:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor92:
+    image: vltpro/tor
+    container_name: tor92
+    restart: always
+    ports:
+      - "8210:8118"    # HTTP proxy
+      - "9234:9050"  # SOCKS5 proxy
+      - "9235:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor93:
+    image: vltpro/tor
+    container_name: tor93
+    restart: always
+    ports:
+      - "8211:8118"    # HTTP proxy
+      - "9236:9050"  # SOCKS5 proxy
+      - "9237:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor94:
+    image: vltpro/tor
+    container_name: tor94
+    restart: always
+    ports:
+      - "8212:8118"    # HTTP proxy
+      - "9238:9050"  # SOCKS5 proxy
+      - "9239:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor95:
+    image: vltpro/tor
+    container_name: tor95
+    restart: always
+    ports:
+      - "8213:8118"    # HTTP proxy
+      - "9240:9050"  # SOCKS5 proxy
+      - "9241:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor96:
+    image: vltpro/tor
+    container_name: tor96
+    restart: always
+    ports:
+      - "8214:8118"    # HTTP proxy
+      - "9242:9050"  # SOCKS5 proxy
+      - "9243:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor97:
+    image: vltpro/tor
+    container_name: tor97
+    restart: always
+    ports:
+      - "8215:8118"    # HTTP proxy
+      - "9244:9050"  # SOCKS5 proxy
+      - "9245:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor98:
+    image: vltpro/tor
+    container_name: tor98
+    restart: always
+    ports:
+      - "8216:8118"    # HTTP proxy
+      - "9246:9050"  # SOCKS5 proxy
+      - "9247:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor99:
+    image: vltpro/tor
+    container_name: tor99
+    restart: always
+    ports:
+      - "8217:8118"    # HTTP proxy
+      - "9248:9050"  # SOCKS5 proxy
+      - "9249:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600
+  tor100:
+    image: vltpro/tor
+    container_name: tor100
+    restart: always
+    ports:
+      - "8218:8118"    # HTTP proxy
+      - "9250:9050"  # SOCKS5 proxy
+      - "9251:9051"  # ControlPort
+    environment:
+      TOR_REBUILD_INTERVAL: 3600

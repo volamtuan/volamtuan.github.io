@@ -3,16 +3,44 @@
 # Số lượng container cần tạo
 NUM_CONTAINERS=500
 
-# Mảng chứa các cổng đã được sử dụng
+# Cổng bắt đầu
 PORT_8119_START=8119
 PORT_9050_START=9050
 
-# Ngưỡng tài nguyên
-MIN_RAM_MB=500    # RAM tối thiểu còn trống (MB)
-MAX_CPU_USAGE=80  # Mức sử dụng CPU tối đa (%)
+# Hàm kiểm tra cổng đã được sử dụng chưa
+check_port_in_use() {
+    local port=$1
+    ss -tuln | grep -q ":$port "
+    return $?
+}
+
+# Hàm kiểm tra tên container đã tồn tại chưa
+check_container_exists() {
+    local container_name=$1
+    docker ps -aq -f name="^${container_name}$" >/dev/null
+    return $?
+}
+
+# Hàm lấy tên container không bị trùng
+get_unique_container_name() {
+    local base_name=$1
+    local suffix=0
+    local new_name=$base_name
+
+    while check_container_exists "$new_name"; do
+        suffix=$((suffix + 1))
+        new_name="${base_name}_${suffix}"
+    done
+
+    echo $new_name
+}
 
 # Hàm kiểm tra tài nguyên hệ thống
 check_system_resources() {
+    # Ngưỡng tài nguyên
+    MIN_RAM_MB=500    # RAM tối thiểu còn trống (MB)
+    MAX_CPU_USAGE=80  # Mức sử dụng CPU tối đa (%)
+
     # Kiểm tra RAM (dung lượng RAM còn trống)
     available_memory=$(free -m | awk '/Mem:/ { print $7 }')  # MB
 
@@ -33,6 +61,16 @@ check_system_resources() {
     return 0
 }
 
+# Hàm lấy cổng không bị chiếm dụng
+get_available_port() {
+    local start_port=$1
+    local port=$start_port
+    while check_port_in_use $port; do
+        port=$((port + 1))  # Tăng cổng nếu cổng hiện tại đã bị chiếm dụng
+    done
+    echo $port
+}
+
 for i in $(seq 0 $((NUM_CONTAINERS - 1))); do
     # Kiểm tra tài nguyên trước khi tạo container
     check_system_resources
@@ -41,22 +79,26 @@ for i in $(seq 0 $((NUM_CONTAINERS - 1))); do
         exit 1
     fi
 
-    # Tạo tên container
-    CONTAINER_NAME="tor$i"
+    # Tìm tên container không bị trùng
+    BASE_CONTAINER_NAME="tor$i"
+    CONTAINER_NAME=$(get_unique_container_name $BASE_CONTAINER_NAME)
 
-    # Xác định các cổng
-    PORT_8119=$((PORT_8119_START + i))
-    PORT_9050=$((PORT_9050_START + i))
+    # Tìm các cổng khả dụng
+    PORT_8119=$(get_available_port $PORT_8119_START)
+    PORT_9050=$(get_available_port $PORT_9050_START)
 
     # Chạy container Docker
     docker run --restart=always -d \
         --name "$CONTAINER_NAME" \
         -p "$PORT_8119:8119" -p "$PORT_9050:9050" \
-        -e "TOR_COUNTRY=US" -e "TOR_REBUILD_INTERVAL=3600" \
+        -e "TOR_COUNTRY=US,CA,LU" -e "TOR_REBUILD_INTERVAL=3600" \
         vltpro/tor
 
     if [ $? -eq 0 ]; then
         echo "Đã tạo container $CONTAINER_NAME với các cổng: $PORT_8119, $PORT_9050"
+        # Cập nhật cổng bắt đầu để không tạo trùng lặp
+        PORT_8119_START=$((PORT_8119 + 1))
+        PORT_9050_START=$((PORT_9050 + 1))
     else
         echo "Lỗi khi tạo container $CONTAINER_NAME"
     fi

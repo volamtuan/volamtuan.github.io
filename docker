@@ -7,6 +7,12 @@ if [ -f /etc/centos-release ]; then
 elif [ -f /etc/lsb-release ]; then
     OS="ubuntu"
     echo "This is Ubuntu"
+elif [ -f /etc/debian_version ]; then
+    OS="debian"
+    echo "This is Debian or Kali"
+elif [ -f /etc/os-release ] && grep -q "AlmaLinux" /etc/os-release; then
+    OS="almalinux"
+    echo "This is AlmaLinux"
 else
     echo "Unsupported OS"
     exit 1
@@ -34,6 +40,26 @@ elif [ "$OS" = "ubuntu" ]; then
     sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     sudo systemctl start docker
     sudo systemctl enable docker
+
+elif [ "$OS" = "debian" ]; then
+    # Install Docker on Debian / Kali
+    sudo apt-get update
+    for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove -y $pkg; done
+    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+    curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
+    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+    sudo apt-get update
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    sudo systemctl start docker
+    sudo systemctl enable docker
+
+elif [ "$OS" = "almalinux" ]; then
+    # Install Docker on AlmaLinux
+    sudo dnf install -y yum-utils device-mapper-persistent-data lvm2
+    sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+    sudo dnf install -y docker-ce docker-ce-cli containerd.io
+    sudo systemctl start docker
+    sudo systemctl enable docker
 fi
 
 # Install Docker Compose (applicable for both OS)
@@ -54,3 +80,5 @@ docker --version
 docker-compose --version
 
 echo "Please log out and log back in to apply Docker group permissions."
+
+

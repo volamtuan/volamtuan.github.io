@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Số lượng container tối đa có thể tạo được dựa trên tài nguyên hệ thống
+MAX_CONTAINERS=10000
+PORT_8118_START=8000
+PORT_4444_START=4444
+
+# Kiểm tra lượng RAM còn lại
+RAM_FREE=$(free -m | grep Mem | awk '{print $4}')
+# Kiểm tra số lượng CPU hiện có
+CPU_CORES=$(nproc)
+
+# Tính toán số lượng container tối đa có thể tạo dựa trên RAM và CPU
+# Ví dụ: 1 container cần ít nhất 200MB RAM và 1 CPU core
+MAX_CONTAINERS_RAM=$((RAM_FREE / 200))  # Số container tối đa dựa trên RAM
+MAX_CONTAINERS_CPU=$((CPU_CORES))  # Số container tối đa dựa trên số lõi CPU
+
+# Lấy giá trị nhỏ hơn giữa số lượng container tối đa từ RAM và CPU
+NUM_CONTAINERS=$((MAX_CONTAINERS_RAM < MAX_CONTAINERS_CPU ? MAX_CONTAINERS_RAM : MAX_CONTAINERS_CPU))
+
+# Hạn chế số lượng container nếu vượt quá MAX_CONTAINERS
+NUM_CONTAINERS=$((NUM_CONTAINERS < MAX_CONTAINERS ? NUM_CONTAINERS : MAX_CONTAINERS))
+
+echo "Tạo $NUM_CONTAINERS container(s) dựa trên tài nguyên hệ thống."
+
+for i in $(seq 0 $((NUM_CONTAINERS - 1))); do
+    CONTAINER_NAME="tor-proxy$i"
+    PORT_8118=$((PORT_8118_START + i)) 
+    PORT_4444=$((PORT_4444_START + i)) 
+    docker run --restart=always -d \
+        --name "$CONTAINER_NAME" \
+        -p "$PORT_8118:8118" -p "$PORT_4444:4444" \
+        -e "TORS=3" \
+        -e "HEADS=2" \
+        -e "TOR_COUNTRY=US,CA,LU" \
+        -e "TOR_REBUILD_INTERVAL=3600" \
+        vltpro/tor-privoxy
+
+    echo "Đã tạo container $CONTAINER_NAME với các cổng: $PORT_8118, $PORT_4444"
+done

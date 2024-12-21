@@ -1,0 +1,96 @@
+#!/bin/bash
+
+# Số lượng container cần tạo
+NUM_CONTAINERS=100
+
+# Cổng bắt đầu
+PORT_8888_START=8888
+PORT_8889_START=8889
+PORT_1082_START=1080
+PORT_1083_START=1081
+PORT_2090_START=2090  # Cổng cố định
+
+# Hàm kiểm tra cổng đã được sử dụng chưa
+check_port_in_use() {
+    local port=$1
+    ss -tuln | grep -q ":$port "
+    return $?
+}
+
+# Hàm kiểm tra tên container đã tồn tại chưa
+check_container_exists() {
+    local container_name=$1
+    docker ps -q -f name=$container_name
+    return $?
+}
+
+# Hàm lấy cổng không bị chiếm dụng
+get_available_port() {
+    local start_port=$1
+    local port=$start_port
+    while check_port_in_use $port; do
+        port=$((port + 1))  # Tăng cổng lên nếu cổng hiện tại đã bị chiếm dụng
+    done
+    echo $port
+}
+
+# Kiểm tra tài nguyên hệ thống (RAM và CPU)
+check_system_resources() {
+    # Kiểm tra RAM (dung lượng RAM còn trống)
+    available_memory=$(free -m | awk '/Mem:/ { print $7 }')  # MB
+    max_memory=2048  # Ví dụ giới hạn RAM tối đa là 2GB, có thể thay đổi theo nhu cầu
+
+    if [ "$available_memory" -lt "$max_memory" ]; then
+        echo "Không đủ RAM! Cần ít nhất $max_memory MB. Dung lượng còn lại: $available_memory MB."
+        exit 1
+    fi
+
+    # Kiểm tra CPU (sử dụng CPU hiện tại)
+    cpu_usage=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}')
+    max_cpu_usage=80  # Giới hạn mức sử dụng CPU tối đa là 80%
+
+    if [ "$(echo "$cpu_usage > $max_cpu_usage" | bc)" -eq 1 ]; then
+        echo "Mức sử dụng CPU quá cao! Đang sử dụng $cpu_usage%. Giới hạn: $max_cpu_usage%."
+        exit 1
+    fi
+
+    echo "Tài nguyên hệ thống đủ (RAM: $available_memory MB, CPU: $cpu_usage%)."
+}
+
+# Kiểm tra tài nguyên trước khi tiếp tục
+check_system_resources
+
+for i in $(seq 0 $((NUM_CONTAINERS - 1))); do
+    # Tạo tên container ban đầu
+    CONTAINER_NAME="tor$i"
+
+    # Tính toán các cổng động
+    PORT_8888=$(get_available_port $PORT_8888_START)
+    PORT_8889=$(get_available_port $PORT_8889_START)
+    PORT_1082=$(get_available_port $PORT_1082_START)
+    PORT_1083=$(get_available_port $PORT_1083_START)
+    PORT_2090=$(get_available_port $PORT_2090_START)
+
+    # Kiểm tra xem container có tồn tại không
+    if check_container_exists "$CONTAINER_NAME"; then
+        echo "Container $CONTAINER_NAME đã tồn tại, không tạo mới."
+    else
+        # Chạy container Docker
+        docker run --restart=always -d \
+            --name "$CONTAINER_NAME" \
+            -e TORS=3 -e HEADS=2 \
+            -p "$PORT_8888:8888" \
+            -p "$PORT_8889:8889" \
+            -p "$PORT_1082:1080" \
+            -p "$PORT_1083:1081" \
+            -p "$PORT_2090:2090" \
+            -e "TOR_COUNTRY=US,CA,LU" -e "TOR_REBUILD_INTERVAL=3600" \
+            datawookie/medusa-proxy
+
+        if [ $? -eq 0 ]; then
+            echo "Đã tạo container $CONTAINER_NAME với các cổng: $PORT_8888, $PORT_8889, $PORT_1082, $PORT_1083, $PORT_2090"
+        else
+            echo "Lỗi khi tạo container $CONTAINER_NAME"
+        fi
+    fi
+done

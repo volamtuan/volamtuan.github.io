@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giải Mã Mã JavaScript</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+        }
+        label {
+            font-weight: bold;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-bottom: 10px;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: vertical;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+        }
+    </style>
+    <!-- Thêm Prettier từ CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/prettier@2.8.3/standalone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prettier@2.8.3/parser-babel.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h2>Giải Mã Mã JavaScript</h2>
+        
+        <!-- Nhập mã JavaScript cần giải mã -->
+        <label for="inputCode">Nhập mã JavaScript bị nén:</label>
+        <textarea id="inputCode" placeholder="Nhập mã JavaScript bị nén tại đây"></textarea>
+        
+        <!-- Nút giải mã -->
+        <button onclick="decodeCode()">Giải Mã</button>
+        
+        <!-- Kết quả giải mã -->
+        <div class="result" id="outputResult"></div>
+    </div>
+
+    <script>
+        function decodeCode() {
+            const inputCode = document.getElementById('inputCode').value.trim();  // Lấy giá trị từ ô nhập liệu
+            const outputResult = document.getElementById('outputResult');  // Khu vực hiển thị kết quả giải mã
+            
+            outputResult.innerHTML = "";  // Reset kết quả trước khi giải mã
+            
+            if (inputCode === "") {
+                outputResult.innerHTML = "Vui lòng nhập mã JavaScript bị nén!";
+                return;
+            }
+            
+            try {
+                // Giải mã JavaScript: Giải mã cơ bản cho mã JavaScript bị nén
+                const beautified = beautify(inputCode);  // Làm đẹp mã
+                outputResult.innerHTML = `<b>Giải mã JavaScript:</b><br><pre>${beautified}</pre>`;
+            } catch (error) {
+                outputResult.innerHTML = `<span style="color: red;">Lỗi: Không thể giải mã mã này. Có thể mã không hợp lệ.</span>`;
+            }
+        }
+
+        // Hàm làm đẹp mã JavaScript (Prettify)
+        function beautify(jsCode) {
+            try {
+                // Dùng Prettier để làm đẹp mã JavaScript
+                return prettier.format(jsCode, {
+                    parser: "babel",  // Dùng parser babel cho mã JS
+                    plugins: prettierPlugins
+                });
+            } catch (error) {
+                return `<span style="color: red;">Lỗi khi làm đẹp mã: ${error.message}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>

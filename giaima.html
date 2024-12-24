@@ -58,51 +58,76 @@
         .result:hover {
             background-color: #d6d9df;
         }
+        pre {
+            background-color: #f7f7f7;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
     </style>
-    <!-- Thêm Prettier từ CDN -->
     <script src="https://cdn.jsdelivr.net/npm/prettier@2.8.3/standalone.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prettier@2.8.3/parser-babel.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
 </head>
 <body>
-    <div class="text-center-container">
+    <div class="container">
         <h2>Giải Mã Mã JavaScript và Sao Chép</h2>
-        
-        <!-- Nhập mã JavaScript cần giải mã -->
-        <label for="inputCode">Nhập mã JavaScript bị nén:</label>
-        <textarea id="inputCode" placeholder="Nhập mã JavaScript bị nén tại đây"></textarea>
-        
-        <!-- Nút giải mã -->
+
+        <label for="inputCode">Nhập mã JavaScript:</label>
+        <textarea id="inputCode" placeholder="Nhập mã JavaScript tại đây"></textarea>
+
         <button onclick="decodeCode()">Giải Mã</button>
-        
-        <!-- Kết quả giải mã -->
-        <div class="result" id="outputResult" onclick="copyToClipboard()">Kết quả...</div>
+
+        <div id="outputResult" class="result" onclick="copyToClipboard()">Click để sao chép mã đã giải mã</div>
     </div>
 
     <script>
         function decodeCode() {
-            const inputCode = document.getElementById('inputCode').value.trim();  // Lấy giá trị từ ô nhập liệu
-            const outputResult = document.getElementById('outputResult');  // Khu vực hiển thị kết quả giải mã
-            
-            outputResult.innerHTML = "";  // Reset kết quả trước khi giải mã
-            
+            const inputCode = document.getElementById('inputCode').value.trim();
+            const outputResult = document.getElementById('outputResult');
+
+            outputResult.innerHTML = ""; // Reset kết quả trước khi giải mã
+
             if (inputCode === "") {
-                outputResult.innerHTML = "Vui lòng nhập mã JavaScript bị nén!";
+                outputResult.innerHTML = "Vui lòng nhập mã JavaScript!";
                 return;
             }
-            
+
             try {
-                // Giải mã JavaScript: Giải mã cơ bản cho mã JavaScript bị nén
-                const beautified = beautify(inputCode);  // Làm đẹp mã
-                outputResult.innerHTML = `<pre>${beautified}</pre>`;
+                let decodedCode = inputCode;
+
+                // Giải mã các kiểu mã cụ thể
+
+                // 1. Giải mã URL Encoding
+                decodedCode = decodeURIComponent(decodedCode);
+
+                // 2. Giải mã _Number Array (ví dụ mảng mã hóa số)
+                decodedCode = decodedCode.replace(/\[_([0-9]+)\]/g, function(match, p1) {
+                    return String.fromCharCode(p1);
+                });
+
+                // 3. Giải mã Eval
+                decodedCode = decodedCode.replace(/eval\((.*?)\)/g, function(match, p1) {
+                    return p1;  // Giải mã eval
+                });
+
+                // 4. Giải mã Packer, Obfuscator (Mã nén hoặc mã hóa)
+                decodedCode = decodePacker(decodedCode);  // Bạn có thể thêm logic giải mã mã nén ở đây
+
+                // Làm đẹp mã
+                const beautifiedCode = beautify(decodedCode);
+                outputResult.innerHTML = "<br><pre id='highlighted'>" + beautifiedCode + "</pre>";
+
+                // Highlight mã bằng thư viện highlight.js
+                hljs.highlightAll();
             } catch (error) {
-                outputResult.innerHTML = `<span style="color: red;">Lỗi: Không thể giải mã mã này. Có thể mã không hợp lệ.</span>`;
+                outputResult.innerHTML = `<span style="color: red;">Lỗi: Không thể giải mã mã này. ${error.message}</span>`;
             }
         }
 
         // Hàm làm đẹp mã JavaScript (Prettify)
         function beautify(jsCode) {
             try {
-                // Dùng Prettier để làm đẹp mã JavaScript
                 return prettier.format(jsCode, {
                     parser: "babel",  // Dùng parser babel cho mã JS
                     plugins: prettierPlugins
@@ -110,6 +135,13 @@
             } catch (error) {
                 return `<span style="color: red;">Lỗi khi làm đẹp mã: ${error.message}</span>`;
             }
+        }
+
+        // Hàm giải mã Packer (mã nén)
+        function decodePacker(jsCode) {
+            // Logic giải mã mã nén Packer (Nếu mã sử dụng packer.js)
+            // Bạn có thể sử dụng một thư viện hoặc tạo giải mã cụ thể cho Packer
+            return jsCode;  // Placeholder, tùy thuộc vào loại mã nén
         }
 
         // Hàm sao chép kết quả vào clipboard

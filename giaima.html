@@ -93,7 +93,7 @@
             try {
                 // Giải mã JavaScript: Giải mã cơ bản cho mã JavaScript bị nén
                 const beautified = beautify(inputCode);  // Làm đẹp mã
-                outputResult.innerHTML = `<b>Giải mã JavaScript:</b><br><pre>${beautified}</pre>`;
+                outputResult.innerHTML = `<br><pre>${beautified}</pre>`;
             } catch (error) {
                 outputResult.innerHTML = `<span style="color: red;">Lỗi: Không thể giải mã mã này. Có thể mã không hợp lệ.</span>`;
             }

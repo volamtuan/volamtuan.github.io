@@ -64,7 +64,7 @@
     <script src="https://cdn.jsdelivr.net/npm/prettier@2.8.3/parser-babel.js"></script>
 </head>
 <body>
-    <div class="text-container">
+    <div class="container">
         <h2>Giải Mã Mã JavaScript và Sao Chép</h2>
         
         <!-- Nhập mã JavaScript cần giải mã -->
@@ -75,7 +75,7 @@
         <button onclick="decodeCode()">Giải Mã</button>
         
         <!-- Kết quả giải mã -->
-        <div class="result" id="outputResult" onclick="copyToClipboard()">Click để sao chép mã đã giải mã</div>
+        <div class="result" id="outputResult" onclick="copyToClipboard()">Kết quả...</div>
     </div>
 
     <script>
@@ -93,7 +93,7 @@
             try {
                 // Giải mã JavaScript: Giải mã cơ bản cho mã JavaScript bị nén
                 const beautified = beautify(inputCode);  // Làm đẹp mã
-                outputResult.innerHTML = `<br><pre>${beautified}</pre>`;
+                outputResult.innerHTML = `<b>Giải mã JavaScript:</b><br><pre>${beautified}</pre>`;
             } catch (error) {
                 outputResult.innerHTML = `<span style="color: red;">Lỗi: Không thể giải mã mã này. Có thể mã không hợp lệ.</span>`;
             }

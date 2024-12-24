@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giải Mã Mã JavaScript</title>
+    <title>Giải Mã Mã JavaScript và Sao Chép</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -53,6 +53,10 @@
             padding: 10px;
             background-color: #e9ecef;
             border-radius: 5px;
+            cursor: pointer;
+        }
+        .result:hover {
+            background-color: #d6d9df;
         }
     </style>
     <!-- Thêm Prettier từ CDN -->
@@ -60,8 +64,8 @@
     <script src="https://cdn.jsdelivr.net/npm/prettier@2.8.3/parser-babel.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h2>Giải Mã Mã JavaScript</h2>
+    <div class="text-container">
+        <h2>Giải Mã Mã JavaScript và Sao Chép</h2>
         
         <!-- Nhập mã JavaScript cần giải mã -->
         <label for="inputCode">Nhập mã JavaScript bị nén:</label>
@@ -71,7 +75,7 @@
         <button onclick="decodeCode()">Giải Mã</button>
         
         <!-- Kết quả giải mã -->
-        <div class="result" id="outputResult"></div>
+        <div class="result" id="outputResult" onclick="copyToClipboard()">Click để sao chép mã đã giải mã</div>
     </div>
 
     <script>
@@ -106,6 +110,18 @@
             } catch (error) {
                 return `<span style="color: red;">Lỗi khi làm đẹp mã: ${error.message}</span>`;
             }
+        }
+
+        // Hàm sao chép kết quả vào clipboard
+        function copyToClipboard() {
+            const outputResult = document.getElementById('outputResult');
+            const range = document.createRange();
+            range.selectNode(outputResult);
+            window.getSelection().removeAllRanges();  // Clear any current selections
+            window.getSelection().addRange(range);  // Add the range to the selection
+            document.execCommand('copy');  // Copy the selected content
+
+            alert("Mã JavaScript đã giải mã đã được sao chép vào clipboard!");
         }
     </script>
 </body>

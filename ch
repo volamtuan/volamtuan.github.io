@@ -1,4 +1,20 @@
 
+# Lấy danh sách cổng đang mở và kiểm tra tất cả các cổng lắng nghe
+
+OPEN_PORTS=$(netstat -tuln | grep LISTEN | awk '{print $4}' | grep -oE '[0-9]+$' | sort -u)
+
+
+
+if [[ -z "$OPEN_PORTS" ]]; then
+
+    echo "Không tìm thấy cổng nào đang mở."
+
+    echo "Không tìm thấy cổng nào đang mở." >> $LOG_FILE
+
+    exit 1
+
+fi
+
 
 
 echo "Danh sách cổng đang mở: $OPEN_PORTS"
@@ -60,4 +76,3 @@ done
 echo "Hoàn tất kiểm tra."
 
 echo "Hoàn tất kiểm tra." >> $LOG_FILE
-

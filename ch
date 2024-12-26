@@ -1,5 +1,22 @@
 
-# Lấy danh sách cổng đang mở và kiểm tra tất cả các cổng lắng nghe
+#!/bin/bash
+
+
+
+# URL kiểm tra IP
+
+TEST_URL="http://httpbin.org/ip"
+
+IP_INFO_API="https://ipinfo.io"  # Dịch vụ để lấy thông tin quốc gia
+
+LOG_FILE="proxy_check.log"
+
+
+
+# Tạo hoặc xóa log cũ
+
+echo "Bắt đầu kiểm tra proxy..." > $LOG_FILE
+
 
 OPEN_PORTS=$(netstat -tuln | grep LISTEN | awk '{print $4}' | grep -oE '[0-9]+$' | sort -u)
 

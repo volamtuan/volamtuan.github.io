@@ -1,0 +1,31 @@
+#!/bin/bash
+
+NUM_CONTAINERS=200
+PORT_8118_START=8000
+PORT_4444_START=4444
+
+create_container() {
+  local i=$1
+  local CONTAINER_NAME="tor-proxy${i}"
+  local PORT_8118=$((PORT_8118_START + i))
+  local PORT_4444=$((PORT_4444_START + i))
+
+  docker run --restart=always -d \
+    --name "$CONTAINER_NAME" \
+    -p "$PORT_8118:8118" -p "$PORT_4444:4444" \
+    -e "TOR_COUNTRY=US,CA,LU,DE" \
+    -e "TOR_REBUILD_INTERVAL=3600" \
+    vltpro/tor-privoxy
+
+  if [ $? -eq 0 ]; then
+    echo "Đã tạo container $CONTAINER_NAME với các cổng: $PORT_8118, $PORT_4444"
+  else
+    echo "Lỗi tạo container $CONTAINER_NAME"
+    exit 1
+  fi
+}
+
+for i in $(seq 1 $NUM_CONTAINERS); do
+  create_container $i
+  sleep 1 # Thời gian chờ 1 giây
+done

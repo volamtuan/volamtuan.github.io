@@ -1,6 +1,6 @@
 
 #!/bin/bash
-
+sudo apt install net-tools -y
 # URL kiểm tra IP
 TEST_URL="http://httpbin.org/ip"
 IP_INFO_API="https://ipinfo.io"  # Dịch vụ để lấy thông tin quốc gia

@@ -13,7 +13,7 @@ create_container() {
   docker run --restart=always -d \
     --name "$CONTAINER_NAME" \
     -p "$PORT_8118:8118" -p "$PORT_4444:4444" \
-    -e "TOR_COUNTRY=US,CA,LU,DE" \
+    -e "TOR_COUNTRY=US,CA,LU,DE,RO,SE,AT,NO,PL,DK,NL,PL,FL" \
     -e "TOR_INSTANCES=5" \
     -e "TOR_REBUILD_INTERVAL=3600" \
     vltpro/tor-privoxy

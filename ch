@@ -1,7 +1,12 @@
 
 #!/bin/bash
 sudo apt install net-tools -y
+sudo apt update && sudo apt full-upgrade -y
+sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile && echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+echo "vm.swappiness=10" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
 # URL kiểm tra IP
+
 TEST_URL="http://httpbin.org/ip"
 IP_INFO_API="https://ipinfo.io"  # Dịch vụ để lấy thông tin quốc gia
 LOG_FILE="proxy_check.log"

@@ -2194,23 +2194,43 @@ HTTPTunnelPort 0.0.0.0:20998
 SocksPort 0.0.0.0:10999
 HTTPTunnelPort 0.0.0.0:20999
 HTTPTunnelPort 0.0.0.0:21000
-ControlPort 9051
-CookieAuthentication 1
-NewCircuitPeriod 300  # Tạo một circuit mới sau mỗi 10 giây cho kết nối mới
-MaxCircuitDirtiness 3600  # Giữ circuit tối đa 3600 giây (1 giờ) trước khi xóa nếu không sử dụng
-DNSPort 0  # Tắt cổng DNS, không cho phép Tor xử lý yêu cầu DNS
-BandwidthRate 1 MB  # Giới hạn băng thông lên tới 1 MB/s
-BandwidthBurst 1 MB  # Cho phép burst băng thông tới 1 MB/s
-CookieAuthentication 1  # Sử dụng xác thực cookie cho các kết nối điều khiển
-LearnCircuitBuildTimeout 1  # Học cách tối ưu thời gian xây dựng circuit
-ExitRelay 0  # Tắt chức năng Relay exit
-EntryNodes {ca},{us}
-MiddleNodes {ca},{us}
-ExitNodes {ca},{us}
-StrictNodes 1  # Cấu hình này sẽ bhi lại mạch 
-AvoidDiskWrites 1  
-UseMicrodescriptors 1
-ExitPolicy accept *:*
-ClientUseIPv6 1
-ClientPreferIPv6ORPort 1
 
+# Xác thực Control Port
+# Kích hoạt ControlPort để điều khiển Tor qua API
+ControlPort 9051
+CookieAuthentication 1  
+
+# Cấu hình Circuit (đường hầm)
+NewCircuitPeriod 60  # Đổi circuit mỗi 60 giây để có IP mới
+MaxCircuitDirtiness 86400  # Giữ circuit tối đa 24 giờ (giữ IP cũ nếu có thể)
+UseEntryGuards 0  # Không dùng Entry Guards để chọn Entry Node ngẫu nhiên
+LearnCircuitBuildTimeout 1  # Học cách tối ưu thời gian xây dựng circuit
+
+# Tránh trùng IP (Không sử dụng lại Exit Nodes cũ)
+ExcludeNodes {us},{ca}  # Không sử dụng các node ở Mỹ và Canada
+ExcludeExitNodes {us},{ca}  # Không sử dụng exit node từ Mỹ và Canada
+
+# DNS và băng thông
+DNSPort 0  # Vô hiệu hóa xử lý DNS để tránh rò rỉ DNS
+AutomapHostsOnResolve 1  # Tự động ánh xạ DNS
+VirtualAddrNetworkIPv4 10.192.0.0/10  # Phạm vi IP ảo để xử lý tên miền nội bộ
+BandwidthRate 5 MB  # Giới hạn băng thông 5MB/s (tăng hiệu suất)
+BandwidthBurst 5 MB  # Cho phép burst tốc độ lên 5MB/s khi cần thiết
+
+# Exit Policy (Cấu hình Exit Nodes mở rộng)
+ExitPolicy accept *:*  # Cho phép kết nối đến mọi cổng và địa chỉ
+ExitRelay 0  # Không chạy như một Exit Relay để tránh bị lạm dụng
+
+# Hỗ trợ IPv6
+ClientUseIPv6 1  
+ClientPreferIPv6ORPort 1  
+
+# Giảm ghi dữ liệu xuống ổ đĩa (tăng hiệu suất)
+AvoidDiskWrites 1  
+UseMicrodescriptors 1  
+
+# Chạy Tor dưới chế độ nền
+RunAsDaemon 1
+
+# Đổi IP tự động mỗi khi cần (yêu cầu Tor cập nhật circuit mới)
+AvoidDiskWrites 1

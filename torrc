@@ -1,4 +1,4 @@
-## Configuration file for a typical Tor user
+p## Configuration file for a typical Tor user
 ## Last updated 9 October 2013 for Tor 0.2.5.2-alpha.
 ## (may or may not work for much older or much newer versions of Tor.)
 ##
@@ -5196,19 +5196,25 @@ HTTPTunnelPort 0.0.0.0:50998
 HTTPTunnelPort 0.0.0.0:50999
 HTTPTunnelPort 0.0.0.0:51000
 ControlPort 9051
-CookieAuthentication 1  
-NewCircuitPeriod 60 
+CookieAuthentication 1
+NewCircuitPeriod 60
 MaxCircuitDirtiness 86400  
-ExitRelay 0  
+ExitRelay 0
+CircuitBuildTimeout 10
 LearnCircuitBuildTimeout 1
 MiddleNodes {ca},{us}
 ExitNodes {ca},{us}
-StrictNodes 1  
+StrictNodes 1
 AvoidDiskWrites 1  
 UseMicrodescriptors 1
 ExitPolicy accept *:*
 ClientUseIPv6 1
 ClientPreferIPv6ORPort 1
-AvoidDiskWrites 1
+UseMicrodescriptors 1
+SafeLogging 0
+DataDirectory /var/lib/tor
+GeoIPFile /var/lib/tor/geoip
+GeoIPv6File /var/lib/tor/geoip6
+
 
 

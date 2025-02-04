@@ -5212,9 +5212,7 @@ ClientUseIPv6 1
 ClientPreferIPv6ORPort 1
 UseMicrodescriptors 1
 SafeLogging 0
-DataDirectory /var/lib/tor
-GeoIPFile /var/lib/tor/geoip
-GeoIPv6File /var/lib/tor/geoip6
+
 
 
 

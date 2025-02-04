@@ -5197,22 +5197,44 @@ HTTPTunnelPort 0.0.0.0:50999
 HTTPTunnelPort 0.0.0.0:51000
 ControlPort 9051
 CookieAuthentication 1
-NewCircuitPeriod 60
-MaxCircuitDirtiness 86400  
-ExitRelay 0
-CircuitBuildTimeout 10
-LearnCircuitBuildTimeout 1
+
+# Cấu hình circuit
+NewCircuitPeriod 60  # Đổi circuit sau 60 giây
+MaxCircuitDirtiness 86400  # Giữ circuit tối đa 24 giờ để giảm thay đổi IP không cần thiết
+UseEntryGuards 0  # Không dùng Entry Guards để chọn Entry Node ngẫu nhiên
+
+# Giới hạn node trung gian và exit node
 MiddleNodes {ca},{us}
 ExitNodes {ca},{us}
-StrictNodes 1
+StrictNodes 1  # Chỉ sử dụng các node được chỉ định
+
+# Tránh trùng IP bằng cách không sử dụng lại các exit node cũ
+ExcludeNodes {ca},{us}  
+ExcludeExitNodes {ca},{us}  
+
+# Tối ưu thời gian xây dựng circuit
+CircuitBuildTimeout 5  # Giảm thời gian chờ khi xây dựng circuit
+LearnCircuitBuildTimeout 1  # Học cách tối ưu thời gian build circuit
+
+# Tắt chức năng relay để tránh lạm dụng
+ExitRelay 0
+
+# Giảm ghi đĩa để tăng tốc Tor và kéo dài tuổi thọ ổ cứng
 AvoidDiskWrites 1  
 UseMicrodescriptors 1
-ExitPolicy accept *:*
-ClientUseIPv6 1
-ClientPreferIPv6ORPort 1
-UseMicrodescriptors 1
-SafeLogging 0
 
+# Hỗ trợ IPv6
+ClientUseIPv6 1  
+ClientPreferIPv6ORPort 1  
+
+# Bảo mật log, tránh rò rỉ thông tin
+SafeLogging 1  # Ẩn thông tin nhạy cảm khỏi log
+
+# Cấu hình Exit Policy
+ExitPolicy reject *:*  # Ngăn chặn exit node hoạt động để bảo vệ hệ thống
+
+# Tăng tốc độ khởi tạo circuit
+FastFirstHopPK 1
 
 
 

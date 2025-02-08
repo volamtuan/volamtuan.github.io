@@ -1,0 +1,187 @@
+#!/bin/bash
+
+red='\033[0;31m'
+green='\033[0;32m'
+blue='\033[0;34m'
+yellow='\033[0;33m'
+plain='\033[0m'
+
+cur_dir=$(pwd)
+
+# check root
+[[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
+
+# Cập nhật thời gian tự động
+echo -e "${yellow}Đang cập nhật thời gian từ máy chủ NTP...${plain}"
+if command -v ntpdate &>/dev/null; then
+    ntpdate -u pool.ntp.org
+    echo -e "${green}Thời gian đã được cập nhật thành công!${plain}"
+elif command -v timedatectl &>/dev/null; then
+    timedatectl set-ntp true
+    echo -e "${green}Thời gian đã được đồng bộ với NTP thành công!${plain}"
+else
+    echo -e "${red}Không thể cập nhật thời gian, lệnh ntpdate hoặc timedatectl không được cài đặt.${plain}"
+fi
+# Kiểm tra quyền root
+[[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
+
+# Kiểm tra hệ điều hành
+if [[ -f /etc/os-release ]]; then
+    source /etc/os-release
+    release=$ID
+elif [[ -f /usr/lib/os-release ]]; then
+    source /usr/lib/os-release
+    release=$ID
+else
+    echo "Không thể xác định hệ điều hành, vui lòng liên hệ với tác giả!" >&2
+    exit 1
+fi
+echo "Hệ điều hành hiện tại là: $release"
+
+# Kiểm tra kiến trúc hệ thống
+arch() {
+    case "$(uname -m)" in
+    x86_64 | x64 | amd64) echo 'amd64' ;;
+    i*86 | x86) echo '386' ;;
+    armv8* | armv8 | arm64 | aarch64) echo 'arm64' ;;
+    armv7* | armv7 | arm) echo 'armv7' ;;
+    armv6* | armv6) echo 'armv6' ;;
+    armv5* | armv5) echo 'armv5' ;;
+    s390x) echo 's390x' ;;
+    *) echo -e "${green}Kiến trúc CPU không hỗ trợ! ${plain}" && exit 1 ;;
+    esac
+}
+
+# Kiểm tra phiên bản OS
+os_version=""
+os_version=$(grep "^VERSION_ID" /etc/os-release | cut -d '=' -f2 | tr -d '"' | tr -d '.')
+
+# Kiểm tra hệ điều hành hỗ trợ
+case "$release" in
+    arch | manjaro | ubuntu | debian | centos | almalinux | rocky | fedora | opensuse-tumbleweed)
+        ;;
+    *)
+        echo -e "${red}Hệ điều hành của bạn không được hỗ trợ.${plain}\n"
+        echo "Hệ điều hành hỗ trợ: Ubuntu, Debian, CentOS, Fedora, Arch, Manjaro, Alpine, ..."
+        exit 1
+        ;;
+esac
+
+# Cài đặt phần mềm cơ bản
+install_base() {
+    case "${release}" in
+    ubuntu | debian | armbian)
+        apt-get update && apt-get install -y -q wget curl tar 
+        ;;
+    centos | almalinux | rocky | ol)
+        yum -y update && yum install -y -q wget curl tar 
+        ;;
+    fedora | amzn)
+        dnf -y update && dnf install -y -q wget curl tar 
+        ;;
+    arch | manjaro | parch)
+        pacman -Syu --noconfirm wget curl tar 
+        ;;
+    opensuse-tumbleweed)
+        zypper refresh && zypper -q install -y wget curl tar 
+        ;;
+    *)
+        echo -e "${red}Hệ điều hành không được hỗ trợ${plain}\n"
+        exit 1
+        ;;
+    esac
+}
+
+# Hàm tạo chuỗi ngẫu nhiên
+gen_random_string() {
+    local length="$1"
+    local random_string=$(LC_ALL=C tr -dc 'a-zA-Z0-9' </dev/urandom | fold -w "$length" | head -n 1)
+    echo "$random_string"
+}
+
+# Cài đặt và cấu hình sau khi cài x-ui
+config_after_install() {
+    local existing_username=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'username: .+' | awk '{print $2}')
+    local existing_password=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'password: .+' | awk '{print $2}')
+    local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
+    local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
+    local server_ip=$(curl -s https://api.ipify.org)
+
+    if [[ ${#existing_webBasePath} -lt 4 ]]; then
+        local config_webBasePath=vlt
+        local config_username=vlt
+        local config_password=@Aa0971@
+
+        # Cấu hình port mặc định
+        local config_port=88
+
+        /usr/local/x-ui/x-ui setting -username "${config_username}" -password "${config_password}" -port "${config_port}" -webBasePath "${config_webBasePath}"
+        echo -e "Cài đặt hoàn tất với thông tin sau:"
+        echo -e "###############################################"
+        echo -e "${green}Username: ${config_username}${plain}"
+        echo -e "${green}Password: ${config_password}${plain}"
+        echo -e "${green}Port: ${config_port}${plain}"
+        echo -e "${green}WebBasePath: ${config_webBasePath}${plain}"
+        echo -e "${green}URL truy cập: http://${server_ip}:${config_port}/${config_webBasePath}${plain}"
+        echo -e "###############################################"
+    fi
+}
+
+# Cài đặt x-ui
+install_x-ui() {
+    cd /usr/local/
+
+    # Tải và cài đặt phiên bản mới nhất của x-ui
+    tag_version=$(curl -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+    if [[ ! -n "$tag_version" ]]; then
+        echo -e "${red}Lỗi khi lấy thông tin phiên bản x-ui, vui lòng thử lại sau.${plain}"
+        exit 1
+    fi
+    echo -e "Lấy được phiên bản mới nhất của x-ui: ${tag_version}, bắt đầu cài đặt..."
+    wget -N --no-check-certificate -O /usr/local/x-ui-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
+
+    if [[ -e /usr/local/x-ui/ ]]; then
+        systemctl stop x-ui
+        rm /usr/local/x-ui/ -rf
+    fi
+
+    tar zxvf x-ui-linux-$(arch).tar.gz
+    rm x-ui-linux-$(arch).tar.gz -f
+    cd x-ui
+    chmod +x x-ui
+
+    # Kiểm tra kiến trúc hệ thống và sao chép tệp tin cần thiết
+    chmod +x x-ui bin/xray-linux-$(arch)
+    cp -f x-ui.service /etc/systemd/system/
+    wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
+    chmod +x /usr/local/x-ui/x-ui.sh
+    chmod +x /usr/bin/x-ui
+    config_after_install
+
+    systemctl daemon-reload
+    systemctl enable x-ui
+    systemctl start x-ui
+
+    # Kiểm tra xem x-ui có chạy không
+    if systemctl is-active --quiet x-ui; then
+        echo -e "${green}Cài đặt x-ui ${tag_version}${plain} hoàn tất và dịch vụ đã được kích hoạt."
+    else
+        echo -e "${red}Lỗi khi khởi động dịch vụ x-ui.${plain}"
+        exit 1
+    fi
+}
+log "Configuring firewall..."
+if [ "$OS" == "ubuntu" ]; then
+    sudo ufw allow 88/tcp
+    sudo ufw allow 62789/tcp
+    sudo ufw allow 1:65335/tcp
+    sudo ufw reload
+elif [ "$OS" == "centos" ]; then
+    sudo firewall-cmd --permanent --add-port=88/tcp
+     sudo firewall-cmd --permanent --add-port= 62789/tcp
+     sudo firewall-cmd --permanent --add-port=1:65335/tcp
+    sudo firewall-cmd --reload
+fi
+# Cài đặt x-ui
+install_base
+install_x-ui

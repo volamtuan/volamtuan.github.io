@@ -1,203 +1,184 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Proxy Checker with Authentication</title>
-    <style>
-        /* Basic Reset */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f4f7fc;
-            margin: 20px;
-            color: #333;
-        }
-
-        h1 {
-            font-size: 24px;
-            color: #007bff;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        label {
-            display: block;
-            font-size: 16px;
-            margin: 10px 0 5px;
-        }
-
-        textarea {
-            width: 100%;
-            height: 200px;
-            padding: 10px;
-            font-size: 14px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background-color: #f9f9f9;
-            margin-bottom: 15px;
-        }
-
-        button {
-            padding: 12px 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-        }
-
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-
-        .results {
-            margin-top: 20px;
-        }
-
-        .status {
-            font-size: 16px;
-            margin-top: 10px;
-        }
-
-        .live {
-            color: green;
-        }
-
-        .die {
-            color: red;
-        }
-
-        .error {
-            color: red;
-            font-weight: bold;
-            font-size: 14px;
-            margin-top: 10px;
-        }
-
-        .summary {
-            margin-top: 20px;
-            font-size: 16px;
-        }
-
-        .summary span {
-            font-weight: bold;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proxy Checker with Authentication</title>
+  <style>
+    /* Basic Reset */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f7fc;
+      margin: 20px;
+      color: #333;
+    }
+    h1 {
+      font-size: 24px;
+      color: #007bff;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    label {
+      display: block;
+      font-size: 16px;
+      margin: 10px 0 5px;
+    }
+    textarea {
+      width: 100%;
+      height: 200px;
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+      margin-bottom: 15px;
+    }
+    button {
+      padding: 12px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    .results {
+      margin-top: 20px;
+    }
+    .status {
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    .live {
+      color: green;
+    }
+    .die {
+      color: red;
+    }
+    .error {
+      color: red;
+      font-weight: bold;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    .summary {
+      margin-top: 20px;
+      font-size: 16px;
+    }
+    .summary span {
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-
-    <div class="container">
-        <h1>Proxy Checker with Authentication</h1>
-        <p><span>Tổng số proxy:</span> <span id="total-proxies">0</span></p>
-        <textarea id="proxyInput" placeholder="Nhập list proxy một dòng Ví dụ: 192.168.0.1:8080 hoặc 192.168.0.1:8080:user:password"></textarea>
-
-        <button id="checkButton">Kiểm tra Proxy</button>
-
-        <div class="results" id="results"></div>
-        <div class="summary" id="summary">
-       
-           
-        <p><span>Proxy LIVE:</span> <span id="live-count">0</span></p>
-        <textarea id="live-proxies" class="proxy-list" readonly></textarea><br>
-
-        <p><span>Proxy LIVE:</span> <span id="live-count">0</span></p>
-        <textarea id="die-proxies" class="proxy-list" readonly></textarea><br>
-
-       
-
-        </div>
+  <div class="text-center">
+    <h1>Proxy Checker with Authentication</h1>
+    <p><span>Tổng số proxy:</span> <span id="total-proxies">0</span></p>
+    <textarea id="proxyInput" placeholder="Nhập list proxy một dòng.."></textarea>
+    <button id="checkButton">Kiểm tra Proxy</button>
+    <div class="results" id="results"></div>
+    <div class="summary" id="summary">
+      <p><span>Proxy LIVE:</span> <span id="live-count">0</span></p>
+      <textarea id="live-proxies" class="proxy-list" readonly></textarea><br>
+      <p><span>Proxy DIE:</span> <span id="die-count">0</span></p>
+      <textarea id="die-proxies" class="proxy-list" readonly></textarea><br>
     </div>
+  </div>
 
-    <script>
-        document.getElementById('checkButton').addEventListener('click', function () {
-            const proxyInput = document.getElementById('proxyInput').value.trim();
-            const resultsDiv = document.getElementById('results');
-            const liveProxiesTextarea = document.getElementById('live-proxies');
-            const dieProxiesTextarea = document.getElementById('die-proxies');
-            const totalProxiesSpan = document.getElementById('total-proxies');
-            const liveCountSpan = document.getElementById('live-count');
-            const dieCountSpan = document.getElementById('die-count');
+  <script>
+    document.getElementById('checkButton').addEventListener('click', function () {
+      const proxyInput = document.getElementById('proxyInput').value.trim();
+      const resultsDiv = document.getElementById('results');
+      const liveProxiesTextarea = document.getElementById('live-proxies');
+      const dieProxiesTextarea = document.getElementById('die-proxies');
+      const totalProxiesSpan = document.getElementById('total-proxies');
+      const liveCountSpan = document.getElementById('live-count');
+      const dieCountSpan = document.getElementById('die-count');
 
-            resultsDiv.innerHTML = '';  // Clear previous results
-            liveProxiesTextarea.value = '';  // Clear live proxies
-            dieProxiesTextarea.value = '';  // Clear die proxies
+      resultsDiv.innerHTML = '';
+      liveProxiesTextarea.value = '';
+      dieProxiesTextarea.value = '';
 
-            if (!proxyInput) {
-                resultsDiv.innerHTML = '<p class="error">Vui lòng nhập proxy hợp lệ!</p>';
-                return;
+      if (!proxyInput) {
+        resultsDiv.innerHTML = '<p class="error">Vui lòng nhập proxy hợp lệ!</p>';
+        return;
+      }
+
+      this.disabled = true;
+      this.textContent = 'Đang kiểm tra...';
+
+      const proxies = proxyInput.split('\n').map(proxy => proxy.trim()).filter(proxy => proxy);
+
+      let liveCount = 0;
+      let dieCount = 0;
+
+      totalProxiesSpan.textContent = proxies.length;
+
+      proxies.forEach(proxy => {
+        const proxyParts = proxy.split(':');
+        const host = proxyParts[0];
+        const port = proxyParts[1];
+        const user = proxyParts[2] || '';
+        const pass = proxyParts[3] || '';
+
+        const url = `https://httpbin.org/ip`;
+
+        const proxyUrl = `http://${host}:${port}`;
+
+        fetch(url, {
+          method: 'GET',
+          proxy: {
+            host,
+            port,
+            auth: {
+              username: user,
+              password: pass
             }
-
-            this.disabled = true;
-            this.textContent = 'Đang kiểm tra...';
-
-            const proxies = proxyInput.split('\n').map(proxy => proxy.trim()).filter(proxy => proxy);
-            let liveCount = 0;
-            let dieCount = 0;
-
-            totalProxiesSpan.textContent = proxies.length;  // Cập nhật tổng số proxy
-
-            // Kiểm tra từng proxy ngay lập tức và cập nhật kết quả
-            proxies.forEach(proxy => {
-                fetch('https://paolaloft.com/checkproxy/check_proxy.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ proxy })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        dieProxiesTextarea.value += proxy + '\n';  // Thêm proxy vào danh sách DIE ngay lập tức
-                        dieCount++;
-                    } else {
-                        const { status, proxy: checkedProxy, ip, country } = data;
-                        if (status === 'LIVE') {
-                            liveProxiesTextarea.value += `Proxy: ${checkedProxy} | IP: ${ip} | Quốc gia: ${country}\n`;  // Thêm proxy vào danh sách LIVE ngay lập tức
-                            liveCount++;
-                        } else {
-                            dieProxiesTextarea.value += proxy + '\n';  // Thêm proxy vào danh sách DIE ngay lập tức
-                            dieCount++;
-                        }
-                    }
-
-                    // Cập nhật số lượng proxy live và die
-                    liveCountSpan.textContent = liveCount;
-                    dieCountSpan.textContent = dieCount;
-                })
-                .catch(error => {
-                    dieProxiesTextarea.value += proxy + '\n';  // Thêm proxy vào danh sách DIE nếu có lỗi
-                    dieCount++;
-
-                    // Cập nhật số lượng proxy live và die
-                    liveCountSpan.textContent = liveCount;
-                    dieCountSpan.textContent = dieCount;
-                });
-            });
-
-            // Kết thúc kiểm tra
-            this.disabled = false;
-            this.textContent = 'Kiểm tra Proxy';
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.origin) {
+            liveProxiesTextarea.value += `${proxy} | IP: ${data.origin}\n`;
+            liveCount++;
+          } else {
+            dieProxiesTextarea.value += proxy + '\n';
+            dieCount++;
+          }
+          liveCountSpan.textContent = liveCount;
+          dieCountSpan.textContent = dieCount;
+        })
+        .catch(error => {
+          dieProxiesTextarea.value += proxy + '\n';
+          dieCount++;
+          liveCountSpan.textContent = liveCount;
+          dieCountSpan.textContent = dieCount;
         });
-    </script>
+      });
 
+      this.disabled = false;
+      this.textContent = 'Kiểm tra Proxy';
+    });
+  </script>
 </body>
 </html>
+

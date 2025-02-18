@@ -45745,7 +45745,7 @@ HTTPTunnelPort 0.0.0.0:55552
 HTTPTunnelPort 0.0.0.0:55553
 HTTPTunnelPort 0.0.0.0:55554
 HTTPTunnelPort 0.0.0.0:55555
-ControlPort 9051
+ControlPort 90
 CookieAuthentication 1
 NewCircuitPeriod 30
 MaxCircuitDirtiness 3600
@@ -45753,7 +45753,6 @@ ExitNodes {ca},{us}
 StrictNodes 1
 ClientUseIPv6 1
 ClientPreferIPv6ORPort 1
-IPv6Traffic Prefer
 SocksPort 9050
 SocksPort 9051
 SocksPort [::1]:9052

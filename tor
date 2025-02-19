@@ -24,7 +24,7 @@ log "Detected operating system: $OS"
 # Cập nhật và cài đặt các gói cần thiết
 log "Installing Tor..."
 if [ "$OS" == "ubuntu" ]; then
-    apt-get update && apt-get install -y wget sudo nano curl systemd gnupg
+    apt-get update && apt install -y tor wget sudo nano curl systemd gnupg
     apt-transport-https net-tools jq ufw firewalld && apt-get clean
 elif [ "$OS" == "centos" ]; then
     sudo yum install epel-release -y

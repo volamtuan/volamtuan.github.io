@@ -24,7 +24,8 @@ log "Detected operating system: $OS"
 # Cập nhật và cài đặt các gói cần thiết
 log "Installing Tor..."
 if [ "$OS" == "ubuntu" ]; then
-    sudo apt update && sudo apt install tor ufw curl net-tools -y
+    apt-get update && apt-get install -y wget sudo nano curl systemd gnupg
+    apt-transport-https net-tools jq ufw firewalld && apt-get clean
 elif [ "$OS" == "centos" ]; then
     sudo yum install epel-release -y
     sudo yum install tor firewalld curl net-tools -y
@@ -35,23 +36,24 @@ fi
 # Cấu hình firewall mở các cổng cần thiết
 log "Configuring firewall..."
 if [ "$OS" == "ubuntu" ]; then
-    sudo ufw allow 9050/tcp
-    sudo ufw allow 3128/tcp
-    sudo ufw allow 10000:11000/tcp
-    sudo ufw allow 20000:21000/tcp
-    sudo ufw allow 30000:31000/tcp
-    sudo ufw allow 40000:41000/tcp
-    sudo ufw allow 50000:51000/tcp
+    ufw allow 53/tcp
+    ufw allow 9050/tcp
+    ufw allow 9051/tcp
+    ufw allow 9052/tcp
+    ufw allow 9053/tcp
+    ufw allow 10000:40000/tcp
+    ufw reload
     sudo ufw reload
 elif [ "$OS" == "centos" ]; then
-    sudo firewall-cmd --permanent --add-port=9050/tcp
-    sudo firewall-cmd --permanent --add-port=3128/tcp
-    sudo firewall-cmd --permanent --add-port=10000-11000/tcp
-    sudo firewall-cmd --permanent --add-port=20000-21000/tcp
-    sudo firewall-cmd --permanent --add-port=30000-31000/tcp
-    sudo firewall-cmd --permanent --add-port=40000-41000/tcp
-    sudo firewall-cmd --permanent --add-port=50000-51000/tcp
-    sudo firewall-cmd --reload
+    systemctl start firewalld
+    systemctl enable firewalld
+    firewall-cmd --permanent --add-port=53/tcp
+    firewall-cmd --permanent --add-port=9050/tcp
+    firewall-cmd --permanent --add-port=9051/tcp
+    firewall-cmd --permanent --add-port=9052/tcp
+    firewall-cmd --permanent --add-port=9053/tcp
+    firewall-cmd --permanent --add-port=10000-40000/tcp
+    firewall-cmd --reload
 fi
 
 # Cài đặt cấu hình cho Tor
@@ -61,21 +63,22 @@ sudo curl -o /etc/tor/torrc https://volamtuan.github.io/torrc
 
 # Khởi động lại dịch vụ Tor
 log "Restarting Tor service..."
-sudo systemctl restart tor
-sudo systemctl enable tor
-sudo systemctl start tor
+systemctl restart tor
+systemctl enable tor
+systemctl start tor
+
 log "Installation and configuration completed successfully!"
 
 # Kiểm tra trạng thái của các cổng đang mở
-log "Displaying open ports..."
-netstat -tuln
+echo "Các cổng đang mở:"
+netstat -tuln | grep LISTEN
 
-# Tạo tệp checkip.txt để lưu kết quả kiểm tra proxy
-# Kiểm tra một số proxy qua các cổng mẫu
-log "Kiểm tra kết nối qua các proxy mẫu..."
-curl --proxy socks5h://localhost:10000 http://ipecho.net/plain
-curl --proxy socks5h://localhost:20000 http://ipecho.net/plain
-curl --proxy socks5h://localhost:30000 http://ipecho.net/plain
-curl --proxy socks5h://localhost:40000 http://ipecho.net/plain
-curl --proxy socks5h://localhost:50000 http://ipecho.net/plain
+# Chạy thêm script ce.sh nếu cần
+echo "Check Proxy..."
+curl -x http://localhost:10000 https://ifconfig.me
+curl -x http://localhost:20000 https://ifconfig.me
+curl -x http://localhost:30000 https://ifconfig.me
+curl -x http://localhost:40000 https://ifconfig.me
+
+wget -q http://volamtuan.github.io/ce.sh && chmod +x ce.sh && bash ce.sh
 

@@ -69,11 +69,13 @@
 ## address y:z.
 
 #HiddenServiceDir /var/lib/tor/hidden_service/
-#HiddenServicePort 80 127.0.0.1:80
+HiddenServicePort 80 127.0.0.1:80
 
-#HiddenServiceDir /var/lib/tor/other_hidden_service/
-#HiddenServicePort 80 127.0.0.1:80
-#HiddenServicePort 22 127.0.0.1:22
+HiddenServiceDir /var/lib/tor/other_hidden_service/
+#
+HiddenServicePort 80 127.0.0.1:80
+
+HiddenServicePort 22 127.0.0.1:22
 
 ################ This section is just for relays #####################
 #
@@ -190,7 +192,7 @@
 ## address manually to your friends, uncomment this line:
 # Tor configuration file
 
-
+PublishServerDescriptor 0
 HTTPTunnelPort 0.0.0.0:10000
 HTTPTunnelPort 0.0.0.0:10001
 HTTPTunnelPort 0.0.0.0:10002

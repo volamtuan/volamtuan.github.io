@@ -10196,11 +10196,17 @@ CookieAuthentication 1
 NewCircuitPeriod 120
 MaxCircuitDirtiness 86400
 UseMicrodescriptors 1
+KeepalivePeriod 60
+CircuitBuildTimeout 10
 ClientUseIPv6 1
 ClientPreferIPv6ORPort 1
 FastFirstHopPK 1
-BandwidthRate 1 GBytes
-BandwidthBurst 2 GBytes
+BandwidthRate 100 MBytes
+BandwidthBurst 110 MBytes
+MaxAdvertisedBandwidth 100 MBytes
+NumEntryGuards 8
+OutboundBindAddress 127.0.0.1
+OutboundBindAddress 2001:db8::1
 SocksTimeout 100
 EnforceDistinctSubnets 0
 HTTPTunnelPort 0.0.0.0:6789

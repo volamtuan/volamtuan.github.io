@@ -10205,8 +10205,7 @@ DNSPort 0
 AvoidDiskWrites 1
 FastFirstHopPK 1
 OutboundBindAddress 2001:db8::1
-NumEntryGuards 4
-LearnCircuitBuildTimeout 0
+NumEntryGuards 8
 KeepalivePeriod 6
 EnforceDistinctSubnets 0
 EntryNodes {us}

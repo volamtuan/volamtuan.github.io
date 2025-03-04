@@ -106,8 +106,6 @@ HiddenServicePort 22 127.0.0.1:22
 ## be at least 20 KB.
 ## Note that units for these config options are bytes per second, not bits
 ## per second, and that prefixes are binary prefixes, i.e. 2^10, 2^20, etc.
-#RelayBandwidthRate 100 KB  # Throttle traffic to 100KB/s (800Kbps)
-#RelayBandwidthBurst 200 KB # But allow bursts up to 200KB/s (1600Kbps)
 
 ## Use these to restrict the maximum traffic per day, week, or month.
 ## Note that this threshold applies separately to sent and received bytes,
@@ -115,7 +113,7 @@ HiddenServicePort 22 127.0.0.1:22
 ## hibernating.
 ##
 ## Set a maximum of 4 gigabytes each way per period.
-#AccountingMax 4 GB
+AccountingMax 500 GB
 ## Each period starts daily at midnight (AccountingMax is per day)
 #AccountingStart day 00:00
 ## Each period starts on the 3rd of the month at 15:00 (AccountingMax
@@ -191,8 +189,6 @@ HiddenServicePort 22 127.0.0.1:22
 ## a private bridge, for example because you'll give out your bridge
 ## address manually to your friends, uncomment this line:
 # Tor configuration file
-
-PublishServerDescriptor 0
 HTTPTunnelPort 0.0.0.0:10000
 HTTPTunnelPort 0.0.0.0:10001
 HTTPTunnelPort 0.0.0.0:10002
@@ -10194,23 +10190,22 @@ HTTPTunnelPort 0.0.0.0:19997
 HTTPTunnelPort 0.0.0.0:19998
 HTTPTunnelPort 0.0.0.0:19999
 HTTPTunnelPort 0.0.0.0:20000
-
+LearnCircuitBuildTimeout 0
+SafeLogging 0
+ORPort 9001
 CookieAuthentication 1
 NewCircuitPeriod 120
 MaxCircuitDirtiness 86400
 UseMicrodescriptors 1
+IPv6Exit 1
 ClientUseIPv6 1
 ClientPreferIPv6ORPort 1
 AutomapHostsOnResolve 0
 DNSPort 0
 AvoidDiskWrites 1
 FastFirstHopPK 1
-BandwidthRate 2000 MBytes
-BandwidthBurst 2000 MBytes
-AccountingMax 100 GB
 OutboundBindAddress 2001:db8::1
 NumEntryGuards 4
-CircuitBuildTimeout 10
 LearnCircuitBuildTimeout 0
 KeepalivePeriod 6
 EnforceDistinctSubnets 0
@@ -10218,7 +10213,11 @@ EntryNodes {us}
 MiddleNodes {us}
 ExitNodes {us}
 ControlPort 9051
-
+RelayBandwidthRate 2000 MB
+RelayBandwidthBurst 2000 MB
+MaxAdvertisedBandwidth 2000 MB
+AccountingMax 900 GB
+AccountingStart month 1 00:00 # Reset băng thông vào ngày đầu tháng
 
 
 

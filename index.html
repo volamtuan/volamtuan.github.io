@@ -1,6 +1,4 @@
-
-
-                <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -30,17 +28,17 @@
             padding: 20px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
-            }
+        }
 
-         .countdown {
+        .countdown {
             margin-top: 10px;
             font-size: 1.2em;
             color: #555;
             text-align: center;
             display: none; /* Ẩn thời gian đếm ngược khi chưa có key */
         }
-        
-       textarea {
+
+        textarea {
             width: 100%;
             padding: 10px;
             font-size: 1em;
@@ -88,18 +86,13 @@
             color: white !important;
         }
 
-        .countdown {
-            display: inline-block;
-            margin-top: 10px;
-            color: red;
-        }
-
         .totp-section {
             margin-top: 30px;
             padding: 15px;
             background-color: #f8f9fa;
             border-radius: 8px;
         }
+
         .auth-code {
             font-size: 2em;
             text-align: center;
@@ -109,12 +102,21 @@
             cursor: pointer;
             user-select: none;
         }
-
     </style>
+	<style>
+  .custom-style {
+    color: #FF5733;  /* Màu sắc của liên kết */
+    font-weight: bold;
+  }
+
+  .custom-style.active {
+    background-color: #DCDCDC;  /* Màu nền khi liên kết được chọn */
+  }
+</style>
 </head>
 <body>
 
-<div class="container">
+<div class="text-container">
     <h2 class="text-center">Công cụ Xử lý Text và Lấy Mã 2FA</h2>
 
     <!-- Tabs điều hướng -->
@@ -130,6 +132,9 @@
         </li>
         <li class="nav-item">
             <a class="nav-link" id="filter-tab" data-toggle="tab" href="#filter" role="tab" aria-controls="filter" aria-selected="false">Lọc Chuỗi Text</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="totp-sql" data-toggle="tab" href="#totp-sql-content" role="tab" aria-controls="totp-sql" aria-selected="false">Lọc SQL</a>
         </li>
         <li class="nav-item">
             <a class="nav-link" id="totp-tab" data-toggle="tab" href="#totp" role="tab" aria-controls="totp" aria-selected="false">Lấy Mã 2FA</a>
@@ -226,17 +231,14 @@
                     <textarea id="inputText" rows="5" class="form-control" placeholder="Nhập nội dung cần lọc.."></textarea>
                 </div>
 
-                <!-- Các từ cần lọc -->
                 <div class="form-group">
                     <label for="filterWords">Nhập từ để lọc (ngăn cách bằng dấu phẩy)</label>
                     <textarea id="filterWords" rows="5" class="form-control" placeholder="Nhập các từ chứa hoặc không chứa..."></textarea>
                 </div>
 
-                <!-- Các nút lọc -->
                 <button class="btn btn-success mt-2" type="button" onclick="filterContains()">Lọc chứa từ</button>
                 <button class="btn btn-danger mt-2" type="button" onclick="filterNotContains()">Lọc không chứa từ</button>
 
-                <!-- Kết quả -->
                 <div class="result mt-3" onclick="copyToClipboard('outputText')">
                     <label for="outputText">Kết quả (Nhấp để sao chép)</label>
                     <textarea id="outputText" rows="5" class="form-control" readonly></textarea>
@@ -247,242 +249,392 @@
         <!-- Tab Lấy Mã TOTP -->
         <div class="tab-pane fade" id="totp" role="tabpanel" aria-labelledby="totp-tab">
             <form>
-                
-                    <div class="form-group">
-                        <label for="secret-key"></label>
-                        <textarea id="secret-key" rows="5" class="form-control" placeholder="Nhập hoặc dán Key 2FA..."></textarea>
-                    </div>
-<center>
+                <div class="form-group">
+                    <label for="secret-key">Nhập hoặc dán Key 2FA</label>
+                    <textarea id="secret-key" rows="5" class="form-control" placeholder="Nhập hoặc dán Key 2FA..."></textarea>
+                </div>
+                <div class="totp-section">
                     <p><strong id="auth-code"></strong></p>
-                            <span class="countdown" id="countdown"></span>
-
+                    <span class="countdown" id="countdown"></span>
                     <button type="button" onclick="clearInput()" class="btn btn-danger">Xóa</button>
                 </div>
             </form>
         </div>
+
+        <!-- Tab Lọc SQL (Đã sửa ID để không bị trùng với TOTP) -->
+        <div class="tab-pane fade" id="totp-sql-content" role="tabpanel" aria-labelledby="totp-sql">
+            <form>
+             <div class="form-group">
+    <label for="sqlite_files">Chọn file SQLite (.sqlite, .db):</label>
+    <input type="file" class="form-control" id="sqlite_files" name="sqlite_files[]" multiple accept=".sqlite,.db">
+  </div>
+  <button type="submit" name="extract" class="btn btn-primary btn-block">Trích xuất dữ liệu</button>
+</form>
+
+<!-- Khu vực hiển thị kết quả -->
+<div id="result" style="margin-top: 20px;">
+  <h3>Danh sách dữ liệu trích xuất:</h3>
+  <textarea id="dataOutput" class="form-control" rows="10" readonly></textarea>
+</div>
+
+<!-- Thanh tiến trình khi tải tệp lên -->
+<div id="progressBarContainer" style="display:none;">
+  <div class="progress">
+    <div id="progressBar" class="progress-bar" style="width: 0%;">0%</div>
+  </div>
+</div>
+
+<!-- Hiển thị thông báo loading -->
+<div id="loading" style="display:none;">
+  <p>Đang kiểm tra UID...</p>
+</div>
+
+<script>
+  // Hàm tải SQL.js
+  async function loadSQL() {
+    return await initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${file}` });
+  }
+
+  // Xử lý khi người dùng tải tệp SQLite lên
+  document.getElementById('sqliteForm').addEventListener('submit', async function (event) {
+    event.preventDefault();  // Ngừng gửi form để xử lý qua JavaScript
+
+    const files = document.getElementById('sqlite_files').files;
+    if (files.length === 0) {
+      alert("Vui lòng chọn ít nhất một tệp SQLite.");
+      return;
+    }
+
+    const SQL = await loadSQL();
+    const seen = new Set();
+    const output = [];
+    const total = files.length;
+    let completed = 0;
+
+    document.getElementById("progressBarContainer").style.display = "block"; // Hiển thị thanh tiến trình
+
+    for (const file of files) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const db = new SQL.Database(new Uint8Array(e.target.result));
+          const result = db.exec("SELECT uid, pass, fa2, cookie, email, passmail, mailrecovery, birthday, name FROM accounts");
+
+          if (result.length > 0) {
+            for (const row of result[0].values) {
+              const line = row.join("|");
+              if (!seen.has(line)) {
+                seen.add(line);
+                output.push(line);
+              }
+            }
+          }
+        } catch (err) {
+          alert(`Lỗi xử lý file: ${file.name}`);
+        } finally {
+          completed++;
+          updateProgress(completed, total);
+          if (completed === total) {
+            document.getElementById("dataOutput").value = Array.from(seen).join("\n");
+            document.getElementById("progressBarContainer").style.display = "none"; // Ẩn thanh tiến trình
+          }
+        }
+      };
+      reader.readAsArrayBuffer(file); // Đọc tệp dưới dạng ArrayBuffer
+    }
+  });
+
+  // Cập nhật thanh tiến trình
+  function updateProgress(completed, total) {
+    const percent = Math.floor((completed / total) * 100);
+    const bar = document.getElementById("progressBar");
+    bar.style.width = `${percent}%`;
+    bar.textContent = `${percent}%`;
+  }
+</script>
+
     </div>
 </div>
 
-<!-- JavaScript -->
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-
-<!-- Các hàm JavaScript -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
 <script>
-// Hàm Cắt Chuỗi
-function cutString() {
-    var inputText = document.getElementById("cutInput").value.trim();
-    var delimiter = document.getElementById("delimiter").value;
-    var start = parseInt(document.getElementById("start").value) - 1;
-    var end = parseInt(document.getElementById("end").value) - 1;
-    var excludeLines = parseInt(document.getElementById("excludeLines").value); 
+  // Gộp các đoạn mã để quản lý và tối ưu hóa
+  const seen = new Set();
+
+  // Hàm tải SQL.js
+  async function loadSQL() {
+    return await initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${file}` });
+  }
+
+  // Hàm xử lý tệp được tải lên
+  document.getElementById('fileInput').addEventListener('change', async function () {
+    const SQL = await loadSQL();
+    const files = this.files;
+    const output = [];
+    const total = files.length;
+    let completed = 0;
+
+    document.getElementById("progressBarContainer").style.display = "block";
+
+    for (const file of files) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const db = new SQL.Database(new Uint8Array(e.target.result));
+          const result = db.exec("SELECT uid, pass, fa2, cookie, email, passmail, mailrecovery, birthday, name FROM accounts");
+          if (result.length > 0) {
+            for (const row of result[0].values) {
+              const line = row.join("|");
+              if (!seen.has(line)) {
+                seen.add(line);
+                output.push(line);
+              }
+            }
+          }
+        } catch (err) {
+          alert(`Lỗi xử lý file: ${file.name}`);
+        } finally {
+          completed++;
+          updateProgress(completed, total);
+          if (completed === total) {
+            document.getElementById("dataOutput").value = Array.from(seen).join("\n");
+            document.getElementById("progressBarContainer").style.display = "none";
+            document.getElementById("uidBox").style.display = "block";
+            checkUIDs(); // Kiểm tra UID tự động sau khi trích xuất
+          }
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  });
+
+  // Cập nhật thanh tiến trình
+  function updateProgress(completed, total) {
+    const percent = Math.floor((completed / total) * 100);
+    const bar = document.getElementById("progressBar");
+    bar.style.width = `${percent}%`;
+    bar.textContent = `${percent}%`;
+  }
+
+  // Kiểm tra UID
+  async function checkUIDs() {
+    const inputData = document.getElementById('dataOutput').value.trim();
+    if (!inputData) return alert("Chưa có dữ liệu để kiểm tra.");
+
+    const lines = inputData.split("\n").filter(Boolean);
+    const batchSize = 50;
+    let live = [], dead = [];
+
+    document.getElementById('loading').style.display = 'block';
+
+    for (let i = 0; i < lines.length; i += batchSize) {
+      const batch = lines.slice(i, i + batchSize);
+      await Promise.all(batch.map(async line => {
+        const uid = line.split("|")[0];
+        try {
+          const res = await fetch(`https://graph.facebook.com/${uid}/picture?type=normal`);
+          if (res.ok && !res.url.includes("static")) {
+            live.push(line);
+          } else {
+            dead.push(line);
+          }
+        } catch {
+          dead.push(line + " (error)");
+        }
+      }));
+      await new Promise(r => setTimeout(r, 50)); // Giảm tải giữa các batch
+    }
+
+    document.getElementById('liveList').value = live.join("\n");
+    document.getElementById('deadList').value = dead.join("\n");
+    document.getElementById('liveCount').textContent = live.length;
+    document.getElementById('deadCount').textContent = dead.length;
+    document.getElementById('loading').style.display = 'none';
+    alert("✅ Kiểm tra UID hoàn tất.");
+  }
+
+  // Hàm sao chép văn bản vào clipboard
+  function copyText(id) {
+    const text = document.getElementById(id).value.trim();
+    if (!text) return alert("Không có nội dung để sao chép.");
+    navigator.clipboard.writeText(text).then(() => alert("Đã sao chép!"));
+  }
+
+  // Cắt chuỗi theo điều kiện
+  function cutString() {
+    const inputText = document.getElementById("cutInput").value.trim();
+    const delimiter = document.getElementById("delimiter").value;
+    const start = parseInt(document.getElementById("start").value) - 1;
+    const end = parseInt(document.getElementById("end").value) - 1;
+    const excludeLines = parseInt(document.getElementById("excludeLines").value);
 
     if (!inputText || !delimiter || isNaN(start) || isNaN(end)) {
-        alert("Vui lòng điền đầy đủ thông tin.");
-        return;
+      alert("Vui lòng điền đầy đủ thông tin.");
+      return;
     }
 
-    var lines = inputText.split("\n");
-    var result = [];
-
-    lines.forEach((line, index) => {
-        if (index + 1 !== excludeLines) {
-            var parts = line.split(delimiter);
-            if (parts.length > end) {
-                result.push(parts.slice(start, end + 1).join(delimiter));
-            }
-        }
-    });
+    const lines = inputText.split("\n");
+    const result = lines.filter((line, index) => index + 1 !== excludeLines)
+                         .map(line => line.split(delimiter).slice(start, end + 1).join(delimiter));
 
     document.getElementById("cutResult").value = result.join("\n");
-}
+  }
 
-// Hàm Lọc Trùng
-function removeDuplicates() {
-    var inputText = document.getElementById("filterInput").value.trim();
+  // Lọc trùng
+  function removeDuplicates() {
+    const inputText = document.getElementById("filterInput").value.trim();
     if (!inputText) {
-        alert("Vui lòng nhập nội dung.");
-        return;
+      alert("Vui lòng nhập nội dung.");
+      return;
     }
 
-    var lines = inputText.split("\n");
-    var uniqueLines = Array.from(new Set(lines));
+    const lines = inputText.split("\n");
+    const uniqueLines = Array.from(new Set(lines));
 
     document.getElementById("filterResult").value = uniqueLines.join("\n");
-}
+  }
 
-// Hàm Ghép File
-function mergeFiles() {
-    var input1 = document.getElementById("mergeInput1").value.trim().split("\n");
-    var input2 = document.getElementById("mergeInput2").value.trim().split("\n");
-    var delimiter = document.getElementById("mergeDelimiter").value;
+  // Ghép file
+  function mergeFiles() {
+    const input1 = document.getElementById("mergeInput1").value.trim().split("\n");
+    const input2 = document.getElementById("mergeInput2").value.trim().split("\n");
+    const delimiter = document.getElementById("mergeDelimiter").value;
 
     if (!input1 || !input2 || !delimiter) {
-        alert("Vui lòng nhập đầy đủ các trường.");
-        return;
+      alert("Vui lòng nhập đầy đủ các trường.");
+      return;
     }
 
-    var maxLength = Math.max(input1.length, input2.length);
-    var result = [];
+    const maxLength = Math.max(input1.length, input2.length);
+    const result = [];
 
-    for (var i = 0; i < maxLength; i++) {
-        var line1 = input1[i] || "";
-        var line2 = input2[i] || "";
-        result.push(line1 + delimiter + line2);
+    for (let i = 0; i < maxLength; i++) {
+      result.push(`${input1[i] || ""}${delimiter}${input2[i] || ""}`);
     }
 
     document.getElementById("mergeResult").value = result.join("\n");
-}
+  }
 
-// Hàm Lọc Chuỗi chứa từ
-function filterContains() {
-    var inputText = document.getElementById("inputText").value.split("\n");
-    var searchTerms = document.getElementById("filterWords").value.toLowerCase().split(",").map(term => term.trim());
-    var results = inputText.filter(line => searchTerms.some(term => line.toLowerCase().includes(term)));
+  // Hàm lọc chuỗi chứa từ
+  function filterContains() {
+    const inputText = document.getElementById("inputText").value.split("\n");
+    const searchTerms = document.getElementById("filterWords").value.toLowerCase().split(",").map(term => term.trim());
+    const results = inputText.filter(line => searchTerms.some(term => line.toLowerCase().includes(term)));
     document.getElementById("outputText").value = results.join("\n");
-}
+  }
 
-// Hàm Lọc Chuỗi không chứa từ
-function filterNotContains() {
-    var inputText = document.getElementById("inputText").value.split("\n");
-    var searchTerms = document.getElementById("filterWords").value.toLowerCase().split(",").map(term => term.trim());
-    var results = inputText.filter(line => !searchTerms.some(term => line.toLowerCase().includes(term)));
+  // Hàm lọc chuỗi không chứa từ
+  function filterNotContains() {
+    const inputText = document.getElementById("inputText").value.split("\n");
+    const searchTerms = document.getElementById("filterWords").value.toLowerCase().split(",").map(term => term.trim());
+    const results = inputText.filter(line => !searchTerms.some(term => line.toLowerCase().includes(term)));
     document.getElementById("outputText").value = results.join("\n");
-}
+  }
 
-// Hàm Lấy Mã TOTP
-function base32tohex(base32) {
+  // Hàm chuyển base32 sang hex
+  function base32tohex(base32) {
     const base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
     let bits = "";
     let hex = "";
 
     for (let i = 0; i < base32.length; i++) {
-        const val = base32chars.indexOf(base32.charAt(i).toUpperCase());
-        if (val !== -1) {
-            bits += val.toString(2).padStart(5, '0');
-        }
+      const val = base32chars.indexOf(base32.charAt(i).toUpperCase());
+      if (val !== -1) {
+        bits += val.toString(2).padStart(5, '0');
+      }
     }
 
     while (bits.length % 8 !== 0) {
-        bits += '0';
+      bits += '0';
     }
 
     for (let i = 0; i < bits.length; i += 8) {
-        const byte = bits.substr(i, 8);
-        hex += parseInt(byte, 2).toString(16).padStart(2, '0');
+      const byte = bits.substr(i, 8);
+      hex += parseInt(byte, 2).toString(16).padStart(2, '0');
     }
 
     return hex;
-}
+  }
 
-function generateTOTP(secret) {
+  // Hàm tạo mã TOTP
+  function generateTOTP(secret) {
     try {
-        const epoch = Math.floor(Date.now() / 1000);
-        const time = Math.floor(epoch / 30).toString(16).padStart(16, '0');
-
-        const key = base32tohex(secret);
-        const shaObj = new jsSHA("SHA-1", "HEX");
-        shaObj.setHMACKey(key, "HEX");
-        shaObj.update(time);
-
-        const hmac = shaObj.getHMAC("HEX");
-
-        const offset = parseInt(hmac.substring(hmac.length - 1), 16);
-        const binary = parseInt(hmac.substr(offset * 2, 8), 16) & 0x7fffffff;
-        const otp = (binary % 1000000).toString().padStart(6, '0');
-
-        return otp;
+      const epoch = Math.floor(Date.now() / 1000);
+      const time = Math.floor(epoch / 30).toString(16).padStart(16, '0');
+      const key = base32tohex(secret);
+      const shaObj = new jsSHA("SHA-1", "HEX");
+      shaObj.setHMACKey(key, "HEX");
+      shaObj.update(time);
+      const hmac = shaObj.getHMAC("HEX");
+      const offset = parseInt(hmac.substring(hmac.length - 1), 16);
+      const binary = parseInt(hmac.substr(offset * 2, 8), 16) & 0x7fffffff;
+      const otp = (binary % 1000000).toString().padStart(6, '0');
+      return otp;
     } catch (error) {
-        console.error('Error generating TOTP:', error);
-        return null;
+      console.error('Error generating TOTP:', error);
+      return null;
     }
-}
+  }
 
-// Hàm cập nhật mã TOTP và tự động sao chép
-function updateCode() {
+  // Cập nhật mã TOTP và sao chép vào clipboard
+  function updateCode() {
     const secretInput = document.getElementById('secret-key');
-    const secret = secretInput.value.trim().replace(/\s+/g, ''); // Loại bỏ khoảng trắng
+    const secret = secretInput.value.trim().replace(/\s+/g, '');
     const codeElement = document.getElementById('auth-code');
     const countdownElement = document.getElementById('countdown');
 
     if (secret.length === 0) {
-        codeElement.textContent = '';
-        countdownElement.style.display = 'none'; // Ẩn thời gian đếm ngược
-        return;
+      codeElement.textContent = '';
+      countdownElement.style.display = 'none';
+      return;
     }
 
     const code = generateTOTP(secret);
     if (code) {
-        codeElement.textContent = code;
-        countdownElement.style.display = 'block'; // Hiển thị thời gian đếm ngược
-
-        // Tự động sao chép mã TOTP vào clipboard
-        navigator.clipboard.writeText(code)
-            .then(() => {
-                console.log('Mã TOTP đã được sao chép!');
-            })
-            .catch(err => {
-                console.error('Không thể sao chép mã TOTP: ', err);
-            });
+      codeElement.textContent = code;
+      countdownElement.style.display = 'block';
+      navigator.clipboard.writeText(code).then(() => console.log('Mã TOTP đã được sao chép!'));
     } else {
-        codeElement.textContent = 'Key không hợp lệ';
-        countdownElement.style.display = 'none'; // Ẩn thời gian đếm ngược nếu key không hợp lệ
+      codeElement.textContent = 'Key không hợp lệ';
+      countdownElement.style.display = 'none';
     }
-}
+  }
 
-// Hàm xóa dữ liệu
-function clearInput() {
-    document.getElementById('secret-key').value = '';
-    document.getElementById('auth-code').textContent = '';
-    document.getElementById('countdown').textContent = '';
-    document.getElementById('countdown').style.display = 'none'; // Ẩn thời gian đếm ngược
-}
-
-// Hàm cập nhật thời gian đếm ngược
-function updateCountdown() {
+  // Cập nhật thời gian đếm ngược
+  function updateCountdown() {
     const countdownElement = document.getElementById('countdown');
     const secretInput = document.getElementById('secret-key');
     const secret = secretInput.value.trim().replace(/\s+/g, '');
 
     if (secret.length === 0) {
-        countdownElement.style.display = 'none'; // Ẩn thời gian đếm ngược nếu không có key
-        return;
+      countdownElement.style.display = 'none';
+      return;
     }
 
     const epoch = Math.floor(Date.now() / 1000);
     const timeRemaining = 30 - (epoch % 30);
     countdownElement.textContent = `Thời gian còn lại: ${timeRemaining}s`;
-    countdownElement.style.display = 'block'; // Hiển thị thời gian đếm ngược
-}
+    countdownElement.style.display = 'block';
+  }
 
-// Lắng nghe sự kiện thay đổi trong ô nhập liệu
-document.getElementById('secret-key').addEventListener('input', function () {
-    updateCode(); // Cập nhật mã TOTP khi có sự thay đổi
-    updateCountdown(); // Cập nhật thời gian đếm ngược khi key thay đổi
+  // Lắng nghe sự thay đổi của ô nhập liệu secret-key
+  document.getElementById('secret-key').addEventListener('input', function () {
+    updateCode();
+    updateCountdown();
+  });
 
-    // Tự động sao chép auth-code ngay sau khi mã TOTP được tạo
-    const codeElement = document.getElementById('auth-code');
-    const code = codeElement.textContent.trim();
-    if (code && code !== '' && code !== 'Key không hợp lệ') {
-        navigator.clipboard.writeText(code)
-            .then(() => {
-                console.log('Mã TOTP đã được sao chép tự động!');
-            })
-            .catch(err => {
-                console.error('Không thể sao chép mã TOTP: ', err);
-            });
-    }
-});
-
-// Cập nhật mã TOTP và thời gian đếm ngược mỗi giây
-setInterval(function () {
+  // Cập nhật mã TOTP và đếm ngược mỗi giây
+  setInterval(function () {
     const secretInput = document.getElementById('secret-key');
     const secret = secretInput.value.trim().replace(/\s+/g, '');
     if (secret) {
-        updateCode();
-        updateCountdown();
+      updateCode();
+      updateCountdown();
     }
-}, 1000);
+  }, 1000);
 </script>
+
 </body>
 </html>
+

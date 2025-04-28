@@ -9943,10 +9943,8 @@ KeepalivePeriod 6
 EntryNodes {id},{us},{ca}
 MiddleNodes {id},{us},{ca}
 ExitNodes {id},{us},{ca}
-DataDirectory C:\Users\vltpro\Desktop\TCP\Data\User
-ClientOnionAuthDir C:\Users\vltpro\Desktop\TCP\Data\User\onion-auth
-GeoIPFile C:\Users\vltpro\Desktop\TCP\Data\geoip
-GeoIPv6File C:\Users\vltpro\Desktop\TCP\Data\geoip6
+GeoIPFile /etc/tor/geoip
+GeoIPv6File /etc/tor/geoip6
 Log notice stdout
 ControlPort 9440
 SOCKSPort 0.0.0.0:9335

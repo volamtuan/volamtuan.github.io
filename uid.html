@@ -113,7 +113,7 @@
     async function checkUIDs() {
         let raw = document.getElementById("uidInput").value.split("\n").map(e => e.trim()).filter(e => e);
         let lines = [...new Set(raw)];
-        let batchSize = 1000; // Chỉnh số lượng UID xử lý cùng một lúc
+        let batchSize = 50; // Chỉnh số lượng UID xử lý cùng một lúc
         let live = [],
             dead = [],
             total = lines.length;

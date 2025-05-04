@@ -34,7 +34,7 @@
 </head>
 <body>
 
-<div class="container mt-5">
+<div class="text-container mt-5">
     <h3>Kiểm tra UID Facebook</h3>
 
     <div>
@@ -113,7 +113,7 @@
     async function checkUIDs() {
         let raw = document.getElementById("uidInput").value.split("\n").map(e => e.trim()).filter(e => e);
         let lines = [...new Set(raw)];
-        let batchSize = 200; // Chỉnh số lượng UID xử lý cùng một lúc
+        let batchSize = 1000; // Chỉnh số lượng UID xử lý cùng một lúc
         let live = [],
             dead = [],
             total = lines.length;

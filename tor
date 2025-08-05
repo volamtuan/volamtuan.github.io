@@ -36,12 +36,14 @@ fi
 # Cấu hình firewall mở các cổng cần thiết
 log "Configuring firewall..."
 if [ "$OS" == "ubuntu" ]; then
-    ufw allow 53/tcp
-    ufw allow 9050/tcp
+    ufw allow from 172.17.0.0/16 to 192.168.1.0/24
+    ufw allow from 192.168.1.0/24 to 172.17.0.0/16
+    ufw allow 1:65535/tcp
+    ufw allow 1:65535/udp
+    ufw allow proto tcp from 192.168.1.0/24 to any port 1:65535
     ufw allow 9051/tcp
-    ufw allow 9052/tcp
-    ufw allow 9053/tcp
-    ufw allow 10000:40000/tcp
+    ufw allow proto udp from 192.168.1.0/24 to any port 1:65535
+    ufw allow 200000:34931/tcp
     ufw reload
     sudo ufw reload
 elif [ "$OS" == "centos" ]; then

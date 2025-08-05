@@ -1,640 +1,355 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <title>Công cụ Lọc Xử lý Text Online</title>
-
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/2.4.2/sha.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-
-        h2 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 30px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background-color: #fff;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-        }
-
-        .countdown {
-            margin-top: 10px;
-            font-size: 1.2em;
-            color: #555;
-            text-align: center;
-            display: none; /* Ẩn thời gian đếm ngược khi chưa có key */
-        }
-
-        textarea {
-            width: 100%;
-            padding: 10px;
-            font-size: 1em;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-
-        button {
-            padding: 10px;
-            font-size: 1.1em;
-            background-color: #28a745;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            width: 100%;
-            transition: background-color 0.3s;
-            margin-top: 10px;
-        }
-
-        button:hover {
-            background-color: #218838;
-        }
-
-        .result {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #e9ecef;
-            border-radius: 8px;
-            font-size: 1.1em;
-            cursor: pointer;
-        }
-
-        .result:hover {
-            background-color: #dfe4ea;
-        }
-
-        .result label {
-            font-weight: bold;
-        }
-
-        .nav-link.active {
-            background-color: #28a745;
-            color: white !important;
-        }
-
-        .totp-section {
-            margin-top: 30px;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-        }
-
-        .auth-code {
-            font-size: 2em;
-            text-align: center;
-            display: block;
-            margin-top: 20px;
-            color: #333;
-            cursor: pointer;
-            user-select: none;
-        }
-    </style>
-	<style>
-  .custom-style {
-    color: #FF5733;  /* Màu sắc của liên kết */
-    font-weight: bold;
-  }
-
-  .custom-style.active {
-    background-color: #DCDCDC;  /* Màu nền khi liên kết được chọn */
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lọc Dữ Liệu Nâng Cao</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/2.4.2/sha.js"></script>
+  <style>
+    body { background: #f1f1f1; padding: 20px; font-family: sans-serif; }
+    textarea { font-family: monospace; }
+    .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; }
+    
+    /* === CSS cho Toast Notification === */
+    #toast {
+      visibility: hidden;
+      min-width: 250px;
+      margin-left: -125px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 5px;
+      padding: 16px;
+      position: fixed;
+      z-index: 10;
+      left: 50%;
+      bottom: 30px;
+      font-size: 17px;
+      opacity: 0;
+      transition: opacity 0.5s, visibility 0.5s;
+    }
+    #toast.show {
+      visibility: visible;
+      opacity: 1;
+    }
+  </style>
 </head>
 <body>
 
+<!-- Thêm thẻ div cho toast vào cuối body -->
+<div id="toast"></div>
+
 <div class="text-container">
-    <h2 class="text-center">Công cụ Xử lý Text và Lấy Mã 2FA</h2>
+  <h1 class="text-center">Công cụ Xử lý Text</h1>
 
-    <!-- Tabs điều hướng -->
-    <ul class="nav nav-tabs" id="myTab" role="tablist">
-        <li class="nav-item">
-            <a class="nav-link active" id="cut-tab" data-toggle="tab" href="#cut" role="tab" aria-controls="cut" aria-selected="true">Cắt Chuỗi</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" id="remove-duplicates-tab" data-toggle="tab" href="#remove-duplicates" role="tab" aria-controls="remove-duplicates" aria-selected="false">Lọc Trùng</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" id="merge-tab" data-toggle="tab" href="#merge" role="tab" aria-controls="merge" aria-selected="false">Ghép File</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" id="filter-tab" data-toggle="tab" href="#filter" role="tab" aria-controls="filter" aria-selected="false">Lọc Chuỗi Text</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" id="totp-sql" data-toggle="tab" href="#totp-sql-content" role="tab" aria-controls="totp-sql" aria-selected="false">Lọc SQL</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" id="totp-tab" data-toggle="tab" href="#totp" role="tab" aria-controls="totp" aria-selected="false">Lấy Mã 2FA</a>
-        </li>
-    </ul>
+  <ul class="nav nav-tabs" id="myTab" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link active" id="cut-tab" data-toggle="tab" href="#cut" role="tab">Cắt Chuỗi</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="remove-duplicates-tab" data-toggle="tab" href="#remove-duplicates" role="tab">Lọc Trùng</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="merge-tab" data-toggle="tab" href="#merge" role="tab">Ghép File</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="filter-tab" data-toggle="tab" href="#filter" role="tab">Lọc Chuỗi Text</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="totp-tab" data-toggle="tab" href="#totp" role="tab">Lấy Mã 2FA</a>
+    </li>
+  </ul>
 
-    <div class="tab-content" id="myTabContent">
-        <!-- Tab Cắt Chuỗi -->
-        <div class="tab-pane fade show active" id="cut" role="tabpanel" aria-labelledby="cut-tab">
-            <form>
-                <div class="form-group">
-                    <label for="cutInput"></label>
-                    <textarea id="cutInput" rows="5" class="form-control" placeholder="Nhập nội dung cần cắt..."></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="delimiter">Ngăn cách bởi ký tự</label>
-                    <input type="text" id="delimiter" class="form-control" value="|" />
-                </div>
-
-                <div class="form-group">
-                    <label for="excludeLines">Dòng không cần cắt (số dòng)</label>
-                    <input type="number" id="excludeLines" class="form-control" value="0" />
-                </div>
-
-                <div class="form-group">
-                    <label for="start">Bắt đầu từ vị trí</label>
-                    <input type="number" id="start" class="form-control" value="1" />
-                </div>
-
-                <div class="form-group">
-                    <label for="end">Kết thúc ở vị trí</label>
-                    <input type="number" id="end" class="form-control" value="1" />
-                </div>
-
-                <button type="button" onclick="cutString()" class="btn btn-warning">Cắt chuỗi</button>
-
-                <div class="result mt-3" onclick="copyToClipboard('cutResult')">
-                    <label for="cutResult">Kết quả (Nhấp để sao chép)</label>
-                    <textarea id="cutResult" class="form-control" rows="5" readonly></textarea>
-                </div>
-            </form>
+  <div class="tab-content" id="myTabContent">
+    <!-- Tab Cắt Chuỗi -->
+    <div class="tab-pane fade show active" id="cut" role="tabpanel">
+      <form>
+        <div class="form-group">
+          <textarea id="cutInput" rows="5" class="form-control" placeholder="Nhập nội dung cần cắt..."></textarea>
         </div>
-
-        <!-- Tab Lọc Trùng -->
-        <div class="tab-pane fade" id="remove-duplicates" role="tabpanel" aria-labelledby="remove-duplicates-tab">
-            <form>
-                <div class="form-group">
-                    <label for="filterInput"></label>
-                    <textarea id="filterInput" rows="5" class="form-control" placeholder="Nhập nội dung cần lọc trùng..."></textarea>
-                </div>
-
-                <button type="button" onclick="removeDuplicates()" class="btn btn-warning">Lọc trùng</button>
-
-                <div class="result mt-3" onclick="copyToClipboard('filterResult')">
-                    <label for="filterResult">Kết quả (Nhấp để sao chép)</label>
-                    <textarea id="filterResult" class="form-control" rows="5" readonly></textarea>
-                </div>
-            </form>
+        <div class="form-group">
+          <label>Ngăn cách bởi ký tự</label>
+          <input type="text" id="delimiter" class="form-control" value="|" />
         </div>
-
-        <!-- Tab Ghép File -->
-        <div class="tab-pane fade" id="merge" role="tabpanel" aria-labelledby="merge-tab">
-            <form>
-                <div class="form-group">
-                    <label for="mergeInput1">Nội dung 1</label>
-                    <textarea id="mergeInput1" rows="5" class="form-control" placeholder="Nhập nội dung 1..."></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="mergeInput2">Nội dung 2</label>
-                    <textarea id="mergeInput2" rows="5" class="form-control" placeholder="Nhập nội dung 2..."></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="mergeDelimiter">Ngăn cách giữa 2 dòng</label>
-                    <input type="text" id="mergeDelimiter" class="form-control" placeholder="Nhập ký tự ngăn cách..." />
-                </div>
-
-                <button type="button" onclick="mergeFiles()" class="btn btn-warning">Ghép file</button>
-
-                <div class="result mt-3" onclick="copyToClipboard('mergeResult')">
-                    <label for="mergeResult">Kết quả (Nhấp để sao chép)</label>
-                    <textarea id="mergeResult" class="form-control" rows="5" readonly></textarea>
-                </div>
-            </form>
+        <div class="form-group">
+          <label>Dòng không cần cắt (số dòng)</label>
+          <input type="number" id="excludeLines" class="form-control" value="0" />
         </div>
-
-        <!-- Tab Lọc Chuỗi -->
-        <div class="tab-pane fade" id="filter" role="tabpanel" aria-labelledby="filter-tab">
-            <form>
-                <div class="form-group">
-                    <label for="inputText"></label>
-                    <textarea id="inputText" rows="5" class="form-control" placeholder="Nhập nội dung cần lọc.."></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="filterWords">Nhập từ để lọc (ngăn cách bằng dấu phẩy)</label>
-                    <textarea id="filterWords" rows="5" class="form-control" placeholder="Nhập các từ chứa hoặc không chứa..."></textarea>
-                </div>
-
-                <button class="btn btn-success mt-2" type="button" onclick="filterContains()">Lọc chứa từ</button>
-                <button class="btn btn-danger mt-2" type="button" onclick="filterNotContains()">Lọc không chứa từ</button>
-
-                <div class="result mt-3" onclick="copyToClipboard('outputText')">
-                    <label for="outputText">Kết quả (Nhấp để sao chép)</label>
-                    <textarea id="outputText" rows="5" class="form-control" readonly></textarea>
-                </div>
-            </form>
+        <div class="form-group">
+          <label>Bắt đầu từ vị trí</label>
+          <input type="number" id="start" class="form-control" value="1" />
         </div>
-
-        <!-- Tab Lấy Mã TOTP -->
-        <div class="tab-pane fade" id="totp" role="tabpanel" aria-labelledby="totp-tab">
-            <form>
-                <div class="form-group">
-                    <label for="secret-key">Nhập hoặc dán Key 2FA</label>
-                    <textarea id="secret-key" rows="5" class="form-control" placeholder="Nhập hoặc dán Key 2FA..."></textarea>
-                </div>
-                <div class="totp-section">
-                    <p><strong id="auth-code"></strong></p>
-                    <span class="countdown" id="countdown"></span>
-                    <button type="button" onclick="clearInput()" class="btn btn-danger">Xóa</button>
-                </div>
-            </form>
+        <div class="form-group">
+          <label>Kết thúc ở vị trí</label>
+          <input type="number" id="end" class="form-control" value="1" />
         </div>
-
-        <!-- Tab Lọc SQL (Đã sửa ID để không bị trùng với TOTP) -->
-        <div class="tab-pane fade" id="totp-sql-content" role="tabpanel" aria-labelledby="totp-sql">
-            <form>
-             <div class="form-group">
-    <label for="sqlite_files">Chọn file SQLite (.sqlite, .db):</label>
-    <input type="file" class="form-control" id="sqlite_files" name="sqlite_files[]" multiple accept=".sqlite,.db">
-  </div>
-  <button type="submit" name="extract" class="btn btn-primary btn-block">Trích xuất dữ liệu</button>
-</form>
-
-<!-- Khu vực hiển thị kết quả -->
-<div id="result" style="margin-top: 20px;">
-  <h3>Danh sách dữ liệu trích xuất:</h3>
-  <textarea id="dataOutput" class="form-control" rows="10" readonly></textarea>
-</div>
-
-<!-- Thanh tiến trình khi tải tệp lên -->
-<div id="progressBarContainer" style="display:none;">
-  <div class="progress">
-    <div id="progressBar" class="progress-bar" style="width: 0%;">0%</div>
-  </div>
-</div>
-
-<!-- Hiển thị thông báo loading -->
-<div id="loading" style="display:none;">
-  <p>Đang kiểm tra UID...</p>
-</div>
-
-<script>
-  // Hàm tải SQL.js
-  async function loadSQL() {
-    return await initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${file}` });
-  }
-
-  // Xử lý khi người dùng tải tệp SQLite lên
-  document.getElementById('sqliteForm').addEventListener('submit', async function (event) {
-    event.preventDefault();  // Ngừng gửi form để xử lý qua JavaScript
-
-    const files = document.getElementById('sqlite_files').files;
-    if (files.length === 0) {
-      alert("Vui lòng chọn ít nhất một tệp SQLite.");
-      return;
-    }
-
-    const SQL = await loadSQL();
-    const seen = new Set();
-    const output = [];
-    const total = files.length;
-    let completed = 0;
-
-    document.getElementById("progressBarContainer").style.display = "block"; // Hiển thị thanh tiến trình
-
-    for (const file of files) {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const db = new SQL.Database(new Uint8Array(e.target.result));
-          const result = db.exec("SELECT uid, pass, fa2, cookie, email, passmail, mailrecovery, birthday, name FROM accounts");
-
-          if (result.length > 0) {
-            for (const row of result[0].values) {
-              const line = row.join("|");
-              if (!seen.has(line)) {
-                seen.add(line);
-                output.push(line);
-              }
-            }
-          }
-        } catch (err) {
-          alert(`Lỗi xử lý file: ${file.name}`);
-        } finally {
-          completed++;
-          updateProgress(completed, total);
-          if (completed === total) {
-            document.getElementById("dataOutput").value = Array.from(seen).join("\n");
-            document.getElementById("progressBarContainer").style.display = "none"; // Ẩn thanh tiến trình
-          }
-        }
-      };
-      reader.readAsArrayBuffer(file); // Đọc tệp dưới dạng ArrayBuffer
-    }
-  });
-
-  // Cập nhật thanh tiến trình
-  function updateProgress(completed, total) {
-    const percent = Math.floor((completed / total) * 100);
-    const bar = document.getElementById("progressBar");
-    bar.style.width = `${percent}%`;
-    bar.textContent = `${percent}%`;
-  }
-</script>
-
+        <button type="button" onclick="cutString()" class="btn btn-warning">Cắt chuỗi</button>
+        <div class="result mt-3">
+          <label>Kết quả (tự động sao chép)</label>
+          <textarea id="cutResult" class="form-control" rows="5" readonly></textarea>
+        </div>
+      </form>
     </div>
+
+    <!-- Tab Lọc Trùng -->
+    <div class="tab-pane fade" id="remove-duplicates" role="tabpanel">
+      <form>
+        <div class="form-group">
+          <textarea id="filterInput" rows="5" class="form-control" placeholder="Nhập nội dung cần lọc trùng..."></textarea>
+        </div>
+        <button type="button" onclick="removeDuplicates()" class="btn btn-warning">Lọc trùng</button>
+        <div class="result mt-3">
+          <label>Kết quả (tự động sao chép)</label>
+          <textarea id="filterResult" class="form-control" rows="5" readonly></textarea>
+        </div>
+      </form>
+    </div>
+
+    <!-- Tab Ghép File -->
+    <div class="tab-pane fade" id="merge" role="tabpanel">
+      <form>
+        <div class="form-group">
+          <label>Nội dung 1</label>
+          <textarea id="mergeInput1" rows="5" class="form-control"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Nội dung 2</label>
+          <textarea id="mergeInput2" rows="5" class="form-control"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Ngăn cách giữa 2 dòng</label>
+          <input type="text" id="mergeDelimiter" class="form-control" />
+        </div>
+        <button type="button" onclick="mergeFiles()" class="btn btn-warning">Ghép file</button>
+        <div class="result mt-3">
+          <label>Kết quả (tự động sao chép)</label>
+          <textarea id="mergeResult" class="form-control" rows="5" readonly></textarea>
+        </div>
+      </form>
+    </div>
+
+    <!-- Tab Lọc Chuỗi -->
+    <div class="tab-pane fade" id="filter" role="tabpanel">
+      <form>
+        <div class="form-group">
+          <textarea id="inputText" rows="5" class="form-control" placeholder="Nhập nội dung cần lọc.."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Nhập từ để lọc (ngăn cách bằng dấu phẩy)</label>
+          <textarea id="filterWords" rows="5" class="form-control"></textarea>
+        </div>
+        <button class="btn btn-success mt-2" type="button" onclick="filterContains()">Lọc chứa từ</button>
+        <button class="btn btn-danger mt-2" type="button" onclick="filterNotContains()">Lọc không chứa từ</button>
+        <div class="result mt-3">
+          <label>Kết quả (tự động sao chép)</label>
+          <textarea id="outputText" rows="5" class="form-control" readonly></textarea>
+        </div>
+      </form>
+    </div>
+
+    <!-- Tab TOTP -->
+    <div class="tab-pane fade" id="totp" role="tabpanel">
+      <form>
+        <div class="form-group">
+          <label>Nhập hoặc dán Key 2FA</label>
+          <textarea id="secret-key" rows="5" class="form-control"></textarea>
+        </div>
+        <div class="totp-section">
+          <p><strong id="auth-code" onclick="navigator.clipboard.writeText(this.innerText)"> </strong></p>
+          <span class="countdown" id="countdown"></span>
+          <button type="button" onclick="clearInput()" class="btn btn-danger">Xóa</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
 <script>
-  // Gộp các đoạn mã để quản lý và tối ưu hóa
-  const seen = new Set();
+// ✅ Hàm hiển thị thông báo (toast)
+function showToast(message = "Đã tự động sao chép kết quả!") {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.className = "show";
+  setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+}
 
-  // Hàm tải SQL.js
-  async function loadSQL() {
-    return await initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${file}` });
-  }
-
-  // Hàm xử lý tệp được tải lên
-  document.getElementById('fileInput').addEventListener('change', async function () {
-    const SQL = await loadSQL();
-    const files = this.files;
-    const output = [];
-    const total = files.length;
-    let completed = 0;
-
-    document.getElementById("progressBarContainer").style.display = "block";
-
-    for (const file of files) {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const db = new SQL.Database(new Uint8Array(e.target.result));
-          const result = db.exec("SELECT uid, pass, fa2, cookie, email, passmail, mailrecovery, birthday, name FROM accounts");
-          if (result.length > 0) {
-            for (const row of result[0].values) {
-              const line = row.join("|");
-              if (!seen.has(line)) {
-                seen.add(line);
-                output.push(line);
-              }
-            }
-          }
-        } catch (err) {
-          alert(`Lỗi xử lý file: ${file.name}`);
-        } finally {
-          completed++;
-          updateProgress(completed, total);
-          if (completed === total) {
-            document.getElementById("dataOutput").value = Array.from(seen).join("\n");
-            document.getElementById("progressBarContainer").style.display = "none";
-            document.getElementById("uidBox").style.display = "block";
-            checkUIDs(); // Kiểm tra UID tự động sau khi trích xuất
-          }
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    }
+// ✅ Hàm sao chép văn bản một cách tự động và hiện thông báo
+function autoCopyToClipboard(text) {
+  if (!text) return; // Không làm gì nếu không có nội dung
+  navigator.clipboard.writeText(text).then(() => {
+    showToast(); // Hiển thị thông báo khi thành công
+  }).catch(err => {
+    console.error('Lỗi sao chép: ', err);
+    showToast("Lỗi: Không thể sao chép!"); // Báo lỗi nếu thất bại
   });
+}
 
-  // Cập nhật thanh tiến trình
-  function updateProgress(completed, total) {
-    const percent = Math.floor((completed / total) * 100);
-    const bar = document.getElementById("progressBar");
-    bar.style.width = `${percent}%`;
-    bar.textContent = `${percent}%`;
-  }
+// Các hàm xử lý đã được cập nhật
+function cutString() {
+  const inputText = document.getElementById("cutInput").value.trim();
+  const delimiter = document.getElementById("delimiter").value;
+  const start = parseInt(document.getElementById("start").value) - 1;
+  const end = parseInt(document.getElementById("end").value) - 1;
+  const excludeLines = parseInt(document.getElementById("excludeLines").value);
+  const lines = inputText.split("\n");
+  const result = [];
 
-  // Kiểm tra UID
-  async function checkUIDs() {
-    const inputData = document.getElementById('dataOutput').value.trim();
-    if (!inputData) return alert("Chưa có dữ liệu để kiểm tra.");
-
-    const lines = inputData.split("\n").filter(Boolean);
-    const batchSize = 50;
-    let live = [], dead = [];
-
-    document.getElementById('loading').style.display = 'block';
-
-    for (let i = 0; i < lines.length; i += batchSize) {
-      const batch = lines.slice(i, i + batchSize);
-      await Promise.all(batch.map(async line => {
-        const uid = line.split("|")[0];
-        try {
-          const res = await fetch(`https://graph.facebook.com/${uid}/picture?type=normal`);
-          if (res.ok && !res.url.includes("static")) {
-            live.push(line);
-          } else {
-            dead.push(line);
-          }
-        } catch {
-          dead.push(line + " (error)");
-        }
-      }));
-      await new Promise(r => setTimeout(r, 50)); // Giảm tải giữa các batch
-    }
-
-    document.getElementById('liveList').value = live.join("\n");
-    document.getElementById('deadList').value = dead.join("\n");
-    document.getElementById('liveCount').textContent = live.length;
-    document.getElementById('deadCount').textContent = dead.length;
-    document.getElementById('loading').style.display = 'none';
-    alert("✅ Kiểm tra UID hoàn tất.");
-  }
-
-  // Hàm sao chép văn bản vào clipboard
-  function copyText(id) {
-    const text = document.getElementById(id).value.trim();
-    if (!text) return alert("Không có nội dung để sao chép.");
-    navigator.clipboard.writeText(text).then(() => alert("Đã sao chép!"));
-  }
-
-  // Cắt chuỗi theo điều kiện
-  function cutString() {
-    const inputText = document.getElementById("cutInput").value.trim();
-    const delimiter = document.getElementById("delimiter").value;
-    const start = parseInt(document.getElementById("start").value) - 1;
-    const end = parseInt(document.getElementById("end").value) - 1;
-    const excludeLines = parseInt(document.getElementById("excludeLines").value);
-
-    if (!inputText || !delimiter || isNaN(start) || isNaN(end)) {
-      alert("Vui lòng điền đầy đủ thông tin.");
-      return;
-    }
-
-    const lines = inputText.split("\n");
-    const result = lines.filter((line, index) => index + 1 !== excludeLines)
-                         .map(line => line.split(delimiter).slice(start, end + 1).join(delimiter));
-
-    document.getElementById("cutResult").value = result.join("\n");
-  }
-
-  // Lọc trùng
-  function removeDuplicates() {
-    const inputText = document.getElementById("filterInput").value.trim();
-    if (!inputText) {
-      alert("Vui lòng nhập nội dung.");
-      return;
-    }
-
-    const lines = inputText.split("\n");
-    const uniqueLines = Array.from(new Set(lines));
-
-    document.getElementById("filterResult").value = uniqueLines.join("\n");
-  }
-
-  // Ghép file
-  function mergeFiles() {
-    const input1 = document.getElementById("mergeInput1").value.trim().split("\n");
-    const input2 = document.getElementById("mergeInput2").value.trim().split("\n");
-    const delimiter = document.getElementById("mergeDelimiter").value;
-
-    if (!input1 || !input2 || !delimiter) {
-      alert("Vui lòng nhập đầy đủ các trường.");
-      return;
-    }
-
-    const maxLength = Math.max(input1.length, input2.length);
-    const result = [];
-
-    for (let i = 0; i < maxLength; i++) {
-      result.push(`${input1[i] || ""}${delimiter}${input2[i] || ""}`);
-    }
-
-    document.getElementById("mergeResult").value = result.join("\n");
-  }
-
-  // Hàm lọc chuỗi chứa từ
-  function filterContains() {
-    const inputText = document.getElementById("inputText").value.split("\n");
-    const searchTerms = document.getElementById("filterWords").value.toLowerCase().split(",").map(term => term.trim());
-    const results = inputText.filter(line => searchTerms.some(term => line.toLowerCase().includes(term)));
-    document.getElementById("outputText").value = results.join("\n");
-  }
-
-  // Hàm lọc chuỗi không chứa từ
-  function filterNotContains() {
-    const inputText = document.getElementById("inputText").value.split("\n");
-    const searchTerms = document.getElementById("filterWords").value.toLowerCase().split(",").map(term => term.trim());
-    const results = inputText.filter(line => !searchTerms.some(term => line.toLowerCase().includes(term)));
-    document.getElementById("outputText").value = results.join("\n");
-  }
-
-  // Hàm chuyển base32 sang hex
-  function base32tohex(base32) {
-    const base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-    let bits = "";
-    let hex = "";
-
-    for (let i = 0; i < base32.length; i++) {
-      const val = base32chars.indexOf(base32.charAt(i).toUpperCase());
-      if (val !== -1) {
-        bits += val.toString(2).padStart(5, '0');
+  lines.forEach((line, idx) => {
+    if (idx + 1 !== excludeLines) {
+      const parts = line.split(delimiter);
+      if (parts.length > end) {
+        result.push(parts.slice(start, end + 1).join(delimiter));
       }
     }
-
-    while (bits.length % 8 !== 0) {
-      bits += '0';
-    }
-
-    for (let i = 0; i < bits.length; i += 8) {
-      const byte = bits.substr(i, 8);
-      hex += parseInt(byte, 2).toString(16).padStart(2, '0');
-    }
-
-    return hex;
-  }
-
-  // Hàm tạo mã TOTP
-  function generateTOTP(secret) {
-    try {
-      const epoch = Math.floor(Date.now() / 1000);
-      const time = Math.floor(epoch / 30).toString(16).padStart(16, '0');
-      const key = base32tohex(secret);
-      const shaObj = new jsSHA("SHA-1", "HEX");
-      shaObj.setHMACKey(key, "HEX");
-      shaObj.update(time);
-      const hmac = shaObj.getHMAC("HEX");
-      const offset = parseInt(hmac.substring(hmac.length - 1), 16);
-      const binary = parseInt(hmac.substr(offset * 2, 8), 16) & 0x7fffffff;
-      const otp = (binary % 1000000).toString().padStart(6, '0');
-      return otp;
-    } catch (error) {
-      console.error('Error generating TOTP:', error);
-      return null;
-    }
-  }
-
-  // Cập nhật mã TOTP và sao chép vào clipboard
-  function updateCode() {
-    const secretInput = document.getElementById('secret-key');
-    const secret = secretInput.value.trim().replace(/\s+/g, '');
-    const codeElement = document.getElementById('auth-code');
-    const countdownElement = document.getElementById('countdown');
-
-    if (secret.length === 0) {
-      codeElement.textContent = '';
-      countdownElement.style.display = 'none';
-      return;
-    }
-
-    const code = generateTOTP(secret);
-    if (code) {
-      codeElement.textContent = code;
-      countdownElement.style.display = 'block';
-      navigator.clipboard.writeText(code).then(() => console.log('Mã TOTP đã được sao chép!'));
-    } else {
-      codeElement.textContent = 'Key không hợp lệ';
-      countdownElement.style.display = 'none';
-    }
-  }
-
-  // Cập nhật thời gian đếm ngược
-  function updateCountdown() {
-    const countdownElement = document.getElementById('countdown');
-    const secretInput = document.getElementById('secret-key');
-    const secret = secretInput.value.trim().replace(/\s+/g, '');
-
-    if (secret.length === 0) {
-      countdownElement.style.display = 'none';
-      return;
-    }
-
-    const epoch = Math.floor(Date.now() / 1000);
-    const timeRemaining = 30 - (epoch % 30);
-    countdownElement.textContent = `Thời gian còn lại: ${timeRemaining}s`;
-    countdownElement.style.display = 'block';
-  }
-
-  // Lắng nghe sự thay đổi của ô nhập liệu secret-key
-  document.getElementById('secret-key').addEventListener('input', function () {
-    updateCode();
-    updateCountdown();
   });
 
-  // Cập nhật mã TOTP và đếm ngược mỗi giây
-  setInterval(function () {
-    const secretInput = document.getElementById('secret-key');
-    const secret = secretInput.value.trim().replace(/\s+/g, '');
-    if (secret) {
-      updateCode();
-      updateCountdown();
-    }
-  }, 1000);
-</script>
+  const resultText = result.join("\n");
+  document.getElementById("cutResult").value = resultText;
+  autoCopyToClipboard(resultText); // TỰ ĐỘNG SAO CHÉP
+}
 
+function removeDuplicates() {
+  const input = document.getElementById("filterInput").value.trim().split("\n");
+  const unique = [...new Set(input)];
+  const resultText = unique.join("\n");
+  document.getElementById("filterResult").value = resultText;
+  autoCopyToClipboard(resultText); // TỰ ĐỘNG SAO CHÉP
+}
+
+function mergeFiles() {
+  const input1 = document.getElementById("mergeInput1").value.trim().split("\n");
+  const input2 = document.getElementById("mergeInput2").value.trim().split("\n");
+  const delimiter = document.getElementById("mergeDelimiter").value;
+  const result = [];
+
+  const max = Math.max(input1.length, input2.length);
+  for (let i = 0; i < max; i++) {
+    result.push((input1[i] || "") + delimiter + (input2[i] || ""));
+  }
+
+  const resultText = result.join("\n");
+  document.getElementById("mergeResult").value = resultText;
+  autoCopyToClipboard(resultText); // TỰ ĐỘNG SAO CHÉP
+}
+
+function filterContains() {
+  const input = document.getElementById("inputText").value.split("\n");
+  const keywords = document.getElementById("filterWords").value.toLowerCase().split(",").map(s => s.trim());
+  const filtered = input.filter(line => keywords.some(k => k && line.toLowerCase().includes(k)));
+  const resultText = filtered.join("\n");
+  document.getElementById("outputText").value = resultText;
+  autoCopyToClipboard(resultText); // TỰ ĐỘNG SAO CHÉP
+}
+
+function filterNotContains() {
+  const input = document.getElementById("inputText").value.split("\n");
+  const keywords = document.getElementById("filterWords").value.toLowerCase().split(",").map(s => s.trim());
+  const filtered = input.filter(line => !keywords.some(k => k && line.toLowerCase().includes(k)));
+  const resultText = filtered.join("\n");
+  document.getElementById("outputText").value = resultText;
+  autoCopyToClipboard(resultText); // TỰ ĐỘNG SAO CHÉP
+}
+
+// --- Các hàm cho 2FA (giữ nguyên và cải tiến) ---
+
+function clearInput() {
+  document.getElementById("secret-key").value = "";
+  document.getElementById("auth-code").textContent = "";
+  document.getElementById("countdown").textContent = "";
+  document.getElementById("countdown").style.display = "none";
+}
+
+function base32tohex(base32) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = "", hex = "";
+  for (let c of base32.toUpperCase()) {
+    const val = chars.indexOf(c);
+    if (val >= 0) bits += val.toString(2).padStart(5, '0');
+  }
+  for (let i = 0; i + 8 <= bits.length; i += 8) {
+    hex += parseInt(bits.substr(i, 8), 2).toString(16).padStart(2, '0');
+  }
+  return hex;
+}
+
+function generateTOTP(secret) {
+  try {
+    const epoch = Math.floor(Date.now() / 1000);
+    const time = Math.floor(epoch / 30).toString(16).padStart(16, '0');
+    const key = base32tohex(secret);
+    if (!key) return null; // Thêm kiểm tra key hợp lệ
+    const shaObj = new jsSHA("SHA-1", "HEX");
+    shaObj.setHMACKey(key, "HEX");
+    shaObj.update(time);
+    const hmac = shaObj.getHMAC("HEX");
+    const offset = parseInt(hmac.substring(hmac.length - 1), 16);
+    const binary = parseInt(hmac.substr(offset * 2, 8), 16) & 0x7fffffff;
+    return (binary % 1000000).toString().padStart(6, '0');
+  } catch (e) {
+    return null;
+  }
+}
+
+let lastGeneratedCode = '';
+
+function updateCode() {
+  const secret = document.getElementById('secret-key').value.trim().replace(/\s+/g, '');
+  const codeEl = document.getElementById('auth-code');
+  const countdown = document.getElementById('countdown');
+
+  if (!secret) {
+    codeEl.textContent = '';
+    countdown.style.display = 'none';
+    return;
+  }
+
+  const code = generateTOTP(secret);
+  if (code) {
+    codeEl.textContent = code.slice(0, 3) + ' ' + code.slice(3); // Thêm khoảng trắng cho dễ đọc
+    countdown.style.display = 'block';
+    // Chỉ sao chép và hiển thị thông báo nếu mã mới được tạo khác với mã cũ
+    if (code !== lastGeneratedCode) {
+      navigator.clipboard.writeText(code).catch(() => {});
+      showToast('Mã 2FA mới đã được sao chép!');
+      lastGeneratedCode = code;
+    }
+  } else {
+    codeEl.textContent = 'Key không hợp lệ';
+    countdown.style.display = 'none';
+    lastGeneratedCode = '';
+  }
+}
+
+function updateCountdown() {
+  const countdown = document.getElementById('countdown');
+  const secret = document.getElementById('secret-key').value.trim().replace(/\s+/g, '');
+  if (!secret) {
+    countdown.style.display = 'none';
+    return;
+  }
+  const epoch = Math.floor(Date.now() / 1000);
+  countdown.textContent = `Thời gian còn lại: ${30 - (epoch % 30)}s`;
+}
+
+document.getElementById('secret-key').addEventListener('input', () => {
+    lastGeneratedCode = ''; // Reset mã đã lưu khi người dùng thay đổi key
+    updateCode();
+    updateCountdown();
+});
+
+setInterval(() => {
+  if (document.getElementById('secret-key').value.trim()) {
+    const seconds = new Date().getSeconds();
+    if (seconds % 30 === 0) { // Chỉ gọi updateCode khi chu kỳ 30s bắt đầu
+        updateCode();
+    }
+    updateCountdown();
+  }
+}, 1000);
+</script>
 </body>
 </html>
-

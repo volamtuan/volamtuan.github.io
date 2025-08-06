@@ -1,7 +1,11 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trình Hiển Thị Mã HTML, CSS & JavaScript</title>
     <style>
@@ -183,7 +187,7 @@
 </head>
 <body>
 
-    <div class="text-container">
+    <div class="container">
         <h1>Trình Hiển Thị Mã HTML, CSS & JavaScript</h1>
 
         <!-- Phần chọn giao diện -->
@@ -362,4 +366,5 @@
 
 </body>
 </html>
+
 

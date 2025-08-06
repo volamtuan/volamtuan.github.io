@@ -183,7 +183,7 @@
 </head>
 <body>
 
-    <div class="container">
+    <div class="text-container">
         <h1>Trình Hiển Thị Mã HTML, CSS & JavaScript</h1>
 
         <!-- Phần chọn giao diện -->
@@ -362,3 +362,4 @@
 
 </body>
 </html>
+

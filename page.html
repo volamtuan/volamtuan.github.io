@@ -6,117 +6,217 @@
   <title>Facebook Token Checker</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
   <style>
-    body { background-color: #121212; color: #ffffff; font-family: 'Segoe UI', sans-serif; }
-    textarea { background: #1e1e1e; color: #ffffff; border: 1px solid #333; }
-    .token-section { background-color: #1f1f1f; border: 1px solid #333; border-radius: 8px; padding: 15px; margin-bottom: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
-    .token-header { font-weight: bold; font-size: 16px; color: #00ff99; margin-bottom: 10px; }
-    table { width: 100%; color: #fff; }
-    th, td { padding: 8px; text-align: left; }
-    th { background-color: #222; position: sticky; top: 0; }
-    .error { color: #ff4d4d; }
-    .spinner-border { width: 1.5rem; height: 1.5rem; }
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    textarea {
+      background: #1e1e1e;
+      color: #ffffff;
+      border: 1px solid #333;
+    }
+
+    .token-section {
+      background-color: #1f1f1f;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+
+    .token-header {
+      font-weight: bold;
+      font-size: 16px;
+      color: #00ff99;
+      margin-bottom: 10px;
+    }
+
+    table {
+      width: 100%;
+      color: #fff;
+    }
+
+    th, td {
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #222;
+      position: sticky;
+      top: 0;
+    }
+
+    .error {
+      color: #ff4d4d;
+    }
+
+    .invalid {
+      color: orange;
+    }
   </style>
 </head>
 <body class="container py-5">
-  <h2 class="mb-4 text-center">✅ Công Cụ Check Token Facebook</h2>
+
+  <h2 class="mb-4 text-center">✅ Công Cụ Check Token Facebook (Toàn Diện)</h2>
+
   <div class="mb-4">
-    <label for="tokens" class="form-label">🔑 Dán danh sách Token (1 dòng 1 token):</label>
+    <label for="tokens" class="form-label">🔑 Dán danh sách Token (mỗi dòng 1 token):</label>
     <textarea id="tokens" class="form-control" rows="5" placeholder="EAA..."></textarea>
   </div>
+
   <button onclick="runScript()" class="btn btn-success w-100 mb-4">▶️ Bắt đầu kiểm tra</button>
+
   <div id="output"></div>
+
   <script>
     async function runScript() {
       const tokensTextarea = document.getElementById('tokens');
-      const accessTokens = tokensTextarea.value.trim().split('\\n').map(t => t.trim()).filter(t => t !== '');
+      const accessTokens = tokensTextarea.value.trim().split('\n').map(t => t.trim()).filter(t => t !== '');
       const outputDiv = document.getElementById('output');
       outputDiv.innerHTML = '';
 
-      for (const accessToken of accessTokens) {
+      for (const token of accessTokens) {
         const tokenSection = document.createElement('div');
         tokenSection.classList.add('token-section');
+
         const tokenHeader = document.createElement('div');
         tokenHeader.classList.add('token-header');
-        tokenHeader.innerHTML = `🔎 Đang kiểm tra: <code>${accessToken.slice(0, 15)}...</code> <div class="spinner-border text-success float-end" role="status"></div>`;
+        tokenHeader.innerHTML = `🔎 Kiểm tra: <code>${token.slice(0, 15)}...</code>`;
         tokenSection.appendChild(tokenHeader);
         outputDiv.appendChild(tokenSection);
+
         try {
-          await checkUserData(accessToken, tokenSection);
-          await checkPages(accessToken, tokenSection);
-          await checkGroups(accessToken, tokenSection);
+          await checkUserData(token, tokenSection);
+          await checkPages(token, tokenSection);
+          await checkGroups(token, tokenSection);
+          await checkBusinessManager(token, tokenSection);
+          await checkAdsLive(token, tokenSection);
+          await checkAdLimits(token, tokenSection);
         } catch (error) {
-          tokenSection.innerHTML += `<p class="error">❌ Lỗi: ${error.message}</p>`;
+          tokenSection.innerHTML += `<p class="error">❌ Lỗi toàn cục: ${error.message}</p>`;
         }
-        tokenHeader.querySelector('.spinner-border')?.remove();
       }
     }
 
-    async function checkUserData(accessToken, tokenSection) {
+    async function checkUserData(token, el) {
       try {
-        tokenSection.innerHTML += `<p>👤 Đang lấy thông tin người dùng...</p>`;
-        const res = await axios.get(`https://graph.facebook.com/v18.0/me?fields=name,id&access_token=${accessToken}`);
+        el.innerHTML += `<p>👤 Thông tin người dùng...</p>`;
+        const res = await axios.get(`https://graph.facebook.com/v18.0/me?fields=name,id&access_token=${token}`);
         const { name, id } = res.data;
-        tokenSection.innerHTML += `
-          <table class="table table-bordered table-dark table-sm">
-            <tr><th>Tên</th><td>${name}</td></tr>
-            <tr><th>ID</th><td>${id}</td></tr>
-          </table>`;
-      } catch (error) {
-        const msg = error.response?.data?.error?.message || error.message;
-        tokenSection.innerHTML += `<p class="error">⚠️ Lỗi khi lấy thông tin người dùng: ${msg}</p>`;
+        el.innerHTML += `<p>✔️ <strong>${name}</strong> | ID: ${id}</p>`;
+      } catch (e) {
+        el.innerHTML += `<p class="error">❌ Lỗi người dùng: ${e.message}</p>`;
       }
     }
 
-    async function checkPages(accessToken, tokenSection) {
+    async function checkPages(token, el) {
       try {
-        tokenSection.innerHTML += `<p>📘 Đang kiểm tra Fanpage...</p>`;
-        const res = await axios.get(`https://graph.facebook.com/v2.6/me/accounts?fields=name,id,fan_count,followers_count&access_token=${accessToken}`);
+        el.innerHTML += `<p>📘 Kiểm tra Fanpage...</p>`;
+        const res = await axios.get(`https://graph.facebook.com/v18.0/me/accounts?fields=name,id,fan_count&access_token=${token}`);
         const pages = res.data.data;
-        if (pages.length > 0) {
-          let html = '<table class="table table-bordered table-dark table-sm"><thead><tr><th>Tên Page</th><th>ID</th><th>Like</th><th>Follow</th></tr></thead><tbody>';
-          for (const page of pages) {
-            html += `<tr>
-              <td>${page.name}</td>
-              <td>${page.id}</td>
-              <td>${page.fan_count || 'N/A'}</td>
-              <td>${page.followers_count || 'N/A'}</td>
-            </tr>`;
-          }
-          html += '</tbody></table>';
-          tokenSection.innerHTML += html;
-        } else {
-          tokenSection.innerHTML += `<p>⚠️ Không có Fanpage nào.</p>`;
+        if (pages.length === 0) return el.innerHTML += `<p>⚠️ Không có fanpage nào.</p>`;
+
+        el.innerHTML += `<ul>`;
+        for (const p of pages) {
+          el.innerHTML += `<li>${p.name} | ID: ${p.id} | Like: ${p.fan_count || 'N/A'}</li>`;
         }
-      } catch (error) {
-        const msg = error.response?.data?.error?.message || error.message;
-        tokenSection.innerHTML += `<p class="error">❌ Lỗi khi kiểm tra Fanpage: ${msg}</p>`;
+        el.innerHTML += `</ul>`;
+      } catch (e) {
+        el.innerHTML += `<p class="error">❌ Lỗi Fanpage: ${e.message}</p>`;
       }
     }
 
-    async function checkGroups(accessToken, tokenSection) {
+    async function checkGroups(token, el) {
       try {
-        tokenSection.innerHTML += `<p>👥 Đang kiểm tra Nhóm...</p>`;
-        const res = await axios.get(`https://graph.facebook.com/v2.6/me/groups?fields=id,name,members_count&limit=5000&access_token=${accessToken}`);
+        el.innerHTML += `<p>👥 Kiểm tra nhóm...</p>`;
+        const res = await axios.get(`https://graph.facebook.com/v19.0/me/groups?fields=id,name,members_count&access_token=${token}`);
         const groups = res.data.data;
-        if (groups.length > 0) {
-          let html = '<table class="table table-bordered table-dark table-sm"><thead><tr><th>Tên Nhóm</th><th>ID</th><th>Thành viên</th></tr></thead><tbody>';
-          for (const group of groups) {
-            html += `<tr>
-              <td>${group.name}</td>
-              <td>${group.id}</td>
-              <td>${group.members_count || 'N/A'}</td>
-            </tr>`;
-          }
-          html += '</tbody></table>';
-          tokenSection.innerHTML += html;
-        } else {
-          tokenSection.innerHTML += `<p>⚠️ Không có nhóm nào.</p>`;
+        if (groups.length === 0) return el.innerHTML += `<p>⚠️ Không có nhóm nào.</p>`;
+
+        el.innerHTML += `<ul>`;
+        for (const g of groups) {
+          el.innerHTML += `<li>${g.name} | ID: ${g.id} | Members: ${g.members_count || 'N/A'}</li>`;
         }
-      } catch (error) {
-        const msg = error.response?.data?.error?.message || error.message;
-        tokenSection.innerHTML += `<p class="error">❌ Lỗi khi kiểm tra Nhóm: ${msg}</p>`;
+        el.innerHTML += `</ul>`;
+      } catch (e) {
+        el.innerHTML += `<p class="error">❌ Lỗi nhóm: ${e.message}</p>`;
+      }
+    }
+
+    async function checkBusinessManager(token, el) {
+      try {
+        el.innerHTML += `<p>🏢 Kiểm tra Business Manager...</p>`;
+        const res = await axios.get(`https://graph.facebook.com/v19.0/me/businesses?fields=id,name,account_status,created_time&access_token=${token}`);
+        const list = res.data.data;
+        if (list.length === 0) return el.innerHTML += `<p>⚠️ Không có BM nào.</p>`;
+
+        for (const bm of list) {
+          el.innerHTML += `<p>BM: ${bm.name} | ID: ${bm.id} | Status: ${bm.account_status} | Tạo: ${bm.created_time}</p>`;
+          if (bm.account_status !== 1) {
+            el.innerHTML += `<p class="invalid">⚠️ BM bị vô hiệu hóa. Đang kháng cáo...</p>`;
+            await submitAppeal(bm.id, "BM", token);
+          }
+        }
+      } catch (e) {
+        el.innerHTML += `<p class="error">❌ Lỗi BM: ${e.message}</p>`;
+      }
+    }
+
+    async function checkAdsLive(token, el) {
+      try {
+        el.innerHTML += `<p>📢 Kiểm tra tài khoản quảng cáo...</p>`;
+        const res = await axios.get(`https://graph.facebook.com/v19.0/me/adaccounts?fields=id,name,account_status&access_token=${token}`);
+        const list = res.data.data;
+        if (list.length === 0) return el.innerHTML += `<p>⚠️ Không có Ad account nào.</p>`;
+
+        for (const ad of list) {
+          el.innerHTML += `<p>Ad Account: ${ad.name} | ID: ${ad.id} | Trạng thái: ${ad.account_status}</p>`;
+          if (ad.account_status !== 1) {
+            el.innerHTML += `<p class="invalid">⚠️ Tài khoản quảng cáo bị vô hiệu hóa. Đang kháng cáo...</p>`;
+            await submitAppeal(ad.id, "Ad", token);
+          }
+        }
+      } catch (e) {
+        el.innerHTML += `<p class="error">❌ Lỗi Ad Account: ${e.message}</p>`;
+      }
+    }
+
+    async function checkAdLimits(token, el) {
+      try {
+        el.innerHTML += `<p>💰 Kiểm tra giới hạn chi tiêu...</p>`;
+        const res = await axios.get(`https://graph.facebook.com/v16.0/me/adaccounts?fields=id,name,ad_limit_info,spend_cap,amount_spent&access_token=${token}`);
+        const list = res.data.data;
+        if (list.length === 0) return el.innerHTML += `<p>⚠️ Không có giới hạn chi tiêu nào.</p>`;
+
+        for (const acc of list) {
+          const spendCap = parseFloat(acc.spend_cap || 0);
+          const amountSpent = parseFloat(acc.amount_spent || 0);
+          const remaining = spendCap ? (spendCap - amountSpent).toFixed(2) : 'Không giới hạn';
+
+          el.innerHTML += `
+            <p><strong>${acc.name}</strong> | ID: ${acc.id}</p>
+            <p>Đã chi: ${amountSpent} / Giới hạn: ${spendCap} / Còn lại: <b>${remaining}</b></p>
+            <pre>${JSON.stringify(acc.ad_limit_info || {}, null, 2)}</pre>
+          `;
+        }
+      } catch (e) {
+        el.innerHTML += `<p class="error">❌ Lỗi giới hạn: ${e.message}</p>`;
+      }
+    }
+
+    async function submitAppeal(accountId, type, token) {
+      try {
+        const url = `https://graph.facebook.com/v19.0/${accountId}/appeals`;
+        const body = new URLSearchParams({ access_token: token });
+        const res = await axios.post(url, body);
+        console.log(`${type} kháng cáo thành công:`, res.data);
+      } catch (e) {
+        console.error(`❌ Lỗi khi kháng cáo (${type} - ${accountId}):`, e.message);
       }
     }
   </script>

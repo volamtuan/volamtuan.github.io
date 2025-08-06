@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Quản lý tài khoản theo domain</title>
+  <meta name="viewport" content="width=device-width" />
+  <link
+    rel="stylesheet"
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+  />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+      background: #f9f9f9;
+    }
+    textarea,
+    input[type='file'] {
+      width: 100%;
+      padding: 8px;
+      margin: 10px 0;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 15px;
+    }
+    th,
+    td {
+      padding: 10px;
+      border: 1px solid #eee;
+    }
+    th {
+      background: #007bff;
+      color: white;
+    }
+    tr:hover {
+      background: #f1f8ff;
+      cursor: pointer;
+    }
+    button {
+      margin: 5px;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      background-color: #5cb85c;
+      cursor: pointer;
+    }
+    .copy-btn {
+      background: #17a2b8;
+    }
+    #copyAllButton {
+      background: #f0ad4e;
+    }
+    #copyMessage {
+      display: inline-block;
+      margin-left: 10px;
+      color: green;
+      font-weight: bold;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    /* Autocomplete box */
+    #autocompleteList {
+      position: absolute;
+      background: white;
+      border: 1px solid #ccc;
+      max-height: 200px;
+      overflow-y: auto;
+      width: 300px;
+      z-index: 10;
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    #autocompleteList div {
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    #autocompleteList div:hover {
+      background: #f1f8ff;
+    }
+    #autocompleteList button {
+      padding: 3px 7px;
+      font-size: 12px;
+      background: #17a2b8;
+      border: none;
+      border-radius: 3px;
+      color: white;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel panel-success" style="position: relative; max-width: 900px; margin: auto;">
+    <div class="panel-heading text-center">📋 Quản lý tài khoản theo domain</div>
+    <div class="panel-body">
+      <h4>🔹 Dán dữ liệu thủ công</h4>
+      <textarea
+        id="manualInput"
+        rows="6"
+        placeholder="Dán các dòng user|pass tại đây..."
+      ></textarea>
+      <button onclick="processManualInput()">Xử lý thủ công</button>
+
+      <h4>📄 Chọn file .txt cần quét</h4>
+      <input type="file" id="fileInput" multiple accept=".txt" />
+
+      <h4>🗜️ Chọn file .zip cần quét</h4>
+      <input type="file" id="zipInput" accept=".zip" />
+
+      <h4>📁 Chọn thư mục cần quét</h4>
+      <input
+        type="file"
+        id="folderInput"
+        webkitdirectory
+        directory
+        multiple
+      />
+      <small
+        >📁 Quét tất cả file <code>passws.txt</code> trong thư mục đã chọn.</small
+      >
+
+      <h4>🔎 Tìm domain</h4>
+      <input
+        type="text"
+        id="domainInput"
+        placeholder="Nhập domain để tìm kiếm..."
+        autocomplete="off"
+        style="width: 300px; padding: 8px; border-radius: 4px; border: 1px solid #ccc;"
+      />
+      <div id="autocompleteList" style="display:none;"></div>
+
+      <div id="domainListBox" style="margin-top: 15px;">
+        <h4>📚 Danh sách domain</h4>
+        <table id="domainTable">
+          <thead>
+            <tr>
+              <th>Domain</th>
+              <th>Số tài khoản</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div id="accountListBox" style="display: none; margin-top: 25px;">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          <h4>
+            📜 Tài khoản trong domain: <span id="selectedDomain"></span>
+          </h4>
+          <div>
+            <button id="copyAllButton" onclick="copyAllAccounts()">
+              Copy tất cả
+            </button>
+            <span id="copyMessage">✅ Đã copy!</span>
+          </div>
+        </div>
+        <table id="accountTable">
+          <thead>
+            <tr>
+              <th>Email/Username</th>
+              <th>Password</th>
+              <th>Copy</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<script>
+  const domainAccounts = new Map();
+
+  function parseAccountLine(line) {
+    const [user, pass] = line.trim().split('|');
+    if (!user || !pass) return null;
+    const domain = user.includes('@') ? user.split('@')[1].toLowerCase() : null;
+    if (!domain) return null;
+    return { user, pass, domain };
+  }
+
+  function processLines(text) {
+    const lines = text.split(/\r?\n/);
+    for (let line of lines) {
+      const acc = parseAccountLine(line);
+      if (acc) {
+        if (!domainAccounts.has(acc.domain)) domainAccounts.set(acc.domain, []);
+        domainAccounts.get(acc.domain).push(acc);
+      }
+    }
+    updateDomainTable();
+    document.getElementById("accountListBox").style.display = "none";
+    clearAutocomplete();
+    document.getElementById('domainInput').value = "";
+  }
+
+  function processManualInput() {
+    const content = document.getElementById("manualInput").value;
+    if (!content.trim()) return alert("Bạn chưa nhập dữ liệu.");
+    domainAccounts.clear();
+    processLines(content);
+  }
+
+  document.getElementById("fileInput").addEventListener("change", function () {
+    domainAccounts.clear();
+    handleFiles(this.files);
+  });
+
+  document.getElementById("zipInput").addEventListener("change", async function () {
+    const file = this.files[0];
+    if (!file) return;
+    const zip = await JSZip.loadAsync(file);
+    for (const filename of Object.keys(zip.files)) {
+      if (!filename.endsWith(".txt")) continue;
+      const content = await zip.files[filename].async("string");
+      handleTextContent(content);
+    }
+  });
+
+  document.getElementById("folderInput").addEventListener("change", function () {
+    domainAccounts.clear();
+    handleFiles([...this.files].filter(f => f.name === 'passws.txt'));
+  });
+
+  function handleTextContent(text) {
+    const accounts = parseText(text);
+    for (const acc of accounts) {
+      const domain = getDomain(acc.url);
+      if (!domain) continue;
+      if (!domainAccounts.has(domain)) domainAccounts.set(domain, []);
+      const list = domainAccounts.get(domain);
+      if (!list.some(x => x.user === acc.user && x.pass === acc.pass)) {
+        list.push({ user: acc.user, pass: acc.pass });
+      }
+    }
+    updateDomainTable();
+  }
+
+  function handleFiles(files) {
+    let index = 0;
+    const next = () => {
+      if (index >= files.length) return updateDomainTable();
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        handleTextContent(e.target.result);
+        setTimeout(next, 10);
+      };
+      reader.readAsText(files[index]);
+      index++;
+    };
+    next();
+  }
+
+  function parseText(text) {
+    const lines = text.split(/\r?\n/);
+    const accounts = [];
+    for (const line of lines) {
+      const acc = parseAccountLine(line);
+      if (acc) accounts.push(acc);
+    }
+    return accounts;
+  }
+
+  function getDomain(url) {
+    if (!url) return null;
+    return url.toLowerCase();
+  }
+
+  function updateDomainTable() {
+    const tbody = document.querySelector("#domainTable tbody");
+    tbody.innerHTML = "";
+    const domains = [...domainAccounts.keys()].sort();
+    for (const domain of domains) {
+      const tr = document.createElement("tr");
+      const tdDomain = document.createElement("td");
+      tdDomain.textContent = domain;
+      const tdCount = document.createElement("td");
+      tdCount.textContent = domainAccounts.get(domain).length;
+      tr.appendChild(tdDomain);
+      tr.appendChild(tdCount);
+      tbody.appendChild(tr);
+    }
+  }
+
+  // --- Autocomplete domain ---
+
+  const domainInput = document.getElementById("domainInput");
+  const autocompleteList = document.getElementById("autocompleteList");
+
+  function clearAutocomplete() {
+    autocompleteList.innerHTML = "";
+    autocompleteList.style.display = "none";
+  }
+
+  function renderAutocomplete(domains) {
+    autocompleteList.innerHTML = "";
+    if (domains.length === 0) {
+      autocompleteList.style.display = "none";
+      return;
+    }
+    for (const domain of domains) {
+      const div = document.createElement("div");
+      div.textContent = domain;
+
+      // Copy domain button
+      const copyBtn = document.createElement("button");
+      copyBtn.textContent = "Copy";
+      copyBtn.title = "Copy domain này";
+      copyBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(domain)
+          .then(() => alert("Đã copy domain: " + domain))
+          .catch(() => alert("Copy thất bại"));
+      });
+
+      div.appendChild(copyBtn);
+
+      div.addEventListener("click", () => {
+        domainInput.value = domain;
+        clearAutocomplete();
+        showAccounts(domain);
+      });
+
+      autocompleteList.appendChild(div);
+    }
+    autocompleteList.style.display = "block";
+  }
+
+  domainInput.addEventListener("input", () => {
+    const val = domainInput.value.trim().toLowerCase();
+    if (!val) {
+      clearAutocomplete();
+      document.getElementById("accountListBox").style.display = "none";
+      return;
+    }
+    const matches = [...domainAccounts.keys()].filter(d => d.includes(val));
+    if (matches.length === 0) {
+      clearAutocomplete();
+      document.getElementById("accountListBox").style.display = "none";
+      return;
+    }
+    renderAutocomplete(matches);
+
+    // Nếu nhập đúng domain thì show luôn tài khoản
+    if (domainAccounts.has(val)) {
+      showAccounts(val);
+    } else {
+      document.getElementById("accountListBox").style.display = "none";
+    }
+  });
+
+  // Hiển thị bảng tài khoản domain
+  function showAccounts(domain) {
+    const accounts = domainAccounts.get(domain);
+    if (!accounts || accounts.length === 0) {
+      alert("Domain không có tài khoản hoặc không tồn tại.");
+      document.getElementById("accountListBox").style.display = "none";
+      return;
+    }
+    document.getElementById("selectedDomain").textContent = domain;
+    const tbody = document.querySelector("#accountTable tbody");
+    tbody.innerHTML = "";
+    for (const acc of accounts) {
+      const tr = document.createElement("tr");
+      const tdUser = document.createElement("td");
+      tdUser.textContent = acc.user;
+      const tdPass = document.createElement("td");
+      tdPass.textContent = acc.pass;
+      const tdCopy = document.createElement("td");
+      const btnCopy = document.createElement("button");
+      btnCopy.textContent = "Copy";
+      btnCopy.className = "copy-btn";
+      btnCopy.title = "Copy tài khoản này";
+      btnCopy.addEventListener("click", () => {
+        navigator.clipboard.writeText(`${acc.user}|${acc.pass}`)
+          .then(() => alert(`Đã copy: ${acc.user}|${acc.pass}`))
+          .catch(() => alert("Copy thất bại"));
+      });
+      tdCopy.appendChild(btnCopy);
+      tr.appendChild(tdUser);
+      tr.appendChild(tdPass);
+      tr.appendChild(tdCopy);
+      tbody.appendChild(tr);
+    }
+    document.getElementById("accountListBox").style.display = "block";
+    clearAutocomplete();
+  }
+
+  // Copy tất cả tài khoản của domain đang hiển thị
+  function copyAllAccounts() {
+    const domain = document.getElementById("selectedDomain").textContent;
+    if (!domain || !domainAccounts.has(domain)) {
+      alert("Không có domain để copy.");
+      return;
+    }
+    const accounts = domainAccounts.get(domain);
+    const text = accounts.map(acc => `${acc.user}|${acc.pass}`).join('\n');
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        const msg = document.getElementById("copyMessage");
+        msg.style.opacity = "1";
+        setTimeout(() => { msg.style.opacity = "0"; }, 2000);
+      })
+      .catch(() => alert("Copy thất bại"));
+  }
+</script>
+</body>
+</html>

@@ -3,88 +3,78 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>🚀 Check danh sách UID</title>
-  <link
-    rel="stylesheet"
-    href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
-  />
+  <title>Check danh sách UID</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #f4f4f4;
-      padding: 20px;
+      padding: 12px 10px;
+      font-size: 16px;
+    }
+    textarea, button {
+      margin-bottom: 10px;
     }
     textarea {
       width: 100%;
-      height: 120px;
-      margin-bottom: 10px;
-      resize: none;
+      height: 100px;
       font-family: monospace;
+      padding: 8px;
+      border-radius: 6px;
     }
     button {
-      padding: 10px 20px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      cursor: pointer;
-      font-weight: bold;
+      padding: 12px 20px;
+      font-size: 15px;
       margin-right: 10px;
     }
-    button:hover {
-      background-color: #0056b3;
-    }
     .table-wrapper {
-      max-height: 400px; /* Chiều cao cố định */
+      max-height: 400px;
       overflow-y: auto;
-      margin-top: 20px;
       background: #fff;
       border: 1px solid #ddd;
-      border-radius: 4px;
+      border-radius: 8px;
+      margin-top: 20px;
     }
     table {
       width: 100%;
+      min-width: 600px;
       border-collapse: collapse;
-      /* Xoá margin-top ở đây vì đã có wrapper */
     }
-    th,
-    td {
+    th, td {
       border: 1px solid #ddd;
-      padding: 8px;
+      padding: 10px 6px;
       text-align: center;
-      white-space: nowrap;
     }
     th {
       background-color: #007bff;
       color: white;
       position: sticky;
-      top: 0; /* Giữ header cố định khi cuộn */
-      z-index: 10;
-    }
-    tr:nth-child(even) {
-      background-color: #f2f2f2;
+      top: 0;
     }
     .live {
-      background-color: #c8e6c9;
+      background-color: #d4edda;
     }
     .die {
-      background-color: #ffcdd2;
+      background-color: #f8d7da;
     }
   </style>
 </head>
 <body>
-  <h2>🚀 Check danh sách UID Facebook</h2>
+  <h3>✅ Check UID Facebook từ token</h3>
 
-  <label>Nhập danh sách UID (mỗi dòng 1 UID):</label>
-  <textarea id="uids" rows="10" placeholder="1000xxxxxxxxxx"></textarea>
+  <label>Danh sách UID (mỗi dòng 1 UID):</label>
+  <textarea id="uids" placeholder="1000xxxxxxxxxx"></textarea>
 
-  <label>Nhập danh sách token (mỗi dòng 1 token):</label>
-  <textarea id="tokens" rows="10" placeholder="EAAG..."></textarea>
+  <label>Danh sách Token (mỗi dòng 1 token):</label>
+  <textarea id="tokens" placeholder="EAAG..."></textarea>
 
-  <p><strong>✅ Token Live:</strong> <span id="liveCount">0</span></p>
+  <button onclick="checkTokensLive()">✅ Check Token Live</button>
+  <button onclick="startCheck()">🚀 Bắt đầu Check UID</button>
+  <button id="copyBtn">📋 Copy kết quả</button>
 
-  <button onclick="startCheck()">Bắt đầu Check</button>
-  <button id="copyBtn">📋 Copy tất cả kết quả</button>
+  <p><strong>Token Live:</strong> <span id="liveCount">0</span></p>
+  <p><strong>UID đã check:</strong> <span id="checkedCount">0</span></p>
 
   <div class="table-wrapper">
     <table id="result">
@@ -94,138 +84,115 @@
           <th>Tên</th>
           <th>Vị trí</th>
           <th>Email</th>
-          <th>Phone</th>
-          <th>Bạn bè</th>
-          <th>Ngày tạo</th>
-          <th>Trạng thái</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
   </div>
 
-  <script>
-    let liveTokens = [];
+<script>
+  let liveTokens = [];
 
-    async function isTokenLive(token) {
-      try {
-        const res = await fetch(`https://graph.facebook.com/me?access_token=${token}`);
-        const json = await res.json();
-        return !!json.id;
-      } catch {
-        return false;
-      }
+  async function isTokenLive(token) {
+    try {
+      const res = await fetch(`https://graph.facebook.com/me?access_token=${token}`);
+      const json = await res.json();
+      return !!json.id;
+    } catch {
+      return false;
+    }
+  }
+
+  async function checkTokensLive() {
+    const input = document.getElementById("tokens");
+    const tokens = input.value.trim().split("\n").map(t => t.trim()).filter(Boolean);
+    liveTokens = [];
+
+    for (const token of tokens) {
+      if (await isTokenLive(token)) liveTokens.push(token);
     }
 
-    async function checkTokensLive() {
-      const input = document.getElementById("tokens");
-      const lines = input.value.trim().split("\n").map(t => t.trim()).filter(Boolean);
-      liveTokens = [];
+    input.value = liveTokens.join("\n");
+    document.getElementById("liveCount").innerText = liveTokens.length;
+    alert("✅ Đã lọc xong token live!");
+  }
 
-      for (const token of lines) {
-        if (await isTokenLive(token)) liveTokens.push(token);
-      }
+  async function fetchUserInfo(uid, token) {
+    const fields = "name,location,hometown,email";
+    const url = `https://graph.facebook.com/${uid}?fields=${fields}&access_token=${token}`;
+    const res = await fetch(url);
+    return res.json();
+  }
 
-      input.value = liveTokens.join("\n");
-      document.getElementById("liveCount").innerText = liveTokens.length;
-    }
+  async function handleUID(uid, token, tbody) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${uid}</td><td colspan="3">⏳ Đang tải...</td>`;
+    tbody.appendChild(tr);
 
-    async function fetchUserInfo(uid, token) {
-      const fields = "name,location,hometown,email,mobile_phone,gender,birthday,friends.limit(0)";
-      const url = `https://graph.facebook.com/${uid}?fields=${fields}&access_token=${token}`;
-      const res = await fetch(url);
-      return res.json();
-    }
-
-    async function fetchCreatedTime(uid, token) {
-      try {
-        const res = await fetch(`https://graph.facebook.com/${uid}?metadata=1&access_token=${token}`);
-        const data = await res.json();
-        return data?.metadata?.created_time || "Không rõ";
-      } catch {
-        return "Không rõ";
-      }
-    }
-
-    async function handleUID(uid, token, tbody) {
-      const tr = document.createElement("tr");
-      tr.className = "loading";
-      tr.innerHTML = `<td>${uid}</td><td colspan="7">Đang tải...</td>`;
-      tbody.appendChild(tr);
-
-      try {
-        const data = await fetchUserInfo(uid, token);
-        if (data.error) {
-          tr.className = "die";
-          tr.innerHTML = `<td>${uid}</td><td colspan="7">❌ ${data.error.message}</td>`;
-        } else {
-          const createdTime = await fetchCreatedTime(uid, token);
-          tr.className = "live";
-          tr.innerHTML = `
-            <td>${uid}</td>
-            <td>${data.name || "Không rõ"}</td>
-            <td>${data.location?.name || "Không rõ"} & ${data.hometown?.name || "Không rõ"}</td>
-            <td>${data.email || "Không có"}</td>
-            <td>${data.mobile_phone || "Không có"}</td>
-            <td>${data.friends?.summary?.total_count || 0}</td>
-            <td>${createdTime}</td>
-            <td>✅ Live</td>
-          `;
-        }
-      } catch (err) {
+    try {
+      const data = await fetchUserInfo(uid, token);
+      if (data.error) {
         tr.className = "die";
-        tr.innerHTML = `<td>${uid}</td><td colspan="7">❌ Lỗi không xác định</td>`;
+        tr.innerHTML = `<td>${uid}</td><td colspan="3">❌ ${data.error.message}</td>`;
+      } else {
+        tr.className = "live";
+        tr.innerHTML = `
+          <td>${uid}</td>
+          <td>${data.name || "Không rõ"}</td>
+          <td>${data.location?.name || "Không rõ"} | ${data.hometown?.name || "Không rõ"}</td>
+          <td>${data.email || "Không có"}</td>
+        `;
       }
+    } catch {
+      tr.className = "die";
+      tr.innerHTML = `<td>${uid}</td><td colspan="3">❌ Lỗi không xác định</td>`;
     }
 
-    async function startCheck() {
-      const uidList = document.getElementById("uids").value.trim().split("\n").filter(Boolean);
-      const tbody = document.querySelector("#result tbody");
-      tbody.innerHTML = "";
+    updateCheckedCount();
+  }
 
-      if (uidList.length === 0) return alert("Vui lòng nhập danh sách UID");
-      if (liveTokens.length === 0) return alert("Không có token live");
+  function updateCheckedCount() {
+    const count = document.querySelectorAll("#result tbody tr").length;
+    document.getElementById("checkedCount").innerText = count;
+  }
 
-      const batchSize = 5;
-      let index = 0;
+  async function startCheck() {
+    const uids = document.getElementById("uids").value.trim().split("\n").filter(Boolean);
+    const tbody = document.querySelector("#result tbody");
+    tbody.innerHTML = "";
 
-      while (index < uidList.length) {
-        const batch = uidList.slice(index, index + batchSize);
-        await Promise.all(
-          batch.map((uid, i) => {
-            const token = liveTokens[(index + i) % liveTokens.length];
-            return handleUID(uid, token, tbody);
-          })
-        );
-        index += batchSize;
-        await new Promise((r) => setTimeout(r, 800));
-      }
+    if (!uids.length) return alert("❌ Nhập danh sách UID!");
+    if (!liveTokens.length) return alert("❌ Chưa có token live! Vui lòng check token trước.");
+
+    const batchSize = 10;
+    let index = 0;
+
+    while (index < uids.length) {
+      const batch = uids.slice(index, index + batchSize);
+      await Promise.all(batch.map((uid, i) => {
+        const token = liveTokens[(index + i) % liveTokens.length];
+        return handleUID(uid, token, tbody);
+      }));
+      index += batchSize;
+      await new Promise(r => setTimeout(r, 600));
     }
+  }
 
-    document.getElementById("tokens").addEventListener("input", () => {
-      setTimeout(() => checkTokensLive(), 1000);
+  document.getElementById("copyBtn").addEventListener("click", () => {
+    const rows = document.querySelectorAll("#result tbody tr");
+    if (!rows.length) return alert("❌ Không có dữ liệu để copy!");
+
+    let text = "UID|Tên|Vị trí|Email\n";
+    rows.forEach(row => {
+      const cells = row.querySelectorAll("td");
+      const line = Array.from(cells).map(td => td.innerText.trim()).join("|");
+      text += line + "\n";
     });
 
-    document.getElementById("copyBtn").addEventListener("click", () => {
-      const tbody = document.querySelector("#result tbody");
-      if (!tbody.hasChildNodes()) {
-        alert("Không có dữ liệu để copy!");
-        return;
-      }
-      // Chuẩn bị text copy: header + mỗi dòng dữ liệu cách tab + xuống dòng
-      const rows = Array.from(tbody.querySelectorAll("tr"));
-      let text = "UID\tTên\tVị trí\tEmail\tPhone\tBạn bè\tNgày tạo\tTrạng thái\n";
-      for (const row of rows) {
-        const cells = Array.from(row.querySelectorAll("td")).map(td => td.innerText.trim());
-        text += cells.join("\t") + "\n";
-      }
-
-      navigator.clipboard.writeText(text).then(() => {
-        alert("✅ Đã sao chép toàn bộ dữ liệu bảng vào clipboard!");
-      }).catch(() => {
-        alert("❌ Không thể sao chép. Vui lòng sao chép thủ công.");
-      });
-    });
-  </script>
+    navigator.clipboard.writeText(text)
+      .then(() => alert("✅ Đã sao chép kết quả vào clipboard!"))
+      .catch(() => alert("❌ Không thể sao chép."));
+  });
+</script>
 </body>
 </html>

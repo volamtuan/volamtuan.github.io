@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="vi" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Công Cụ Giải Mã JavaScript</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #0b0f13;
+            color: #e6eef3;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            background: #0f1720;
+            border: 1px solid #1e2933;
+            border-radius: 8px;
+            padding: 25px;
+        }
+        h1 { color: #0ea5a4; text-align: center; }
+        textarea, pre {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.9em;
+            background-color: #020617;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            min-height: 200px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        .btn-primary { background-color: #0ea5a4; border-color: #0ea5a4; }
+        .btn-primary:hover { background-color: #0d9494; border-color: #0d9494; }
+        #log {
+            margin-top: 10px;
+            color: #94a3b8;
+            text-align: center;
+            min-height: 20px;
+        }
+    </style>
+    <!-- Thư viện cần thiết -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+    <div class="text-container">
+        <h1>🚀 Công Cụ Giải Mã JavaScript</h1>
+       
+            <textarea id="inputCode" class="form-control" rows="5" placeholder="Dán mã của bạn vào đây..."></textarea>
+        </div>
+        <br>
+        <div class="d-flex gap-2">
+            <button id="decodeBtn" class="btn btn-primary flex-grow-1">Giải Mã</button>
+            <button id="copyBtn" class="btn btn-success">Sao Chép</button>
+            <button id="clearBtn" class="btn btn-danger">Xóa</button>
+        </div>
+
+        <hr class="my-4" style="border-color:#1e2933;">
+        
+        <div class="mb-3">
+             <pre><code id="outputCode" class="language-javascript">Kết quả sẽ hiển thị ở đây...</code></pre>
+        </div>
+        
+        <div id="log"></div>
+    </div>
+
+    <script>
+        const inputEl = document.getElementById('inputCode');
+        const outputEl = document.getElementById('outputCode');
+        const logEl = document.getElementById('log');
+        const decodeBtn = document.getElementById('decodeBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const clearBtn = document.getElementById('clearBtn');
+
+        /**
+         * Hàm depack cốt lõi, sử dụng kỹ thuật "eval hijacking" để bắt
+         * đoạn mã đã được giải mã mà không thực thi nó.
+         * @param {string} packedCode - Đoạn mã bị mã hóa.
+         * @returns {string|null} - Đoạn mã đã được giải mã hoặc null nếu thất bại.
+         */
+        function depack(packedCode) {
+            if (!packedCode || !packedCode.trim().startsWith('eval')) {
+                return null;
+            }
+            try {
+                let decoded = null;
+                const original_eval = window.eval;
+                window.eval = (str) => { decoded = str; };
+                original_eval(packedCode);
+                window.eval = original_eval;
+                return decoded;
+            } catch (e) {
+                // Khôi phục eval gốc nếu có lỗi
+                window.eval = window.eval_original || window.eval;
+                return null;
+            }
+        }
+        
+        /**
+         * Thực hiện giải mã liên tục cho đến khi mã không thể giải mã thêm.
+         * @param {string} code - Đoạn mã đầu vào.
+         * @returns {object} - Chứa mã đã giải mã và số lần lặp.
+         */
+        function unpackContinuously(code) {
+            let currentCode = code;
+            let iterations = 0;
+            const MAX_ITERATIONS = 15; // Giới hạn an toàn
+
+            while (iterations < MAX_ITERATIONS) {
+                const unpacked = depack(currentCode);
+                if (unpacked && unpacked !== currentCode) {
+                    currentCode = unpacked;
+                    iterations++;
+                } else {
+                    // Không thể depack thêm, dừng lại
+                    break;
+                }
+            }
+            return { decodedCode: currentCode, iterations };
+        }
+
+        /**
+         * Hàm chính điều khiển toàn bộ quá trình.
+         */
+        function processDecode() {
+            const sourceCode = inputEl.value.trim();
+            if (!sourceCode) {
+                logEl.textContent = "Vui lòng nhập mã để giải.";
+                return;
+            }
+
+            logEl.textContent = "Đang giải mã... Quá trình này có thể mất vài giây.";
+            
+            setTimeout(() => {
+                try {
+                    // Bước 1: Giải mã liên tục
+                    const { decodedCode, iterations } = unpackContinuously(sourceCode);
+                    
+                    // Bước 2: Làm đẹp mã kết quả
+                    const beautifiedCode = js_beautify(decodedCode, {
+                        indent_size: 2,
+                        space_in_empty_paren: true,
+                        max_preserve_newlines: 2
+                    });
+
+                    // Bước 3: Hiển thị và tô màu cú pháp
+                    outputEl.textContent = beautifiedCode;
+                    hljs.highlightElement(outputEl);
+                    
+                    if (iterations > 0) {
+                        logEl.textContent = `Hoàn tất! Đã thực hiện ${iterations} lượt giải mã.`;
+                    } else {
+                         logEl.textContent = "Hoàn tất! Mã không có vẻ bị 'packed' hoặc đã sạch.";
+                    }
+
+                } catch (error) {
+                    outputEl.textContent = `Lỗi trong quá trình giải mã hoặc làm đẹp mã:\n${error.message}`;
+                    logEl.textContent = "Đã xảy ra lỗi.";
+                }
+            }, 50);
+        }
+
+        function copyResult() {
+            const textToCopy = outputEl.textContent;
+            if (!textToCopy || textToCopy.includes("sẽ hiển thị ở đây")) {
+                logEl.textContent = "Không có gì để sao chép.";
+                return;
+            }
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                logEl.textContent = "Đã sao chép kết quả vào clipboard!";
+            }).catch(err => {
+                logEl.textContent = "Lỗi khi sao chép: " + err;
+            });
+        }
+
+        function clearInputs() {
+            inputEl.value = '';
+            outputEl.textContent = 'Kết quả sẽ hiển thị ở đây...';
+            logEl.textContent = '';
+            hljs.highlightElement(outputEl);
+        }
+        
+        // Gán sự kiện cho các nút
+        decodeBtn.addEventListener('click', processDecode);
+        copyBtn.addEventListener('click', copyResult);
+        clearBtn.addEventListener('click', clearInputs);
+
+        // Tự động giải mã khi người dùng dán nội dung vào
+        inputEl.addEventListener('paste', () => {
+            setTimeout(processDecode, 100);
+        });
+    </script>
+</body>
+</html>

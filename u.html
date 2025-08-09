@@ -55,10 +55,8 @@
       background-color: #ffcdd2;
     }
   </style>
-  </head>
-<body>
 
-  <h2>🚀 Check danh sách UID Facebook</h2>
+  <h2>🔍 Check danh sách UID bằng Token</h2>
 
   <label>Nhập danh sách UID (mỗi dòng 1 UID):</label>
   <textarea id="uids" rows="10" placeholder="1000xxxxxxxxxx"></textarea>
@@ -66,19 +64,22 @@
   <label>Nhập danh sách token (mỗi dòng 1 token):</label>
   <textarea id="tokens" rows="10" placeholder="EAAG..."></textarea>
 
-  <p><strong>✅ Token Live:</strong> <span id="liveCount">0</span></p>
-  <button onclick="startCheck()">Bắt đầu Check</button>
+  <p><strong>👉 Token Live:</strong> <span id="liveCount">0</span></p>
+
+  <button onclick="startCheck()">🚀 Bắt đầu Check</button>
 
   <table id="result">
     <thead>
       <tr>
         <th>UID</th>
         <th>Tên</th>
-        <th>Vị trí</th>
+        <th>Quốc gia</th>
+        <th>Hometown</th>
         <th>Email</th>
         <th>Phone</th>
+        <th>Giới tính</th>
+        <th>Sinh nhật</th>
         <th>Bạn bè</th>
-        <th>Ngày tạo</th>
         <th>Trạng thái</th>
       </tr>
     </thead>
@@ -111,79 +112,77 @@
       document.getElementById("liveCount").innerText = liveTokens.length;
     }
 
-    async function fetchUserInfo(uid, token) {
+    async function fetchInfo(uid, token) {
       const fields = "name,location,hometown,email,mobile_phone,gender,birthday,friends.limit(0)";
       const url = `https://graph.facebook.com/${uid}?fields=${fields}&access_token=${token}`;
       const res = await fetch(url);
       return res.json();
     }
+async function checkFriendCount(uid, token) {
+  const res = await fetch(`https://graph.facebook.com/${uid}/friends?access_token=${token}`);
+  const data = await res.json();
 
-    async function fetchCreatedTime(uid, token) {
-      try {
-        const res = await fetch(`https://graph.facebook.com/${uid}?metadata=1&access_token=${token}`);
-        const data = await res.json();
-        return data?.metadata?.created_time || "Không rõ";
-      } catch {
-        return "Không rõ";
-      }
-    }
-
-    async function handleUID(uid, token, tbody) {
-      const tr = document.createElement("tr");
-      tr.className = "loading";
-      tr.innerHTML = `<td>${uid}</td><td colspan="8">Đang tải...</td>`;
-      tbody.appendChild(tr);
-
-      try {
-        const data = await fetchUserInfo(uid, token);
-        if (data.error) {
-          tr.className = "die";
-          tr.innerHTML = `<td>${uid}</td><td colspan="8">❌ ${data.error.message}</td>`;
-        } else {
-          const createdTime = await fetchCreatedTime(uid, token);
-          tr.className = "live";
-          tr.innerHTML = `
-            <td>${uid}</td>
-            <td>${data.name || "Không rõ"}</td>
-            <td>${data.location?.name || "Không rõ"} & ${data.hometown?.name || "Không rõ"}</td>
-            <td>${data.email || "Không có"}</td>
-            <td>${data.mobile_phone || "Không có"}</td>
-            <td>${data.friends?.summary?.total_count || 0}</td>
-            <td>${createdTime}</td>
-            <td>✅ Live</td>
-          `;
-        }
-      } catch (err) {
-        tr.className = "die";
-        tr.innerHTML = `<td>${uid}</td><td colspan="8">❌ Lỗi không xác định</td>`;
-      }
-    }
-
+  if (data?.summary?.total_count !== undefined) {
+    console.log(`UID ${uid} có tổng ${data.summary.total_count} bạn bè`);
+    return data.summary.total_count;
+  } else {
+    console.log(`UID ${uid} không truy cập được hoặc không phải bạn bè với token`);
+    return 0;
+  }
+}
     async function startCheck() {
-      const uidList = document.getElementById("uids").value.trim().split("\n").filter(Boolean);
+      const uidList = document.getElementById("uids").value.trim().split("\n").map(x => x.trim()).filter(Boolean);
+
+      if (uidList.length === 0 || liveTokens.length === 0) {
+        alert("Vui lòng nhập UID và đảm bảo đã có token sống.");
+        return;
+      }
+
       const tbody = document.querySelector("#result tbody");
       tbody.innerHTML = "";
 
-      if (uidList.length === 0) return alert("Vui lòng nhập danh sách UID");
-      if (liveTokens.length === 0) return alert("Không có token live");
-
-      const batchSize = 5;
       let index = 0;
+      for (const uid of uidList) {
+        const token = liveTokens[index++ % liveTokens.length];
+        const tr = document.createElement("tr");
+        tr.className = "loading";
+        tr.innerHTML = `<td>${uid}</td><td colspan="9">Đang tải...</td>`;
+        tbody.appendChild(tr);
 
-      while (index < uidList.length) {
-        const batch = uidList.slice(index, index + batchSize);
-        await Promise.all(batch.map((uid, i) => {
-          const token = liveTokens[(index + i) % liveTokens.length];
-          return handleUID(uid, token, tbody);
-        }));
-        index += batchSize;
-        await new Promise(r => setTimeout(r, 800));
+        try {
+          const data = await fetchInfo(uid, token);
+          if (data.error) {
+            tr.className = "die";
+            tr.innerHTML = `<td>${uid}</td><td colspan="9">❌ ${data.error.message}</td>`;
+          } else {
+            tr.className = "live";
+            tr.innerHTML = `
+              <td>${uid}</td>
+              <td>${data.name || "Không rõ"}</td>
+              <td>${data.location?.name || "Không rõ"}</td>
+              <td>${data.hometown?.name || "Không rõ"}</td>
+              <td>${data.email || "Không có"}</td>
+              <td>${data.mobile_phone || "Không có"}</td>
+              <td>${data.gender || "Không rõ"}</td>
+              <td>${data.birthday || "Không rõ"}</td>
+              <td>${data.friends?.summary?.total_count || 0}</td>
+              <td>✅ Live</td>
+            `;
+          }
+        } catch (err) {
+          tr.className = "die";
+          tr.innerHTML = `<td>${uid}</td><td colspan="9">❌ Lỗi không xác định</td>`;
+        }
+
+        await new Promise(r => setTimeout(r, 1200));
       }
     }
 
+    // Tự động kiểm tra token live khi user dán vào ô token
     document.getElementById("tokens").addEventListener("input", () => {
       setTimeout(() => checkTokensLive(), 1000);
     });
   </script>
+
 </body>
 </html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giải Mã HTML Obfuscated</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            padding: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            font-family: monospace;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result-container {
+            margin-top: 20px;
+        }
+        pre {
+            background-color: #f7f7f7;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        #notification {
+            display: none;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Giải Mã HTML Obfuscated</h1>
+    <textarea id="obfuscated-code" placeholder="Nhập mã HTML bị obfuscated vào đây..."></textarea>
+    <button onclick="deObfuscate()">Giải Mã và Làm Sạch</button>
+    <button onclick="clearAll()">Xóa Tất Cả</button>
+
+    <div class="result-container">
+        <h3>Mã HTML Gốc:</h3>
+        <pre id="cleaned-code"></pre>
+        <p id="error-message" class="error"></p>
+    </div>
+
+    <!-- Thông báo sao chép -->
+    <div id="notification">Mã đã được sao chép vào clipboard!</div>
+
+    <script>
+        function deObfuscate() {
+            const obfuscatedCode = document.getElementById('obfuscated-code').value.trim();
+            const cleanedCodeOutput = document.getElementById('cleaned-code');
+            const errorMessage = document.getElementById('error-message');
+            const notification = document.getElementById('notification');
+            
+            errorMessage.textContent = ''; // Reset error message
+            cleanedCodeOutput.textContent = ''; // Reset cleaned code
+            
+            if (!obfuscatedCode) {
+                errorMessage.textContent = 'Vui lòng nhập mã HTML bị obfuscated.';
+                return;
+            }
+            
+            try {
+                // Sử dụng DOMParser để phân tích mã HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(obfuscatedCode, 'text/html');
+                
+                // Lấy nội dung từ thẻ <body> và loại bỏ <head> và <body>
+                const bodyContent = doc.body.innerHTML;
+
+                cleanedCodeOutput.textContent = bodyContent;
+
+                // Tự động sao chép mã đã giải mã vào clipboard
+                copyToClipboard(bodyContent);
+
+                // Hiển thị thông báo sao chép
+                notification.style.display = 'block';
+                
+                // Ẩn thông báo sau 2 giây
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 2000);
+
+            } catch (error) {
+                errorMessage.textContent = 'Lỗi khi giải mã mã HTML.';
+            }
+        }
+
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+        }
+
+        // Hàm xóa tất cả nội dung
+        function clearAll() {
+            document.getElementById('obfuscated-code').value = '';
+            document.getElementById('cleaned-code').textContent = '';
+            document.getElementById('error-message').textContent = '';
+            document.getElementById('notification').style.display = 'none'; // Ẩn thông báo khi xóa
+        }
+    </script>
+</body>
+</html>

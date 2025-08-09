@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tạo Bookmarklet JavaScript</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+ 
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f4f6f9;
+            padding: 24px;
+            color: #212529;
+        }
+        .container {
+            max-width: 900px;
+        }
+        .box {
+            background: #fff;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        }
+        h2 {
+            color: #007bff;
+        }
+        textarea {
+            width: 100%;
+            height: 250px;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 14px;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+            resize: vertical;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        textarea:focus {
+            border-color: #80bdff;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+        textarea#bookmarkletOutput {
+            height: 90px;
+            background-color: #e9ecef;
+        }
+        .output-controls {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body class="text-container">
+        <h2 class="mb-4 text-center">📌 Tạo Bookmarklet JavaScript</h2>
+        <div id="alertBox"></div>
+
+        <div class="form-group">
+            <label for="jsInput"><strong>Nhập mã JavaScript:</strong></label>
+            <textarea id="jsInput" class="form-control" rows="5" placeholder="Dán mã JavaScript của bạn vào đây..."></textarea>
+        </div>
+
+        <div class="output-controls">
+            <label for="bookmarkletOutput"><strong>Kết quả Bookmarklet:</strong></label>
+            <textarea id="bookmarkletOutput" class="form-control" rows="5 placeholder="Kết quả sẽ hiển thị tại đây..." readonly></textarea>
+            <div class="mt-2">
+                            <button id="copyBtn" class="btn btn-primary">📋 Sao chép</button>
+                            <br>
+                            </br>
+                            </div>
+                <a id="bookmarkLink" class="btn btn-success" href="#" title="Kéo link này lên thanh Bookmark của trình duyệt" rel="noopener noreferrer">▶️ Kéo Thả Bookmarklet</a>
+                <!-- NÚT XÓA ĐÃ ĐƯỢC THÊM VÀO -->
+                <button id="clearBtn" class="btn btn-danger">❌ Xóa Nội Dung</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var jsInput = document.getElementById('jsInput');
+        var bookmarkletOutput = document.getElementById('bookmarkletOutput');
+        var bookmarkLink = document.getElementById('bookmarkLink');
+        var alertBox = document.getElementById('alertBox');
+        var copyBtn = document.getElementById('copyBtn');
+        var clearBtn = document.getElementById('clearBtn'); // Lấy nút Xóa
+
+        function showAlert(message, type = 'success') {
+            alertBox.innerHTML =
+                `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>`;
+            setTimeout(() => {
+                // Dùng try-catch để tránh lỗi nếu người dùng đã tự đóng alert
+                try {
+                    bootstrap.Alert.getOrCreateInstance(alertBox.querySelector('.alert')).close();
+                } catch (e) {
+                    alertBox.innerHTML = '';
+                }
+            }, 3000);
+        }
+
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                return navigator.clipboard.writeText(text);
+            }
+            // Fallback cho trình duyệt cũ
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed'; // Tránh cuộn trang
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            try {
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textarea);
+                return successful ? Promise.resolve(true) : Promise.reject(false);
+            } catch (err) {
+                document.body.removeChild(textarea);
+                return Promise.reject(false);
+            }
+        }
+
+        /**
+         * =======================================================
+         * HÀM ĐÃ ĐƯỢC SỬA LỖI VÀ VIẾT LẠI HOÀN TOÀN
+         * =======================================================
+         * Chức năng:
+         * 1. Tự động phát hiện và loại bỏ hàm bọc ngoài (IIFE) nếu có.
+         * 2. Xóa tất cả các loại comment.
+         * 3. Thay thế nhiều dòng mới và khoảng trắng thành một khoảng trắng duy nhất.
+         */
+        function processCode(code) {
+            let processedCode = code.trim();
+            
+            // Regex để tìm và trích xuất nội dung từ các loại hàm tự gọi (IIFE)
+            const iifeRegex = /^\s*\((?:async\s+)?(?:function\s*[\s\S]*?\)\s*|\(\s*\))\s*=>?\s*\{([\s\S]*?)\}\s*\)\(\s*\)\s*;?\s*$/;
+            
+            const match = processedCode.match(iifeRegex);
+
+            if (match && match[1]) {
+                // Nếu tìm thấy, chỉ lấy nội dung bên trong hàm
+                processedCode = match[1].trim();
+            }
+            
+            // Thực hiện các bước làm sạch và rút gọn
+            return processedCode
+                .replace(/\/\/.*$/gm, '')         // Xóa comment một dòng (//...)
+                .replace(/\/\*[\s\S]*?\*\//g, '') // Xóa comment nhiều dòng (/*...*/)
+                .replace(/\s*\n\s*/g, ' ')        // Thay thế các dòng mới bằng khoảng trắng
+                .replace(/\s+/g, ' ')             // Gộp nhiều khoảng trắng thành một
+                .trim();
+        }
+
+        function generateBookmarklet() {
+            var code = jsInput.value.trim();
+            if (!code) {
+                bookmarkletOutput.value = '';
+                bookmarkLink.href = '#';
+                return;
+            }
+
+            // Sử dụng hàm đã được sửa lỗi
+            var minified = processCode(code);
+            var bookmarklet = 'javascript:(function(){' + encodeURIComponent(minified) + '})();';
+
+            bookmarkletOutput.value = bookmarklet;
+            bookmarkLink.href = bookmarklet;
+        }
+
+        function handleAutoCopy() {
+            const bookmarklet = bookmarkletOutput.value;
+            if (!bookmarklet) return;
+
+             copyToClipboard(bookmarklet).then(() => {
+                showAlert('✅ Đã tạo & tự động sao chép bookmarklet!');
+            }).catch(() => {
+                showAlert('⚠️ Đã tạo bookmarklet. Không thể tự động sao chép.', 'warning');
+            });
+        }
+
+        // Tạo sự kiện debounced để tránh chạy liên tục
+        let debounceTimer;
+        jsInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                generateBookmarklet();
+                handleAutoCopy(); // Tự động copy sau khi người dùng ngừng gõ
+            }, 500); // Chờ 500ms
+        });
+
+        copyBtn.addEventListener('click', () => {
+            var val = bookmarkletOutput.value.trim();
+            if (!val) return;
+            copyToClipboard(val).then(() => {
+                showAlert('📋 Đã sao chép thành công!');
+            }).catch(() => {
+                showAlert('❌ Không thể sao chép. Vui lòng chọn và sao chép thủ công.', 'danger');
+            });
+        });
+
+        // THÊM SỰ KIỆN CHO NÚT XÓA
+        clearBtn.addEventListener('click', () => {
+            jsInput.value = '';
+            bookmarkletOutput.value = '';
+            bookmarkLink.href = '#';
+            showAlert('Đã xóa toàn bộ nội dung.', 'info');
+        });
+    </script>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

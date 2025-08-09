@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Quản lý tài khoản theo domain (Đa file, đa luồng, zip + txt)</title>
+  <title>Quản lý tài khoản theo domain</title>
   <link
     rel="stylesheet"
     href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
@@ -65,9 +65,8 @@
       padding: 4px 8px;
       border-radius: 4px;
       cursor: pointer;
-      user-select: none;
     }
-    #copyMessage, #copyAllDomainsMsg {
+    #copyMessage {
       color: green;
       font-weight: 600;
       opacity: 0;
@@ -82,10 +81,6 @@
       border-radius: 4px;
       padding: 10px;
       font-family: monospace;
-      user-select: text;
-    }
-    #searchDomainInput {
-      margin-bottom: 10px;
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -106,19 +101,19 @@
     <hr />
     <div class="mb-3">
       <button class="btn btn-primary" id="copyAllDomainsBtn">Copy tất cả tài khoản (tất cả domain)</button>
-      <span id="copyAllDomainsMsg">✅ Đã copy!</span>
+      <span id="copyAllDomainsMsg" style="color: green; font-weight: 600; opacity: 0; margin-left: 10px; transition: opacity 0.3s ease;">✅ Đã copy!</span>
     </div>
-
     <h4>📚 Danh sách domain</h4>
-    <input
-      type="text"
-      id="searchDomainInput"
-      class="form-control"
-      placeholder="Tìm domain..."
-      oninput="filterDomainTable()"
-      autocomplete="off"
-    />
-
+    <div class="form-group">
+      <input
+        type="text"
+        id="searchDomainInput"
+        class="form-control"
+        placeholder="Tìm domain..."
+        oninput="filterDomainTable()"
+        autocomplete="off"
+      />
+    </div>
     <table id="domainTable" class="table table-bordered table-hover" aria-label="Bảng thống kê domain">
       <thead class="thead-light">
         <tr>
@@ -143,7 +138,7 @@
   <script>
     const domainAccounts = new Map();
 
-    // Phân tích 1 dòng tài khoản user|pass hoặc URL Username Password
+    // Phân tích 1 dòng
     function parseAccount(line) {
       if (!line) return null;
 
@@ -157,17 +152,31 @@
       }
 
       // Dòng liền: URL: ... Username: ... Password: ...
-      const blockMatch = line.match(/URL:\s*(.*?)\s*Username:\s*(.*?)\s*Password:\s*(.*)/i);
-      if (blockMatch) {
+      const blockMatchURL = line.match(/URL:\s*(.*?)\s*Username:\s*(.*?)\s*Password:\s*(.*)/i);
+      if (blockMatchURL) {
         try {
-          const domain = new URL(blockMatch[1].trim()).hostname.toLowerCase();
-          const user = blockMatch[2].trim();
-          const pass = blockMatch[3].trim();
+          const domain = new URL(blockMatchURL[1].trim()).hostname.toLowerCase();
+          const user = blockMatchURL[2].trim();
+          const pass = blockMatchURL[3].trim();
           return { user, pass, domain };
         } catch {
           return null;
         }
       }
+
+      // Dòng liền: Host: ... Login: ... Password: ...
+      const blockMatchHost = line.match(/Host:\s*(\S+)\s*Login:\s*(\S+)\s*Password:\s*(.*)/i);
+      if (blockMatchHost) {
+        try {
+          const domain = new URL(blockMatchHost[1].trim()).hostname.toLowerCase();
+          const user = blockMatchHost[2].trim();
+          const pass = blockMatchHost[3].trim();
+          return { user, pass, domain };
+        } catch {
+          return null;
+        }
+      }
+
       return null;
     }
 
@@ -209,6 +218,37 @@
       return results;
     }
 
+    // Xử lý block nhiều dòng dạng Soft, Host, Login, Password
+    function processSoftBlockAccounts(text) {
+      const lines = text.split(/\r?\n/);
+      const results = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].toLowerCase().startsWith("soft:")) {
+          if (i + 3 < lines.length) {
+            const hostLine = lines[i + 1].trim();
+            const loginLine = lines[i + 2].trim();
+            const passLine = lines[i + 3].trim();
+
+            const hostMatch = hostLine.match(/^Host:\s*(.+)$/i);
+            const loginMatch = loginLine.match(/^Login:\s*(.+)$/i);
+            const passMatch = passLine.match(/^Password:\s*(.+)$/i);
+
+            if (hostMatch && loginMatch && passMatch) {
+              try {
+                const domain = new URL(hostMatch[1].trim()).hostname.toLowerCase();
+                const user = loginMatch[1].trim();
+                const pass = passMatch[1].trim();
+                results.push({ user, pass, domain });
+                i += 3;
+              } catch {}
+            }
+          }
+        }
+      }
+      return results;
+    }
+
     // Thêm tài khoản vào domainAccounts, tránh trùng
     function addAccount({ user, pass, domain }) {
       if (!domain) return;
@@ -219,27 +259,26 @@
       }
     }
 
-    // Xử lý toàn bộ text (1 dòng và multi line)
+    // Xử lý toàn bộ text
     function processLines(text) {
       // Dòng đơn lẻ
       for (const line of text.split(/\r?\n/)) {
         const acc = parseAccount(line);
         if (acc) addAccount(acc);
       }
-      // Dạng block nhiều dòng
+      // Block nhiều dòng URL/Username/Password
       const multi = processMultiLineAccounts(text);
-      for (const acc of multi) {
-        addAccount(acc);
-      }
+      for (const acc of multi) addAccount(acc);
+
+      // Block Soft/Host/Login/Password
+      const softBlock = processSoftBlockAccounts(text);
+      for (const acc of softBlock) addAccount(acc);
     }
 
     // Xử lý textarea thủ công
     function processManualInput() {
       const content = document.getElementById("manualInput").value;
-      if (!content.trim()) {
-        alert("Bạn chưa nhập dữ liệu.");
-        return;
-      }
+      if (!content.trim()) return alert("Bạn chưa nhập dữ liệu.");
       domainAccounts.clear();
       processLines(content);
       updateDomainTable();
@@ -259,13 +298,22 @@
       });
     }
 
-    // Đọc file zip với JSZip, lấy tất cả file .txt bên trong
+    // Đọc file zip với JSZip, lấy file .txt có dữ liệu hợp lệ
     async function readZipFile(file) {
       const zip = await JSZip.loadAsync(file);
       const entries = Object.values(zip.files);
       for (const entry of entries) {
         if (!entry.name.toLowerCase().endsWith(".txt")) continue;
+
         const content = await entry.async("string");
+        // Kiểm tra nhanh file này có dòng parse được không
+        const lines = content.split(/\r?\n/);
+        const hasValidLine =
+          lines.some(line => parseAccount(line) !== null) ||
+          processMultiLineAccounts(content).length > 0 ||
+          processSoftBlockAccounts(content).length > 0;
+        if (!hasValidLine) continue;
+
         processLines(content);
       }
     }
@@ -300,23 +348,19 @@
       const tbody = document.querySelector("#domainTable tbody");
       tbody.innerHTML = "";
       const sorted = [...domainAccounts.entries()].sort((a, b) => b[1].length - a[1].length);
-
-      const fragment = document.createDocumentFragment();
       for (const [domain, accounts] of sorted) {
         const tr = document.createElement("tr");
         tr.innerHTML = `<td>${domain}</td><td>${accounts.length}</td>`;
-        fragment.appendChild(tr);
+        tbody.appendChild(tr);
       }
-      tbody.appendChild(fragment);
-
-      initMultiSelect(tbody);
+      initMultiSelect(document.querySelector("#domainTable tbody"));
     }
 
-    // Kéo chọn nhiều dòng tối đa 10 dòng + click hiển thị tài khoản
+    // Kéo chọn nhiều dòng với tối đa 10 dòng
     function initMultiSelect(tbody) {
       let isMouseDown = false;
       let startIndex = null;
-      const MAX_SELECT = 10;
+      const MAX_SELECT = 20;
 
       function clearSelection() {
         tbody.querySelectorAll("tr.selected").forEach(tr => tr.classList.remove("selected"));
@@ -342,14 +386,6 @@
         }
       }
 
-      tbody.querySelectorAll("tr").forEach(tr => {
-        tr.onclick = () => {
-          clearSelection();
-          tr.classList.add("selected");
-          showAccounts(tr.cells[0].textContent);
-        };
-      });
-
       tbody.onmousedown = e => {
         if (e.target.tagName !== "TD") return;
         e.preventDefault();
@@ -372,7 +408,16 @@
       document.addEventListener("mouseup", () => {
         if (isMouseDown) {
           isMouseDown = false;
+          // Xử lý khi kết thúc kéo chọn (nếu cần)
         }
+      });
+
+      // Click 1 dòng để hiện tài khoản tương ứng
+      tbody.querySelectorAll("tr").forEach(tr => {
+        tr.onclick = () => {
+          const domain = tr.cells[0].textContent;
+          showAccounts(domain);
+        };
       });
     }
 
@@ -426,7 +471,7 @@
       });
     }
 
-    // Copy tất cả tài khoản tất cả domain theo domain|user|pass
+    // Copy tất cả tài khoản tất cả domain theo format domain|user|pass
     document.getElementById("copyAllDomainsBtn").addEventListener("click", () => {
       if (domainAccounts.size === 0) {
         alert("Chưa có tài khoản nào.");
@@ -457,26 +502,16 @@
       });
     });
 
-    // Tìm kiếm lọc domain trong bảng
+    // Lọc domain bảng
     function filterDomainTable() {
       const filter = document.getElementById("searchDomainInput").value.toLowerCase();
       const tbody = document.querySelector("#domainTable tbody");
       const rows = tbody.querySelectorAll("tr");
 
-      // Bỏ chọn tất cả khi tìm kiếm
-      rows.forEach(row => row.classList.remove("selected"));
-
-      rows.forEach((row) => {
+      rows.forEach(row => {
         const domainCell = row.cells[0].textContent.toLowerCase();
-        if (domainCell.includes(filter)) {
-          row.style.display = "";
-        } else {
-          row.style.display = "none";
-        }
+        row.style.display = domainCell.includes(filter) ? "" : "none";
       });
-
-      // Ẩn phần tài khoản khi filter
-      document.getElementById("accountListBox").style.display = "none";
     }
   </script>
 </body>

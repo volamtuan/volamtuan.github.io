@@ -1,9 +1,65 @@
 <!DOCTYPE html>
 <html lang="vi">
+ 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Quản lý tài khoản theo domain</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý tài khoản theo domain</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background: #f0f2f5;
+        }
+ 
+        .container {
+            margin-top: 30px;
+            max-width: 800px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+ 
+        textarea {
+            resize: vertical;
+        }
+ 
+        .progress {
+            height: 20px;
+        }
+ 
+        .box {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+ 
+        #loading {
+            font-weight: bold;
+            color: #ff5722;
+            animation: pulse 1.2s infinite;
+            display: none;
+        }
+ 
+        #clearBtn {
+            display: none;
+        }
+ 
+        @keyframes pulse {
+            0% {
+                opacity: .4;
+            }
+ 
+            50% {
+                opacity: 1;
+            }
+ 
+            100% {
+                opacity: .4;
+            }
+        }
+    </style>
   <link
     rel="stylesheet"
     href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
@@ -86,7 +142,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
-  <div class="container">
+  <div class="text-container">
     <h3 class="mb-4">📋 Quản lý tài khoản theo domain</h3>
 
     <textarea

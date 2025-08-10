@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quản lý tài khoản theo domain </title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9f9f9; padding: 20px; }
+    textarea, input[type='file'] { width:100%; padding:8px; margin:10px 0; border-radius:4px; border:1px solid #ccc; resize:vertical; }
+    #domainTable { display:block; max-height:320px; overflow-y:auto; border-collapse:separate; border-spacing:0; }
+    #domainTable thead, #domainTable tbody { display:block; }
+    #domainTable tbody { max-height:280px; overflow-y:auto; }
+    #domainTable thead tr { display:table; width:100%; table-layout:fixed; }
+    #domainTable tbody tr { display:table; width:100%; table-layout:fixed; user-select:none; cursor:pointer; }
+    #domainTable tbody tr:hover { background-color:#f1f8ff; }
+    #domainTable tbody tr.selected { background-color:#c3ddff !important; }
+    .copy-btn { background-color:#17a2b8; border:none; color:white; padding:4px 8px; border-radius:4px; cursor:pointer; }
+    #copyMessage { color:green; font-weight:600; opacity:0; transition:opacity .3s ease; margin-left:10px; }
+    #accountList { max-height:300px; overflow-y:auto; background:white; border:1px solid #dee2e6; border-radius:4px; padding:10px; font-family:monospace; }
+    #dropZone { border:2px dashed #ced4da; padding:20px; text-align:center; border-radius:6px; background:#fff; margin-bottom:12px; color:#495057; }
+    #dropZone.dragover { background:#eef6ff; border-color:#78b0ff; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h3 class="mb-3">📋 Quản lý tài khoản theo domain</h3>
+
+    <div id="dropZone">Kéo thả file .txt hoặc .zip vào đây hoặc bấm "Chọn file" (hỗ trợ nhiều file)</div>
+
+    <input type="file" id="fileInput" multiple accept=".txt,.zip" class="mb-2" />
+
+    <div class="mb-2">
+      <button class="btn btn-success" id="processManualBtn">Xử lý nội dung từ textarea</button>
+      <button class="btn btn-primary" id="exportBtn">Xuất .txt (format: domain|user|pass)</button>
+      <button class="btn btn-secondary" id="clearBtn">Xóa dữ liệu</button>
+      <span id="statusMsg" style="margin-left:12px; font-weight:600; color:green; opacity:0; transition:opacity .3s;">✅ Hoàn tất</span>
+    </div>
+
+    <textarea id="manualInput" rows="6" placeholder="Bạn có thể dán nội dung tại đây rồi bấm 'Xử lý nội dung từ textarea'"></textarea>
+
+    <hr />
+
+    <div class="mb-3">
+      <button class="btn btn-primary" id="copyAllDomainsBtn">Copy tất cả tài khoản (tất cả domain)</button>
+      <span id="copyAllDomainsMsg" style="color:green; font-weight:600; opacity:0; margin-left:10px; transition:opacity .3s ease;">✅ Đã copy!</span>
+    </div>
+
+    <div class="form-group">
+      <input type="text" id="searchDomainInput" class="form-control" placeholder="Tìm domain..." oninput="filterDomainTable()" autocomplete="off" />
+    </div>
+
+    <h5>📚 Danh sách domain</h5>
+    <table id="domainTable" class="table table-bordered table-hover" aria-label="Bảng thống kê domain">
+      <thead class="thead-light">
+        <tr><th>Domain</th><th>Số tài khoản</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div id="accountListBox" style="display:none;">
+      <h5>📜 Tài khoản trong domain: <span id="selectedDomain"></span>
+        <button class="btn btn-warning btn-sm ml-3" id="copyAllButton">Copy tất cả</button>
+        <span id="copyMessage">✅ Đã copy!</span>
+      </h5>
+      <div id="accountList"></div>
+    </div>
+  </div>
+
+  <script>
+    const domainAccounts = new Map();
+
+    // ---------- Parsing helpers (hỗ trợ nhiều biến thể) ----------
+    function parseAccount(line) {
+      if (!line) return null;
+      const trimmed = line.trim();
+
+      // user|pass hoặc user:pass hoặc email:pass
+      const sepMatch = trimmed.match(/^(.+?)[\|\:]\s*(.+)$/);
+      if (sepMatch) {
+        const user = sepMatch[1].trim();
+        const pass = sepMatch[2].trim();
+        // Nếu là email lấy domain từ sau @
+        if (user.includes("@")) {
+          try {
+            const domain = user.split("@")[1].toLowerCase();
+            return { user, pass, domain };
+          } catch {}
+        } else {
+          // nếu user không phải email, không có domain => bỏ qua tại đây (có thể được bắt bởi block dạng URL tiếp theo)
+          return null;
+        }
+      }
+
+      // Dạng single-line: URL: ... Username: ... Password: ...
+      const blockMatch = trimmed.match(/URL:\s*(.*?)\s*Username:\s*(.*?)\s*Password:\s*(.*)/i);
+      if (blockMatch) {
+        try {
+          const domain = new URL(blockMatch[1].trim()).hostname.toLowerCase();
+          const user = blockMatch[2].trim();
+          const pass = blockMatch[3].trim();
+          return { user, pass, domain };
+        } catch { return null; }
+      }
+
+      return null;
+    }
+
+    // Multi-line: url: / login: / password:
+    function processUrlLoginPassBlock(text) {
+      const lines = text.split(/\r?\n/);
+      const results = [];
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].toLowerCase().startsWith("url:")) {
+          const urlLine = lines[i].trim();
+          const loginLine = lines[i+1]?.trim() || "";
+          const passLine = lines[i+2]?.trim() || "";
+          const urlMatch = urlLine.match(/^url:\s*(.+)$/i);
+          const loginMatch = loginLine.match(/^(?:login|user(?:name)?):\s*(.+)$/i);
+          const passMatch = passLine.match(/^(?:password|pass):\s*(.+)$/i);
+          if (urlMatch && loginMatch && passMatch) {
+            try {
+              const domain = new URL(urlMatch[1].trim()).hostname.toLowerCase();
+              const user = loginMatch[1].trim();
+              const pass = passMatch[1].trim();
+              results.push({ user, pass, domain });
+              i += 2;
+            } catch {}
+          }
+        }
+      }
+      return results;
+    }
+
+    // Multi-line: UR1 / U53RN4M3 / P455W0RD (biến thể)
+    function processUR1Format(text) {
+      const lines = text.split(/\r?\n/);
+      const results = [];
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].toLowerCase().startsWith("ur1:")) {
+          const urlLine = lines[i].trim();
+          const userLine = lines[i+1]?.trim() || "";
+          const passLine = lines[i+2]?.trim() || "";
+          const urlMatch = urlLine.match(/^ur1:\s*(.+)$/i);
+          const userMatch = userLine.match(/^u53rn4m3:\s*(.+)$/i);
+          const passMatch = passLine.match(/^p455w0rd:\s*(.+)$/i);
+          if (urlMatch && userMatch && passMatch) {
+            try {
+              const domain = new URL(urlMatch[1].trim()).hostname.toLowerCase();
+              results.push({ user: userMatch[1].trim(), pass: passMatch[1].trim(), domain });
+              i += 2;
+            } catch {}
+          }
+        }
+      }
+      return results;
+    }
+
+    // Multi-line: URL / Username / Password (1-line each but can be labeled differently)
+    function processMultiLineAccounts(text) {
+      const lines = text.split(/\r?\n/);
+      const results = [];
+      for (let i = 0; i < lines.length; i++) {
+        const urlLine = lines[i].trim();
+        if (/^url:/i.test(urlLine) && i+2 < lines.length) {
+          const userLine = lines[i+1].trim();
+          const passLine = lines[i+2].trim();
+          const userPrefix = userLine.match(/^username:/i) ? "username:" : (userLine.match(/^user:/i) ? "user:" : null);
+          const passPrefix = passLine.match(/^password:/i) ? "password:" : (passLine.match(/^pass:/i) ? "pass:" : null);
+          if (userPrefix && passPrefix) {
+            try {
+              const url = urlLine.substring(4).trim();
+              const domain = new URL(url).hostname.toLowerCase();
+              const user = userLine.substring(userPrefix.length).trim();
+              const pass = passLine.substring(passPrefix.length).trim();
+              results.push({ user, pass, domain });
+              i += 2;
+            } catch {}
+          }
+        }
+      }
+      return results;
+    }
+
+    // Thêm account vào domainAccounts, tránh trùng
+    function addAccount({ user, pass, domain }) {
+      if (!domain) return;
+      if (!domainAccounts.has(domain)) domainAccounts.set(domain, []);
+      const list = domainAccounts.get(domain);
+      if (!list.some(acc => acc.user === user && acc.pass === pass)) list.push({ user, pass });
+    }
+
+    // Xử lý toàn bộ text: chạy tất cả bộ parser
+    function processLines(text) {
+      // 1) Dòng đơn (user|pass hoặc email:pass)
+      for (const line of text.split(/\r?\n/)) {
+        const acc = parseAccount(line);
+        if (acc) addAccount(acc);
+      }
+      // 2) Các dạng block/multi-line
+      processMultiLineAccounts(text).forEach(acc => addAccount(acc));
+      processUrlLoginPassBlock(text).forEach(acc => addAccount(acc));
+      processUR1Format(text).forEach(acc => addAccount(acc));
+
+      // 3) Ngoài ra: quét các pattern email:pass hoặc user@domain:pass ở khắp văn bản (ví dụ file rời)
+      const generalMatches = Array.from(new Set((text.match(/([^\s\|:]+@[^\s\|:]+)[\|\:]\s*([^\s\|:]+)/g) || [])));
+      for (const m of generalMatches) {
+        const parts = m.split(/[\|\:]\s*/);
+        if (parts.length >= 2) {
+          const user = parts[0].trim();
+          const pass = parts[1].trim();
+          if (user.includes("@")) {
+            const domain = user.split("@")[1].toLowerCase();
+            addAccount({ user, pass, domain });
+          }
+        }
+      }
+    }
+
+    // ---------- File handling (txt / zip) ----------
+    function readTxtFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => { processLines(e.target.result); resolve(); };
+        reader.onerror = e => reject(e);
+        reader.readAsText(file);
+      });
+    }
+
+    async function readZipFile(file) {
+      const zip = await JSZip.loadAsync(file);
+      const entries = Object.values(zip.files);
+      for (const entry of entries) {
+        if (entry.dir) continue;
+        if (!entry.name.toLowerCase().endsWith(".txt")) continue;
+        const content = await entry.async("string");
+        processLines(content);
+      }
+    }
+
+    async function handleFiles(files) {
+      if (!files || files.length === 0) return;
+      document.getElementById("statusMsg").style.opacity = 0;
+      // giữ dữ liệu hiện tại (không clear) — nếu muốn clear trước, gọi domainAccounts.clear()
+      const tasks = [];
+      for (const file of files) {
+        if (file.name.toLowerCase().endsWith(".txt")) tasks.push(readTxtFile(file));
+        else if (file.name.toLowerCase().endsWith(".zip")) tasks.push(readZipFile(file));
+      }
+      try {
+        await Promise.all(tasks);
+        updateDomainTable();
+        document.getElementById("accountListBox").style.display = "none";
+        flashStatus("✅ Đã xử lý file");
+      } catch (err) {
+        alert("Lỗi khi đọc file: " + (err.message || err));
+      }
+    }
+
+    // ---------- UI & interactions ----------
+    function updateDomainTable() {
+      const tbody = document.querySelector("#domainTable tbody");
+      tbody.innerHTML = "";
+      const sorted = [...domainAccounts.entries()].sort((a,b) => b[1].length - a[1].length);
+      for (const [domain, accounts] of sorted) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${domain}</td><td>${accounts.length}</td>`;
+        tbody.appendChild(tr);
+      }
+      initMultiSelect(tbody);
+    }
+
+    function initMultiSelect(tbody) {
+      let isMouseDown = false;
+      let startIndex = null;
+      const MAX_SELECT = 10;
+      function clearSelection() { tbody.querySelectorAll("tr.selected").forEach(tr => tr.classList.remove("selected")); }
+      function selectRange(start, end) {
+        clearSelection();
+        const rows = tbody.children;
+        let from = Math.min(start, end), to = Math.max(start, end);
+        if (to - from + 1 > MAX_SELECT) {
+          if (start < end) to = from + MAX_SELECT - 1;
+          else { from = to - MAX_SELECT + 1; if (from < 0) from = 0; }
+        }
+        for (let i = from; i <= to && i < rows.length; i++) rows[i].classList.add("selected");
+      }
+      tbody.onmousedown = e => {
+        if (e.target.tagName !== "TD") return;
+        e.preventDefault();
+        isMouseDown = true;
+        const tr = e.target.closest("tr"); if (!tr) return;
+        startIndex = Array.from(tbody.children).indexOf(tr);
+        selectRange(startIndex, startIndex);
+      };
+      tbody.onmouseover = e => {
+        if (!isMouseDown) return;
+        if (e.target.tagName !== "TD") return;
+        const tr = e.target.closest("tr"); if (!tr) return;
+        const currentIndex = Array.from(tbody.children).indexOf(tr);
+        selectRange(startIndex, currentIndex);
+      };
+      document.addEventListener("mouseup", () => { if (isMouseDown) isMouseDown = false; });
+      tbody.querySelectorAll("tr").forEach(tr => {
+        tr.onclick = () => { const domain = tr.cells[0].textContent; showAccounts(domain); };
+      });
+    }
+
+    function showAccounts(domain) {
+      const container = document.getElementById("accountList");
+      container.innerHTML = "";
+      const accounts = domainAccounts.get(domain) || [];
+      accounts.forEach(({ user, pass }) => {
+        const item = document.createElement("div");
+        item.style.display = "flex"; item.style.justifyContent = "space-between"; item.style.alignItems = "center";
+        item.style.padding = "4px 0"; item.style.borderBottom = "1px solid #eee";
+        const textSpan = document.createElement("span"); textSpan.textContent = `${user}|${pass}`;
+        const btn = document.createElement("button"); btn.textContent = "Copy"; btn.className = "copy-btn";
+        btn.onclick = e => { e.stopPropagation(); navigator.clipboard.writeText(`${user}|${pass}`).then(() => alert(`✅ Đã copy: ${user}|${pass}`)); };
+        item.appendChild(textSpan); item.appendChild(btn); container.appendChild(item);
+      });
+      document.getElementById("selectedDomain").textContent = domain;
+      document.getElementById("accountListBox").style.display = "block";
+    }
+
+    function copyAllAccountsDomain(domain) {
+      const accounts = domainAccounts.get(domain);
+      if (!accounts?.length) return alert("Không có tài khoản.");
+      const content = accounts.map(acc => `${acc.user}|${acc.pass}`).join("\n");
+      navigator.clipboard.writeText(content).then(() => {
+        const msg = document.getElementById("copyMessage"); msg.style.opacity = 1;
+        setTimeout(() => msg.style.opacity = 0, 1500);
+      });
+    }
+
+    function copyAllDomains() {
+      if (domainAccounts.size === 0) return alert("Chưa có tài khoản nào.");
+      const allEntries = new Set();
+      domainAccounts.forEach((accounts, domain) => {
+        for (const acc of accounts) allEntries.add(`${domain}|${acc.user}|${acc.pass}`);
+      });
+      if (allEntries.size === 0) return alert("Chưa có tài khoản nào.");
+      const content = [...allEntries].join("\n");
+      navigator.clipboard.writeText(content).then(() => {
+        const msg = document.getElementById("copyAllDomainsMsg"); msg.style.opacity = 1;
+        setTimeout(() => msg.style.opacity = 0, 1500);
+      });
+    }
+
+    function exportToTxt() {
+      if (domainAccounts.size === 0) return alert("Không có dữ liệu để xuất.");
+      const out = [];
+      domainAccounts.forEach((accounts, domain) => {
+        for (const acc of accounts) out.push(`${domain}|${acc.user}|${acc.pass}`);
+      });
+      const blob = new Blob([out.join("\n")], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `accounts_export_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      flashStatus("✅ Đã xuất file");
+    }
+
+    function clearAllData() {
+      if (!confirm("Xóa toàn bộ dữ liệu đã nhập?")) return;
+      domainAccounts.clear();
+      updateDomainTable();
+      document.getElementById("accountListBox").style.display = "none";
+      flashStatus("✅ Đã xóa");
+    }
+
+    function flashStatus(text) {
+      const s = document.getElementById("statusMsg");
+      s.textContent = text;
+      s.style.opacity = 1;
+      setTimeout(() => s.style.opacity = 0, 1600);
+    }
+
+    function filterDomainTable() {
+      const filter = document.getElementById("searchDomainInput").value.toLowerCase();
+      const tbody = document.querySelector("#domainTable tbody");
+      tbody.querySelectorAll("tr").forEach(row => {
+        row.style.display = row.cells[0].textContent.toLowerCase().includes(filter) ? "" : "none";
+      });
+    }
+
+    // ---------- Event bindings ----------
+    document.getElementById("fileInput").addEventListener("change", function() {
+      handleFiles(this.files);
+      this.value = "";
+    });
+
+    // Drag & drop support
+    const dropZone = document.getElementById("dropZone");
+    dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("dragover"); });
+    dropZone.addEventListener("dragleave", e => { e.preventDefault(); dropZone.classList.remove("dragover"); });
+    dropZone.addEventListener("drop", e => {
+      e.preventDefault(); dropZone.classList.remove("dragover");
+      const dt = e.dataTransfer;
+      if (dt && dt.files && dt.files.length) handleFiles(dt.files);
+    });
+    dropZone.addEventListener("click", () => document.getElementById("fileInput").click());
+
+    document.getElementById("processManualBtn").addEventListener("click", () => {
+      const content = document.getElementById("manualInput").value;
+      if (!content.trim()) return alert("Bạn chưa nhập dữ liệu.");
+      processLines(content);
+      updateDomainTable();
+      document.getElementById("manualInput").value = "";
+      flashStatus("✅ Đã xử lý nội dung");
+    });
+
+    document.getElementById("copyAllButton").addEventListener("click", () => {
+      const domain = document.getElementById("selectedDomain").textContent;
+      copyAllAccountsDomain(domain);
+    });
+
+    document.getElementById("copyAllDomainsBtn").addEventListener("click", copyAllDomains);
+    document.getElementById("exportBtn").addEventListener("click", exportToTxt);
+    document.getElementById("clearBtn").addEventListener("click", clearAllData);
+
+    // Init empty UI
+    updateDomainTable();
+  </script>
+</body>
+</html>

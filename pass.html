@@ -1,65 +1,9 @@
 <!DOCTYPE html>
 <html lang="vi">
- 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý tài khoản theo domain</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        body {
-            background: #f0f2f5;
-        }
- 
-        .container {
-            margin-top: 30px;
-            max-width: 800px;
-            background: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-        }
- 
-        textarea {
-            resize: vertical;
-        }
- 
-        .progress {
-            height: 20px;
-        }
- 
-        .box {
-            background: #e9ecef;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-        }
- 
-        #loading {
-            font-weight: bold;
-            color: #ff5722;
-            animation: pulse 1.2s infinite;
-            display: none;
-        }
- 
-        #clearBtn {
-            display: none;
-        }
- 
-        @keyframes pulse {
-            0% {
-                opacity: .4;
-            }
- 
-            50% {
-                opacity: 1;
-            }
- 
-            100% {
-                opacity: .4;
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quản lý tài khoản theo domain</title>
   <link
     rel="stylesheet"
     href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
@@ -155,21 +99,21 @@
     <input type="file" id="fileInput" multiple accept=".txt,.zip" />
 
     <hr />
-    <div class="mb-3">
-      <button class="btn btn-primary" id="copyAllDomainsBtn">Copy tất cả tài khoản (tất cả domain)</button>
-      <span id="copyAllDomainsMsg" style="color: green; font-weight: 600; opacity: 0; margin-left: 10px; transition: opacity 0.3s ease;">✅ Đã copy!</span>
-    </div>
+<div class="mb-3">
+  <button class="btn btn-primary" id="copyAllDomainsBtn">Copy tất cả tài khoản (tất cả domain)</button>
+  <span id="copyAllDomainsMsg" style="color: green; font-weight: 600; opacity: 0; margin-left: 10px; transition: opacity 0.3s ease;">✅ Đã copy!</span>
+</div>
     <h4>📚 Danh sách domain</h4>
     <div class="form-group">
-      <input
-        type="text"
-        id="searchDomainInput"
-        class="form-control"
-        placeholder="Tìm domain..."
-        oninput="filterDomainTable()"
-        autocomplete="off"
-      />
-    </div>
+  <input
+    type="text"
+    id="searchDomainInput"
+    class="form-control"
+    placeholder="Tìm domain..."
+    oninput="filterDomainTable()"
+    autocomplete="off"
+  />
+</div>
     <table id="domainTable" class="table table-bordered table-hover" aria-label="Bảng thống kê domain">
       <thead class="thead-light">
         <tr>
@@ -194,7 +138,7 @@
   <script>
     const domainAccounts = new Map();
 
-    // Phân tích 1 dòng
+    // Hàm phân tích 1 dòng
     function parseAccount(line) {
       if (!line) return null;
 
@@ -208,35 +152,21 @@
       }
 
       // Dòng liền: URL: ... Username: ... Password: ...
-      const blockMatchURL = line.match(/URL:\s*(.*?)\s*Username:\s*(.*?)\s*Password:\s*(.*)/i);
-      if (blockMatchURL) {
+      const blockMatch = line.match(/URL:\s*(.*?)\s*Username:\s*(.*?)\s*Password:\s*(.*)/i);
+      if (blockMatch) {
         try {
-          const domain = new URL(blockMatchURL[1].trim()).hostname.toLowerCase();
-          const user = blockMatchURL[2].trim();
-          const pass = blockMatchURL[3].trim();
+          const domain = new URL(blockMatch[1].trim()).hostname.toLowerCase();
+          const user = blockMatch[2].trim();
+          const pass = blockMatch[3].trim();
           return { user, pass, domain };
         } catch {
           return null;
         }
       }
-
-      // Dòng liền: Host: ... Login: ... Password: ...
-      const blockMatchHost = line.match(/Host:\s*(\S+)\s*Login:\s*(\S+)\s*Password:\s*(.*)/i);
-      if (blockMatchHost) {
-        try {
-          const domain = new URL(blockMatchHost[1].trim()).hostname.toLowerCase();
-          const user = blockMatchHost[2].trim();
-          const pass = blockMatchHost[3].trim();
-          return { user, pass, domain };
-        } catch {
-          return null;
-        }
-      }
-
       return null;
     }
 
-    // Xử lý block nhiều dòng dạng URL, Username, Password
+    // Xử lý block nhiều dòng dạng URL, Username, Password (1 dòng)
     function processMultiLineAccounts(text) {
       const lines = text.split(/\r?\n/);
       const results = [];
@@ -274,29 +204,29 @@
       return results;
     }
 
-    // Xử lý block nhiều dòng dạng Soft, Host, Login, Password
-    function processSoftBlockAccounts(text) {
+    // Xử lý block nhiều dòng dạng url/login/password không liền dòng, mỗi thông tin trên 1 dòng
+    function processUrlLoginPassBlock(text) {
       const lines = text.split(/\r?\n/);
       const results = [];
 
       for (let i = 0; i < lines.length; i++) {
-        if (lines[i].toLowerCase().startsWith("soft:")) {
-          if (i + 3 < lines.length) {
-            const hostLine = lines[i + 1].trim();
-            const loginLine = lines[i + 2].trim();
-            const passLine = lines[i + 3].trim();
+        if (lines[i].toLowerCase().startsWith("url:")) {
+          if (i + 2 < lines.length) {
+            const urlLine = lines[i].trim();
+            const loginLine = lines[i + 1].trim();
+            const passLine = lines[i + 2].trim();
 
-            const hostMatch = hostLine.match(/^Host:\s*(.+)$/i);
-            const loginMatch = loginLine.match(/^Login:\s*(.+)$/i);
-            const passMatch = passLine.match(/^Password:\s*(.+)$/i);
+            const urlMatch = urlLine.match(/^url:\s*(.+)$/i);
+            const loginMatch = loginLine.match(/^login:\s*(.+)$/i);
+            const passMatch = passLine.match(/^password:\s*(.+)$/i);
 
-            if (hostMatch && loginMatch && passMatch) {
+            if (urlMatch && loginMatch && passMatch) {
               try {
-                const domain = new URL(hostMatch[1].trim()).hostname.toLowerCase();
+                const domain = new URL(urlMatch[1].trim()).hostname.toLowerCase();
                 const user = loginMatch[1].trim();
                 const pass = passMatch[1].trim();
                 results.push({ user, pass, domain });
-                i += 3;
+                i += 2; // nhảy qua 2 dòng đã xử lý
               } catch {}
             }
           }
@@ -315,20 +245,23 @@
       }
     }
 
-    // Xử lý toàn bộ text
+    // Xử lý toàn bộ text (1 dòng và multi line)
     function processLines(text) {
       // Dòng đơn lẻ
       for (const line of text.split(/\r?\n/)) {
         const acc = parseAccount(line);
         if (acc) addAccount(acc);
       }
-      // Block nhiều dòng URL/Username/Password
+      // Dạng block nhiều dòng URL, Username, Password (1 dòng)
       const multi = processMultiLineAccounts(text);
-      for (const acc of multi) addAccount(acc);
-
-      // Block Soft/Host/Login/Password
-      const softBlock = processSoftBlockAccounts(text);
-      for (const acc of softBlock) addAccount(acc);
+      for (const acc of multi) {
+        addAccount(acc);
+      }
+      // Dạng block nhiều dòng url/login/password (3 dòng riêng biệt)
+      const urlLoginPassBlock = processUrlLoginPassBlock(text);
+      for (const acc of urlLoginPassBlock) {
+        addAccount(acc);
+      }
     }
 
     // Xử lý textarea thủ công
@@ -354,22 +287,13 @@
       });
     }
 
-    // Đọc file zip với JSZip, lấy file .txt có dữ liệu hợp lệ
+    // Đọc file zip với JSZip, lấy tất cả file .txt bên trong
     async function readZipFile(file) {
       const zip = await JSZip.loadAsync(file);
       const entries = Object.values(zip.files);
       for (const entry of entries) {
         if (!entry.name.toLowerCase().endsWith(".txt")) continue;
-
         const content = await entry.async("string");
-        // Kiểm tra nhanh file này có dòng parse được không
-        const lines = content.split(/\r?\n/);
-        const hasValidLine =
-          lines.some(line => parseAccount(line) !== null) ||
-          processMultiLineAccounts(content).length > 0 ||
-          processSoftBlockAccounts(content).length > 0;
-        if (!hasValidLine) continue;
-
         processLines(content);
       }
     }
@@ -416,7 +340,7 @@
     function initMultiSelect(tbody) {
       let isMouseDown = false;
       let startIndex = null;
-      const MAX_SELECT = 20;
+      const MAX_SELECT = 10;
 
       function clearSelection() {
         tbody.querySelectorAll("tr.selected").forEach(tr => tr.classList.remove("selected"));
@@ -526,49 +450,50 @@
         setTimeout(() => (msg.style.opacity = 0), 1500);
       });
     }
-
-    // Copy tất cả tài khoản tất cả domain theo format domain|user|pass
     document.getElementById("copyAllDomainsBtn").addEventListener("click", () => {
-      if (domainAccounts.size === 0) {
-        alert("Chưa có tài khoản nào.");
-        return;
-      }
+  if (domainAccounts.size === 0) {
+    alert("Chưa có tài khoản nào.");
+    return;
+  }
 
-      const allEntries = new Set();
+  // Gom toàn bộ tài khoản theo định dạng domain|user|pass, tránh trùng
+  const allEntries = new Set();
 
-      domainAccounts.forEach((accounts, domain) => {
-        for (const acc of accounts) {
-          const entry = `${domain}|${acc.user}|${acc.pass}`;
-          allEntries.add(entry);
-        }
-      });
-
-      if (allEntries.size === 0) {
-        alert("Chưa có tài khoản nào.");
-        return;
-      }
-
-      const content = [...allEntries].join("\n");
-      navigator.clipboard.writeText(content).then(() => {
-        const msg = document.getElementById("copyAllDomainsMsg");
-        msg.style.opacity = 1;
-        setTimeout(() => {
-          msg.style.opacity = 0;
-        }, 1500);
-      });
-    });
-
-    // Lọc domain bảng
-    function filterDomainTable() {
-      const filter = document.getElementById("searchDomainInput").value.toLowerCase();
-      const tbody = document.querySelector("#domainTable tbody");
-      const rows = tbody.querySelectorAll("tr");
-
-      rows.forEach(row => {
-        const domainCell = row.cells[0].textContent.toLowerCase();
-        row.style.display = domainCell.includes(filter) ? "" : "none";
-      });
+  domainAccounts.forEach((accounts, domain) => {
+    for (const acc of accounts) {
+      const entry = `${domain}|${acc.user}|${acc.pass}`;
+      allEntries.add(entry);
     }
+  });
+
+  if (allEntries.size === 0) {
+    alert("Chưa có tài khoản nào.");
+    return;
+  }
+
+  const content = [...allEntries].join("\n");
+  navigator.clipboard.writeText(content).then(() => {
+    const msg = document.getElementById("copyAllDomainsMsg");
+    msg.style.opacity = 1;
+    setTimeout(() => {
+      msg.style.opacity = 0;
+    }, 1500);
+  });
+});
+function filterDomainTable() {
+  const filter = document.getElementById("searchDomainInput").value.toLowerCase();
+  const tbody = document.querySelector("#domainTable tbody");
+  const rows = tbody.querySelectorAll("tr");
+
+  rows.forEach((row) => {
+    const domainCell = row.cells[0].textContent.toLowerCase();
+    if (domainCell.includes(filter)) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
+    }
+  });
+}
   </script>
 </body>
 </html>

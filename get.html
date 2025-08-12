@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trích xuất Email|Pass</title>
+<style>
+    body { background-color: #121212; color: #fff; font-family: Arial, sans-serif; margin: 20px; }
+    textarea { width: 100%; height: 300px; background: #1e1e1e; color: #fff; border: 1px solid #333; padding: 10px; font-family: monospace; }
+    button { margin-top: 10px; padding: 8px 12px; }
+</style>
+</head>
+<body>
+
+    <h2 class="mb-3">📥 Trích xuất <code>email|pass</code></h2>
+<input type="file" id="fileInput" multiple>
+<button id="copyBtn">Copy</button>
+<textarea id="output" placeholder="Kết quả sẽ hiển thị ở đây..."></textarea>
+
+<script>
+// Web Worker xử lý lọc
+const workerCode = `
+self.onmessage = function(e) {
+    let allData = e.data.join("\\n");
+    let lines = allData.split(/\\r?\\n/);
+    let result = new Set();
+    for (let line of lines) {
+        let match = line.match(/[\\w._%+-]+@[\\w.-]+\\.[a-zA-Z]{2,}[:|]\\S+/);
+        if (match) result.add(match[0]);
+    }
+    self.postMessage(Array.from(result).join("\\n"));
+};
+`;
+const blob = new Blob([workerCode], { type: "application/javascript" });
+const worker = new Worker(URL.createObjectURL(blob));
+
+document.getElementById("fileInput").addEventListener("change", async function() {
+    const files = this.files;
+    let texts = [];
+    for (let file of files) {
+        let text = await file.text();
+        texts.push(text);
+    }
+    // Gửi nội dung sang worker để lọc ngay
+    worker.postMessage(texts);
+});
+
+worker.onmessage = function(e) {
+    document.getElementById("output").value = e.data;
+};
+
+document.getElementById("copyBtn").addEventListener("click", function() {
+    let output = document.getElementById("output");
+    output.select();
+    document.execCommand("copy");
+    alert("Đã copy vào clipboard!");
+});
+</script>
+
+</body>
+</html>

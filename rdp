@@ -1,0 +1,69 @@
+#!/bin/bash
+# Script cài Remote Desktop (RDP) cho đa Linux
+# Hỗ trợ: Ubuntu/Debian/Fedora/CentOS/Arch
+
+set -e
+
+SSH_PORT=22  # port SSH
+
+echo "=== Phát hiện Linux Distro ==="
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    DISTRO=$ID
+else
+    echo "Không xác định được distro, thoát"
+    exit 1
+fi
+echo "Distro: $DISTRO"
+
+case $DISTRO in
+    ubuntu|debian)
+        sudo apt update -y && sudo apt upgrade -y
+        sudo apt install -y xfce4 xfce4-goodies xorg xrdp ufw
+        ;;
+    fedora)
+        sudo dnf upgrade -y
+        sudo dnf groupinstall -y "Xfce" "X Window System"
+        sudo dnf install -y xrdp firewalld
+        ;;
+    centos|rhel)
+        sudo yum update -y
+        sudo yum groupinstall -y "Xfce" "X Window System"
+        sudo yum install -y xrdp firewalld
+        ;;
+    arch)
+        sudo pacman -Syu --noconfirm
+        sudo pacman -S --noconfirm xfce4 xfce4-goodies xorg xrdp ufw
+        ;;
+    *)
+        echo "Distro chưa được hỗ trợ"
+        exit 1
+        ;;
+esac
+
+echo "=== Cấu hình xrdp với XFCE ==="
+echo xfce4-session >~/.xsession
+
+echo "=== Khởi động và bật xrdp ==="
+sudo systemctl enable xrdp
+sudo systemctl start xrdp
+sudo systemctl status xrdp
+
+echo "=== Cấu hình firewall ==="
+case $DISTRO in
+    ubuntu|debian|arch)
+        sudo ufw allow $SSH_PORT/tcp
+        sudo ufw allow 3389/tcp
+        sudo ufw reload
+        sudo ufw enable
+        ;;
+    fedora|centos|rhel)
+        sudo firewall-cmd --permanent --add-service=ssh
+        sudo firewall-cmd --permanent --add-port=3389/tcp
+        sudo firewall-cmd --reload
+        ;;
+esac
+
+echo "=== Hoàn tất ==="
+echo "Bạn có thể remote desktop đến server bằng port 3389"
+echo "Username/Password Linux dùng để login."

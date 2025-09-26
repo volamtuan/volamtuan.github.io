@@ -1,0 +1,67 @@
+#!/bin/bash
+# Script install n8n full cho đa Linux (Ubuntu/Debian/Fedora/CentOS/Arch)
+# Tự động chạy n8n và tự start sau reboot
+
+set -e
+
+echo "=== Phát hiện Linux Distro ==="
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    DISTRO=$ID
+else
+    echo "Không xác định được distro, thoát"
+    exit 1
+fi
+echo "Distro: $DISTRO"
+
+echo "=== Cập nhật hệ thống và cài package cơ bản ==="
+case $DISTRO in
+    ubuntu|debian)
+        sudo apt update -y && sudo apt upgrade -y
+        sudo apt install -y curl git build-essential
+        ;;
+    fedora)
+        sudo dnf upgrade -y
+        sudo dnf install -y curl gcc gcc-c++ make git
+        ;;
+    centos|rhel)
+        sudo yum update -y
+        sudo yum groupinstall -y "Development Tools"
+        sudo yum install -y curl git nano sudo jq
+        ;;
+    arch)
+        sudo pacman -Syu --noconfirm
+        sudo pacman -S --noconfirm base-devel curl
+        ;;
+    *)
+        echo "Distro chưa được hỗ trợ"
+        exit 1
+        ;;
+esac
+
+echo "=== Cài đặt NVM ==="
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+echo "=== Cài Node.js LTS mới nhất ==="
+nvm install --lts
+nvm use --lts
+echo "Node version: $(node -v)"
+echo "NPM version: $(npm -v)"
+
+echo "=== Cài PM2 ==="
+npm install pm2 -g
+
+echo "=== Cài n8n ==="
+npm install n8n --location=global
+
+echo "=== Khởi chạy n8n bằng PM2 ==="
+pm2 start n8n --name n8n
+pm2 save
+pm2 startup systemd -u $USER --hp $HOME
+
+echo "=== Hoàn tất ==="
+echo "n8n sẽ tự động chạy nền và tự start sau reboot."
+echo "Truy cập: http://localhost:5678"
+echo "Quản lý PM2: pm2 status | pm2 logs n8n"

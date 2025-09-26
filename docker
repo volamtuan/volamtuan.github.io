@@ -1,84 +1,90 @@
 #!/bin/bash
 
-# Detect the OS
+set -e
+
+echo "Detecting OS..."
 if [ -f /etc/centos-release ]; then
     OS="centos"
-    echo "This is CentOS"
 elif [ -f /etc/lsb-release ]; then
     OS="ubuntu"
-    echo "This is Ubuntu"
 elif [ -f /etc/debian_version ]; then
     OS="debian"
-    echo "This is Debian or Kali"
 elif [ -f /etc/os-release ] && grep -q "AlmaLinux" /etc/os-release; then
     OS="almalinux"
-    echo "This is AlmaLinux"
 else
     echo "Unsupported OS"
     exit 1
 fi
-
 echo "Detected OS: $OS"
 
-# Install Docker
-if [ "$OS" = "centos" ]; then
-    # Install Docker on CentOS
-    sudo yum install -y yum-utils device-mapper-persistent-data lvm2
+echo "Installing required packages..."
+if [[ "$OS" == "centos" || "$OS" == "almalinux" ]]; then
+    sudo yum install -y yum-utils device-mapper-persistent-data lvm2 curl git iptables
     sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
     sudo yum install -y docker-ce docker-ce-cli containerd.io
-    sudo systemctl start docker
-    sudo systemctl enable docker
-
-elif [ "$OS" = "ubuntu" ]; then
-    # Remove potential conflicts and Install Docker on Ubuntu
+elif [[ "$OS" == "ubuntu" || "$OS" == "debian" ]]; then
     sudo apt-get update
-    for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove -y $pkg; done
-    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+    for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do
+        sudo apt-get remove -y $pkg || true
+    done
+    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common git iptables
+    curl -fsSL https://download.docker.com/linux/$OS/gpg | sudo apt-key add -
+    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/$OS $(lsb_release -cs) stable"
     sudo apt-get update
     sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-    sudo systemctl start docker
-    sudo systemctl enable docker
-
-elif [ "$OS" = "debian" ]; then
-    # Install Docker on Debian / Kali
-    sudo apt-get update
-    for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove -y $pkg; done
-    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-    curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
-    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
-    sudo apt-get update
-    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-    sudo systemctl start docker
-    sudo systemctl enable docker
-
-elif [ "$OS" = "almalinux" ]; then
-    # Install Docker on AlmaLinux
-    sudo dnf install -y yum-utils device-mapper-persistent-data lvm2
-    sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-    sudo dnf install -y docker-ce docker-ce-cli containerd.io
-    sudo systemctl start docker
-    sudo systemctl enable docker
 fi
 
-# Install Docker Compose (applicable for both OS)
-sudo curl -L "https://github.com/docker/compose/releases/download/1.23.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-
-# Add user to Docker group if not already existing (applicable for both OS)
-if [ $(getent group docker) ]; then
-    echo "Group 'docker' already exists"
+echo "Starting Docker service..."
+if command -v systemctl >/dev/null 2>&1; then
+    sudo systemctl enable docker
+    sudo systemctl start docker
 else
+    sudo service docker restart || sudo service dockerd restart
+    sudo service docker enable || sudo service dockerd enable
+fi
+
+echo "Adding user '$USER' to docker group..."
+if ! getent group docker >/dev/null; then
     sudo groupadd docker
 fi
 sudo usermod -aG docker $USER
+newgrp docker
 
-# Print Docker version to verify installation
-echo "Docker installed successfully!"
+echo "Installing Docker Compose (latest)..."
+sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+echo "Fixing Docker permissions..."
+sudo chmod 666 /var/run/docker.sock
+
+echo "Repairing Docker bridge network if missing..."
+if ! docker network inspect bridge >/dev/null 2>&1; then
+    echo "Default bridge network missing. Recreating..."
+    sudo rm -rf /var/lib/docker/network/files
+    if command -v systemctl >/dev/null 2>&1; then
+        sudo systemctl restart docker
+    else
+        sudo service docker restart || sudo service dockerd restart
+    fi
+fi
+
+echo "Loading necessary kernel modules..."
+sudo modprobe ip_tables
+sudo modprobe iptable_nat
+sudo modprobe nf_nat
+sudo modprobe ip6table_filter
+sudo modprobe bridge
+echo "bridge" | sudo tee -a /etc/modules
+
+echo "Enabling IP forwarding..."
+sudo sysctl -w net.ipv4.ip_forward=1
+sudo sysctl -p || true
+
+echo "Pruning Docker networks..."
+docker network prune -f || true
+
+echo "Docker installed and bridge network repaired successfully!"
 docker --version
 docker-compose --version
 
 echo "Please log out and log back in to apply Docker group permissions."
-
-

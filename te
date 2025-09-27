@@ -1,0 +1,114 @@
+#!/bin/bash
+set -e
+
+# ----------------------------
+# ⚡ Siêu tốc nhất: GNU parallel + curl multi-thread
+# ----------------------------
+
+[ "$EUID" -ne 0 ] && { echo "⚠️ Chạy script với root"; exit 1; }
+
+# Cài tools nếu thiếu
+TOOLS=(wget curl jq ss awk parallel nmap)
+for t in "${TOOLS[@]}"; do
+    command -v "$t" >/dev/null 2>&1 || {
+        if command -v apt-get >/dev/null; then
+            apt-get update -qq && apt-get install -y -qq "$t" || true
+        elif command -v dnf >/dev/null; then dnf install -y "$t" || true
+        elif command -v yum >/dev/null; then yum install -y "$t" || true
+        elif command -v apk >/dev/null; then apk add --no-cache "$t" || true
+        else echo "⚠️ Không tìm thấy package manager cho $t"; fi
+    }
+done
+
+rm -f live_proxy.txt die_proxy.txt cong.txt 2>/dev/null
+touch live_proxy.txt die_proxy.txt cong.txt
+
+# Màu terminal
+GREEN="\033[1;32m"
+YELLOW="\033[1;33m"
+RED="\033[1;31m"
+RESET="\033[0m"
+
+CPU=$(nproc || echo 4)
+CONCURRENCY=$(( CPU * 16 ))
+
+get_ip(){
+    local port="$1"
+    for svc in https://api64.ipify.org https://httpbin.org/ip https://ifconfig.me; do
+        ip=$(curl -s --max-time 2 --proxy "http://localhost:$port" "$svc" | grep -oE "([0-9]{1,3}\.){3}[0-9]{1,3}" || true)
+        [ -n "$ip" ] && break
+    done
+    echo "${ip:-null}"
+}
+
+get_country(){
+    local ip="$1"
+    local country=""
+    for api in "http://ip-api.com/json/$ip" "https://ipinfo.io/$ip/json" "https://ipwhois.app/json/$ip"; do
+        country=$(curl -s --max-time 2 "$api" | jq -r ".country" 2>/dev/null || true)
+        [[ -n "$country" && "$country" != "null" ]] && break
+    done
+    echo "${country:-Không xác định}"
+}
+
+export -f get_ip get_country
+
+# ----------------------------
+# Quét port mở localhost (ưu tiên nmap, fallback ss)
+# ----------------------------
+echo "⏳ Quét port TCP localhost..."
+open_ports=""
+
+if command -v nmap >/dev/null 2>&1; then
+    open_ports=$(nmap -p 1-65535 -T4 -sT 127.0.0.1 2>/dev/null | grep "open" | awk '{print $1}' | cut -d'/' -f1)
+fi
+
+if [ -z "$open_ports" ]; then
+    if command -v ss >/dev/null 2>&1; then
+        open_ports=$(ss -tln 2>/dev/null | awk 'NR>1{split($4,a,":"); print a[length(a)]}' | sort -n | uniq)
+    fi
+fi
+
+if [ -z "$open_ports" ]; then
+    echo "❌ Không tìm thấy port mở trên localhost (nmap/ss không trả kết quả)."
+    exit 0
+fi
+
+echo "✅ Port mở: $open_ports"
+
+# ----------------------------
+# Hàm SV1 → SV2 tuần tự trên mỗi port
+# ----------------------------
+check_proxy(){
+    local port="$1"
+    for check in SV1 SV2; do
+        ip=$(get_ip "$port")
+        if [ "$ip" != "null" ]; then
+            country=$(get_country "$ip")
+            speed_bytes=$(curl -s --max-time 2 --proxy "http://localhost:$port" http://speedtest.tele2.net/1MB.zip -o /dev/null -w "%{speed_download}" || echo 0)
+            speed=$(awk -v b="$speed_bytes" 'BEGIN{printf "%.2f Mbps", b/1024/1024*8}')
+            color=$([ "$check" == "SV1" ] && echo "$GREEN" || echo "$YELLOW")
+            echo -e "${color}✅ $check|$port|$ip|$country|$speed${RESET}" | tee -a live_proxy.txt
+        else
+            echo -e "${RED}❌ $check | Port $port failed${RESET}" | tee -a die_proxy.txt
+        fi
+    done
+}
+
+export -f check_proxy
+
+# ----------------------------
+# Chạy song song tất cả port
+# ----------------------------
+echo "$open_ports" | parallel -j "$CONCURRENCY" check_proxy {}
+
+# Lưu danh sách port sống
+awk -F '|' '{print $2}' live_proxy.txt | sort -n -u > cong.txt
+
+# ----------------------------
+# Tổng kết
+# ----------------------------
+echo -e "\n🎉 Hoàn tất lúc: $(date)"
+echo "✅ Proxy sống: $(wc -l < live_proxy.txt 2>/dev/null || echo 0)"
+echo "⚠️ Proxy lỗi: $(wc -l < die_proxy.txt 2>/dev/null || echo 0)"
+echo "📄 Danh sách port sống: cong.txt"

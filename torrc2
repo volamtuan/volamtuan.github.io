@@ -1192,10 +1192,25 @@ SocksPort 0.0.0.0:20998
 SocksPort 0.0.0.0:20999
 SocksPort 0.0.0.0:21000
 ControlPort 0.0.0.0:9051
-UseEntryGuards 0
-ExitNodes {ca}, {uk}, {mx}, {us}, {lu}, {gb}
-StrictNodes 1
-NewCircuitPeriod 300
 CookieAuthentication 1
-MaxCircuitDirtiness 3600
-
+NewCircuitPeriod 300
+MaxCircuitDirtiness 86400
+ClientUseIPv6 1
+IPv6Exit 1
+ClientPreferIPv6ORPort 1
+StrictNodes 1
+AvoidDiskWrites 1
+UseMicrodescriptors 1
+NumEntryGuards 4
+CircuitBuildTimeout 30
+KeepalivePeriod 6
+EntryNodes {us},{ca}
+MiddleNodes {us},{ca}
+ExitNodes {us},{ca}
+BandwidthRate 2 GBytes
+BandwidthBurst 2 GBytes
+MaxAdvertisedBandwidth 2000 MB
+AccountingMax 900 GB
+AccountingStart month 1 00:00
+eoIPFile /etc/tor/geoip
+GeoIPv6File /etc/tor/geoip6

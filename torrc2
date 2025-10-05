@@ -1212,5 +1212,5 @@ BandwidthBurst 2 GBytes
 MaxAdvertisedBandwidth 2000 MB
 AccountingMax 900 GB
 AccountingStart month 1 00:00
-eoIPFile /etc/tor/geoip
+GeoIPFile /etc/tor/geoip
 GeoIPv6File /etc/tor/geoip6

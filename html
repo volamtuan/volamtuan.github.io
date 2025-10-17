@@ -1,313 +1,196 @@
 <!DOCTYPE html>
 <html lang="vi">
- 
 <head>
-    <meta charset="UTF-8" />
-    <title>Quản lý tài khoản theo domain</title>
-    <meta name="viewport" content="width=device-width" />
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <style>
-        body {
-            font-family: Arial;
-            padding: 20px;
-            background: #f9f9f9;
-        }
- 
-        textarea,
-        input[type='file'] {
-            width: 100%;
-            padding: 8px;
-            margin: 10px 0;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-        }
- 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            margin-top: 15px;
-        }
- 
-        th,
-        td {
-            padding: 10px;
-            border: 1px solid #eee;
-        }
- 
-        th {
-            background: #007bff;
-            color: white;
-        }
- 
-        tr:hover {
-            background: #f1f8ff;
-            cursor: pointer;
-        }
- 
-        button {
-            margin: 5px;
-            padding: 6px 12px;
-            border: none;
-            border-radius: 4px;
-            color: white;
-            background-color: #5cb85c;
-            cursor: pointer;
-        }
- 
-        .copy-btn {
-            background: #17a2b8;
-        }
- 
-        #copyAllButton {
-            background: #f0ad4e;
-        }
- 
-        #copyMessage {
-            display: inline-block;
-            margin-left: 10px;
-            color: green;
-            font-weight: bold;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
- 
-        /* Autocomplete box */
-        #autocompleteList {
-            position: absolute;
-            background: white;
-            border: 1px solid #ccc;
-            max-height: 200px;
-            overflow-y: auto;
-            width: 300px;
-            z-index: 10;
-            border-radius: 4px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-        }
- 
-        #autocompleteList div {
-            padding: 8px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-        }
- 
-        #autocompleteList div:hover {
-            background: #f1f8ff;
-        }
- 
-        #autocompleteList button {
-            padding: 3px 7px;
-            font-size: 12px;
-            background: #17a2b8;
-            border: none;
-            border-radius: 3px;
-            color: white;
-            cursor: pointer;
-            margin-left: 10px;
-        }
-    </style>
-</head>
- 
-<body>
-    <div class="panel panel-success" style="position: relative; max-width: 900px; margin: auto;">
-    
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quản lý Multi-Tab Runner</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
-body { padding: 20px; }
-textarea { width: 100%; height: 200px; margin-bottom: 10px; font-family: monospace; }
-iframe { width: 100%; height: 300px; border: 1px solid #ccc; margin-top: 10px; }
-.nav-tabs .nav-link { cursor: pointer; }
-.nav-item { position: relative; }
-.close-btn {
-    position: absolute;
-    right: 5px; top: 5px;
-    font-size: 14px;
-    color: red;
-    cursor: pointer;
-}
-#dropzone {
-    border: 2px dashed #007bff;
-    padding: 30px;
-    text-align: center;
-    color: #007bff;
-    margin-top: 20px;
-}
-#dropzone.dragover { background: #e3f2fd; }
+body { padding:20px; font-family: Arial; background:#f9f9f9; }
+textarea { width:100%; height:150px; font-family: monospace; margin-bottom:5px; }
+iframe { width:100%; height:200px; border:1px solid #ccc; margin-top:5px; }
+.nav-tabs { margin-bottom:5px; }
+.nav-item { position:relative; }
+.close-btn { position:absolute; top:0; right:0; font-size:14px; color:red; cursor:pointer; }
+#dropzone { border:2px dashed #0d6efd; padding:20px; text-align:center; color:#0d6efd; margin-bottom:10px; }
+#dropzone.dragover { background:#e3f2fd; }
+.console { background:#1e1e1e; color:#fff; padding:5px; font-size:14px; height:100px; overflow:auto; margin-top:5px; }
+#copyMessage { display:inline-block; margin-left:10px; color:green; font-weight:bold; opacity:0; transition: opacity 0.3s ease; }
 </style>
 </head>
 <body>
 <div class="container">
-    <h2 class="mb-3">Multi-Tab HTML/JS Runner (Client Only)</h2>
+<h2 class="mb-3">Quản lý Domain & Multi-Tab HTML/JS Runner</h2>
 
-    <div class="mb-3">
-        <button class="btn btn-primary" id="addTab">➕ Thêm Tab</button>
-        <input type="file" id="htmlUpload" accept=".html" class="form-control-file d-inline-block ml-2"/>
-        <button class="btn btn-secondary" onclick="loadHtml()">📂 Chọn HTML</button>
-        <button class="btn btn-success" onclick="downloadBackup()">📥 Lưu HTML</button>
-        <button class="btn btn-danger" onclick="clearAll()">🗑️ Xoá dữ liệu đã lưu</button>
-    </div>
+<!-- Domain Management -->
+<div class="mb-3">
+<label>Domain list:</label>
+<textarea id="domainList" placeholder="Nhập danh sách domain, mỗi dòng một domain"></textarea>
+<button class="btn btn-primary btn-sm" onclick="copyDomains()">📋 Copy tất cả</button>
+<span id="copyMessage">Đã copy!</span>
+</div>
 
-    <ul class="nav nav-tabs" id="tabHeaders"></ul>
-    <div class="tab-content" id="tabContents"></div>
+<hr>
 
-    <!-- Drag & Drop -->
-    <div id="dropzone">Kéo & thả file .html vào đây</div>
+<!-- Multi-tab Runner -->
+<div class="mb-3">
+<button class="btn btn-success btn-sm" onclick="addTab()">➕ Thêm Tab</button>
+<input type="file" id="htmlUpload" accept=".html" class="form-control d-inline-block w-auto ms-2">
+<button class="btn btn-warning btn-sm" onclick="downloadBackup()">📥 Lưu Backup</button>
+<button class="btn btn-danger btn-sm" onclick="clearAll()">🗑️ Xoá tất cả</button>
+</div>
+
+<div id="dropzone">Kéo & thả file HTML vào đây</div>
+<ul class="nav nav-tabs" id="tabHeaders"></ul>
+<div id="tabContents"></div>
 </div>
 
 <script>
-let tabCount = 0;
+let tabCount=0;
 
-function activateTab(tabId) {
-    document.querySelectorAll('.tab-pane').forEach(div => div.classList.remove('show','active'));
-    document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active'));
-    document.getElementById(tabId).classList.add('show','active');
-    document.getElementById(tabId+'-link').classList.add('active');
+// Copy domain list
+function copyDomains(){
+    const domains=document.getElementById('domainList').value;
+    navigator.clipboard.writeText(domains).then(()=>{
+        const msg=document.getElementById('copyMessage');
+        msg.style.opacity=1;
+        setTimeout(()=>{msg.style.opacity=0;},1000);
+    });
 }
 
-function createTab(title="Tab", code="") {
-    tabCount += 1;
-    const tabId = 'tab' + tabCount;
+// -------- Multi-tab Runner --------
+function activateTab(id){
+    document.querySelectorAll('.tab-pane').forEach(d=>d.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(a=>a.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.getElementById(id+'-link').classList.add('active');
+}
 
-    // Header
-    const li = document.createElement('li');
-    li.className = 'nav-item';
-    li.innerHTML = `
-        <a class="nav-link" id="${tabId}-link" onclick="activateTab('${tabId}')">${title}</a>
-        <span class="close-btn" onclick="removeTab('${tabId}')">❌</span>
-    `;
+function addTab(title="Tab", code=""){
+    tabCount++;
+    const tabId='tab'+tabCount;
+
+    const li=document.createElement('li');
+    li.className='nav-item';
+    li.innerHTML=`<a class="nav-link" id="${tabId}-link" onclick="activateTab('${tabId}')">💻 ${title}</a>
+                  <span class="close-btn" onclick="removeTab('${tabId}')">❌</span>`;
     document.getElementById('tabHeaders').appendChild(li);
 
-    // Content
-    const div = document.createElement('div');
-    div.className = 'tab-pane fade';
-    div.id = tabId;
-    div.innerHTML = `
-        <textarea id="code${tabCount}" placeholder="Dán code HTML/JS...">${code}</textarea>
-        <div class="mb-2">
-            <button class="btn btn-success" onclick="runCode(${tabCount})">▶ Chạy</button>
-            <button class="btn btn-info" onclick="viewHTML(${tabCount})">👁️ Xem HTML</button>
-        </div>
-        <iframe id="iframe${tabCount}"></iframe>
-    `;
+    const div=document.createElement('div');
+    div.className='tab-pane active';
+    div.id=tabId;
+    div.innerHTML=`
+<textarea id="code${tabCount}">${code}</textarea>
+<div class="mb-2">
+<button class="btn btn-success btn-sm" onclick="runCode(${tabCount})">▶ Chạy</button>
+<button class="btn btn-info btn-sm" onclick="viewHTML(${tabCount})">👁️ Xem HTML</button>
+</div>
+<iframe id="iframe${tabCount}"></iframe>
+<div class="console" id="console${tabCount}">Console...</div>`;
     document.getElementById('tabContents').appendChild(div);
 
-    document.getElementById('code'+tabCount).addEventListener('input', () => saveAllTabs());
+    document.getElementById('code'+tabCount).addEventListener('input', saveAllTabs);
     activateTab(tabId);
-}
-
-function removeTab(tabId) {
-    document.getElementById(tabId).remove();
-    document.getElementById(tabId+'-link').parentElement.remove();
     saveAllTabs();
 }
 
-function runCode(num) {
-    const code = document.getElementById('code'+num).value;
-    document.getElementById('iframe'+num).srcdoc = code;
+function removeTab(id){
+    document.getElementById(id).remove();
+    document.getElementById(id+'-link').parentElement.remove();
     saveAllTabs();
 }
 
-function viewHTML(num) {
-    const code = document.getElementById('code'+num).value;
-    const win = window.open("", "_blank", "width=800,height=600,scrollbars=yes");
+function runCode(num){
+    const code=document.getElementById('code'+num).value;
+    const iframe=document.getElementById('iframe'+num);
+    const consoleDiv=document.getElementById('console'+num);
+    consoleDiv.innerHTML='';
+
+    const blob=new Blob([`
+        <script>
+        console.log=function(...args){
+            parent.document.getElementById('${consoleDiv.id}').innerHTML+=args.join(' ')+'<br>';
+        };
+        try{ ${code} } catch(e){ console.log('Error:',e); }
+        <\/script>`],{type:'text/html'});
+    const url=URL.createObjectURL(blob);
+    iframe.src=url;
+    saveAllTabs();
+}
+
+function viewHTML(num){
+    const code=document.getElementById('code'+num).value;
+    const win=window.open("","_blank","width=800,height=600,scrollbars=yes");
     win.document.write("<pre>"+code.replace(/</g,"&lt;").replace(/>/g,"&gt;")+"</pre>");
-    win.document.title = "HTML Tab "+num;
+    win.document.title="HTML Tab "+num;
 }
 
-function saveAllTabs() {
-    let data = [];
-    document.querySelectorAll('.tab-pane').forEach(div => {
-        const num = div.id.replace("tab","");
-        const textarea = document.getElementById('code'+num);
-        if (textarea) {
-            data.push({
-                title: document.getElementById(div.id+'-link').textContent,
-                code: textarea.value
-            });
-        }
+// -------- LocalStorage --------
+function saveAllTabs(){
+    let data=[];
+    document.querySelectorAll('.tab-pane').forEach(div=>{
+        const num=div.id.replace('tab','');
+        const ta=document.getElementById('code'+num);
+        if(ta) data.push({title: document.getElementById(div.id+'-link').textContent, code: ta.value});
     });
-    localStorage.setItem("tabsData", JSON.stringify(data));
+    localStorage.setItem('tabsData',JSON.stringify(data));
 }
 
-function downloadBackup() {
-    let saved = localStorage.getItem("tabsData");
-    if (!saved) { alert("Chưa có dữ liệu để lưu!"); return; }
-    const blob = new Blob([saved], {type: "application/json"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "backup_tabs.html";
-    a.click();
+function loadTabs(){
+    const saved=localStorage.getItem('tabsData');
+    if(saved){
+        try{
+            const tabs=JSON.parse(saved);
+            tabs.forEach(t=>addTab(t.title,t.code));
+        }catch{ addTab(); }
+    }else{ addTab(); }
+}
+
+// -------- Backup --------
+function downloadBackup(){
+    const saved=localStorage.getItem('tabsData');
+    if(!saved){ alert("Không có dữ liệu để lưu!"); return; }
+    const blob=new Blob([saved],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download='backup_tabs.json'; a.click();
     URL.revokeObjectURL(url);
 }
 
-function clearAll() {
-    if (confirm("Bạn có chắc muốn xoá toàn bộ dữ liệu đã lưu?")) {
-        localStorage.removeItem("tabsData");
-        document.getElementById('tabHeaders').innerHTML = "";
-        document.getElementById('tabContents').innerHTML = "";
-        tabCount = 0;
-        createTab();
+// -------- Clear all --------
+function clearAll(){
+    if(confirm("Xoá tất cả dữ liệu đã lưu?")){
+        localStorage.removeItem('tabsData');
+        document.getElementById('tabHeaders').innerHTML="";
+        document.getElementById('tabContents').innerHTML="";
+        tabCount=0;
+        addTab();
     }
 }
 
-window.onload = function() {
-    let saved = localStorage.getItem("tabsData");
-    if (saved) {
-        try {
-            const tabs = JSON.parse(saved);
-            tabs.forEach(tabData => createTab(tabData.title, tabData.code));
-        } catch(e) { createTab(); }
-    } else {
-        createTab();
-    }
-};
-
-document.getElementById('addTab').addEventListener('click', () => { createTab(); saveAllTabs(); });
-
-// --------- Load HTML file ----------
-function loadHtml() {
-    const fileInput = document.getElementById('htmlUpload');
-    if (!fileInput.files.length) { alert("Hãy chọn file .html!"); return; }
-    const file = fileInput.files[0];
-    const reader = new FileReader();
-    reader.onload = e => {
-        try {
-            const tabs = JSON.parse(e.target.result);
-            tabs.forEach(tabData => createTab(tabData.title, tabData.code));
-            saveAllTabs();
-        } catch {
-            createTab(file.name, e.target.result);
-            saveAllTabs();
-        }
-    };
-    reader.readAsText(file, "UTF-8");
-}
-
-// --------- Drag & Drop ----------
-const dropzone = document.getElementById('dropzone');
-dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
-dropzone.addEventListener('dragleave', e => { dropzone.classList.remove('dragover'); });
-dropzone.addEventListener('drop', e => {
-    e.preventDefault(); dropzone.classList.remove('dragover');
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = evt => {
-        try {
-            const tabs = JSON.parse(evt.target.result);
-            tabs.forEach(tabData => createTab(tabData.title, tabData.code));
-            saveAllTabs();
-        } catch {
-            createTab(file.name, evt.target.result);
-            saveAllTabs();
-        }
-    };
-    reader.readAsText(file, "UTF-8");
+// -------- Upload HTML file ----------
+document.getElementById('htmlUpload').addEventListener('change', e=>{
+    const file=e.target.files[0];
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=evt=>addTab(file.name,evt.target.result);
+    reader.readAsText(file,'UTF-8');
 });
+
+// -------- Drag & Drop ----------
+const dropzone=document.getElementById('dropzone');
+dropzone.addEventListener('dragover', e=>{e.preventDefault(); dropzone.classList.add('dragover');});
+dropzone.addEventListener('dragleave', e=>{dropzone.classList.remove('dragover');});
+dropzone.addEventListener('drop', e=>{
+    e.preventDefault(); dropzone.classList.remove('dragover');
+    const file=e.dataTransfer.files[0];
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=evt=>addTab(file.name,evt.target.result);
+    reader.readAsText(file,'UTF-8');
+});
+
+window.onload=loadTabs;
 </script>
 </body>
 </html>

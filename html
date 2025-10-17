@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quản lý Multi-Tab Runner</title>
+<title>Multi-Tab HTML/JS Runner (Client Only)</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
 body { padding:20px; font-family: Arial; background:#f9f9f9; }
@@ -20,19 +20,8 @@ iframe { width:100%; height:200px; border:1px solid #ccc; margin-top:5px; }
 </head>
 <body>
 <div class="container">
-<h2 class="mb-3">Quản lý Domain & Multi-Tab HTML/JS Runner</h2>
+<h2 class="mb-3">Multi-Tab HTML/JS Runner (Client Only)</h2>
 
-<!-- Domain Management -->
-<div class="mb-3">
-<label>Domain list:</label>
-<textarea id="domainList" placeholder="Nhập danh sách domain, mỗi dòng một domain"></textarea>
-<button class="btn btn-primary btn-sm" onclick="copyDomains()">📋 Copy tất cả</button>
-<span id="copyMessage">Đã copy!</span>
-</div>
-
-<hr>
-
-<!-- Multi-tab Runner -->
 <div class="mb-3">
 <button class="btn btn-success btn-sm" onclick="addTab()">➕ Thêm Tab</button>
 <input type="file" id="htmlUpload" accept=".html" class="form-control d-inline-block w-auto ms-2">
@@ -48,17 +37,6 @@ iframe { width:100%; height:200px; border:1px solid #ccc; margin-top:5px; }
 <script>
 let tabCount=0;
 
-// Copy domain list
-function copyDomains(){
-    const domains=document.getElementById('domainList').value;
-    navigator.clipboard.writeText(domains).then(()=>{
-        const msg=document.getElementById('copyMessage');
-        msg.style.opacity=1;
-        setTimeout(()=>{msg.style.opacity=0;},1000);
-    });
-}
-
-// -------- Multi-tab Runner --------
 function activateTab(id){
     document.querySelectorAll('.tab-pane').forEach(d=>d.classList.remove('active'));
     document.querySelectorAll('.nav-link').forEach(a=>a.classList.remove('active'));
@@ -125,7 +103,6 @@ function viewHTML(num){
     win.document.title="HTML Tab "+num;
 }
 
-// -------- LocalStorage --------
 function saveAllTabs(){
     let data=[];
     document.querySelectorAll('.tab-pane').forEach(div=>{
@@ -146,7 +123,6 @@ function loadTabs(){
     }else{ addTab(); }
 }
 
-// -------- Backup --------
 function downloadBackup(){
     const saved=localStorage.getItem('tabsData');
     if(!saved){ alert("Không có dữ liệu để lưu!"); return; }
@@ -157,7 +133,6 @@ function downloadBackup(){
     URL.revokeObjectURL(url);
 }
 
-// -------- Clear all --------
 function clearAll(){
     if(confirm("Xoá tất cả dữ liệu đã lưu?")){
         localStorage.removeItem('tabsData');
@@ -168,7 +143,7 @@ function clearAll(){
     }
 }
 
-// -------- Upload HTML file ----------
+// Upload file HTML
 document.getElementById('htmlUpload').addEventListener('change', e=>{
     const file=e.target.files[0];
     if(!file) return;
@@ -177,7 +152,7 @@ document.getElementById('htmlUpload').addEventListener('change', e=>{
     reader.readAsText(file,'UTF-8');
 });
 
-// -------- Drag & Drop ----------
+// Drag & Drop
 const dropzone=document.getElementById('dropzone');
 dropzone.addEventListener('dragover', e=>{e.preventDefault(); dropzone.classList.add('dragover');});
 dropzone.addEventListener('dragleave', e=>{dropzone.classList.remove('dragover');});

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Tab HTML/JS Runner</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body { padding: 20px; }
+textarea { width: 100%; height: 200px; margin-bottom: 10px; font-family: monospace; }
+iframe { width: 100%; height: 300px; border: 1px solid #ccc; margin-top: 10px; }
+.nav-tabs .nav-link { cursor: pointer; }
+.nav-item { position: relative; }
+.close-btn {
+    position: absolute;
+    right: 5px; top: 5px;
+    font-size: 14px;
+    color: red;
+    cursor: pointer;
+}
+#dropzone {
+    border: 2px dashed #007bff;
+    padding: 30px;
+    text-align: center;
+    color: #007bff;
+    margin-top: 20px;
+}
+#dropzone.dragover { background: #e3f2fd; }
+</style>
+</head>
+<body>
+<div class="container">
+    <h2 class="mb-3">Multi-Tab HTML/JS Runner (Client Only)</h2>
+
+    <div class="mb-3">
+        <button class="btn btn-primary" id="addTab">➕ Thêm Tab</button>
+        <input type="file" id="htmlUpload" accept=".html" class="form-control-file d-inline-block ml-2"/>
+        <button class="btn btn-secondary" onclick="loadHtml()">📂 Chọn HTML</button>
+        <button class="btn btn-success" onclick="downloadBackup()">📥 Lưu HTML</button>
+        <button class="btn btn-danger" onclick="clearAll()">🗑️ Xoá dữ liệu đã lưu</button>
+    </div>
+
+    <ul class="nav nav-tabs" id="tabHeaders"></ul>
+    <div class="tab-content" id="tabContents"></div>
+
+    <!-- Drag & Drop -->
+    <div id="dropzone">Kéo & thả file .html vào đây</div>
+</div>
+
+<script>
+let tabCount = 0;
+
+function activateTab(tabId) {
+    document.querySelectorAll('.tab-pane').forEach(div => div.classList.remove('show','active'));
+    document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active'));
+    document.getElementById(tabId).classList.add('show','active');
+    document.getElementById(tabId+'-link').classList.add('active');
+}
+
+function createTab(title="Tab", code="") {
+    tabCount += 1;
+    const tabId = 'tab' + tabCount;
+
+    // Header
+    const li = document.createElement('li');
+    li.className = 'nav-item';
+    li.innerHTML = `
+        <a class="nav-link" id="${tabId}-link" onclick="activateTab('${tabId}')">${title}</a>
+        <span class="close-btn" onclick="removeTab('${tabId}')">❌</span>
+    `;
+    document.getElementById('tabHeaders').appendChild(li);
+
+    // Content
+    const div = document.createElement('div');
+    div.className = 'tab-pane fade';
+    div.id = tabId;
+    div.innerHTML = `
+        <textarea id="code${tabCount}" placeholder="Dán code HTML/JS...">${code}</textarea>
+        <div class="mb-2">
+            <button class="btn btn-success" onclick="runCode(${tabCount})">▶ Chạy</button>
+            <button class="btn btn-info" onclick="viewHTML(${tabCount})">👁️ Xem HTML</button>
+        </div>
+        <iframe id="iframe${tabCount}"></iframe>
+    `;
+    document.getElementById('tabContents').appendChild(div);
+
+    document.getElementById('code'+tabCount).addEventListener('input', () => saveAllTabs());
+    activateTab(tabId);
+}
+
+function removeTab(tabId) {
+    document.getElementById(tabId).remove();
+    document.getElementById(tabId+'-link').parentElement.remove();
+    saveAllTabs();
+}
+
+function runCode(num) {
+    const code = document.getElementById('code'+num).value;
+    document.getElementById('iframe'+num).srcdoc = code;
+    saveAllTabs();
+}
+
+function viewHTML(num) {
+    const code = document.getElementById('code'+num).value;
+    const win = window.open("", "_blank", "width=800,height=600,scrollbars=yes");
+    win.document.write("<pre>"+code.replace(/</g,"&lt;").replace(/>/g,"&gt;")+"</pre>");
+    win.document.title = "HTML Tab "+num;
+}
+
+function saveAllTabs() {
+    let data = [];
+    document.querySelectorAll('.tab-pane').forEach(div => {
+        const num = div.id.replace("tab","");
+        const textarea = document.getElementById('code'+num);
+        if (textarea) {
+            data.push({
+                title: document.getElementById(div.id+'-link').textContent,
+                code: textarea.value
+            });
+        }
+    });
+    localStorage.setItem("tabsData", JSON.stringify(data));
+}
+
+function downloadBackup() {
+    let saved = localStorage.getItem("tabsData");
+    if (!saved) { alert("Chưa có dữ liệu để lưu!"); return; }
+    const blob = new Blob([saved], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "backup_tabs.html";
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function clearAll() {
+    if (confirm("Bạn có chắc muốn xoá toàn bộ dữ liệu đã lưu?")) {
+        localStorage.removeItem("tabsData");
+        document.getElementById('tabHeaders').innerHTML = "";
+        document.getElementById('tabContents').innerHTML = "";
+        tabCount = 0;
+        createTab();
+    }
+}
+
+window.onload = function() {
+    let saved = localStorage.getItem("tabsData");
+    if (saved) {
+        try {
+            const tabs = JSON.parse(saved);
+            tabs.forEach(tabData => createTab(tabData.title, tabData.code));
+        } catch(e) { createTab(); }
+    } else {
+        createTab();
+    }
+};
+
+document.getElementById('addTab').addEventListener('click', () => { createTab(); saveAllTabs(); });
+
+// --------- Load HTML file ----------
+function loadHtml() {
+    const fileInput = document.getElementById('htmlUpload');
+    if (!fileInput.files.length) { alert("Hãy chọn file .html!"); return; }
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            const tabs = JSON.parse(e.target.result);
+            tabs.forEach(tabData => createTab(tabData.title, tabData.code));
+            saveAllTabs();
+        } catch {
+            createTab(file.name, e.target.result);
+            saveAllTabs();
+        }
+    };
+    reader.readAsText(file, "UTF-8");
+}
+
+// --------- Drag & Drop ----------
+const dropzone = document.getElementById('dropzone');
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', e => { dropzone.classList.remove('dragover'); });
+dropzone.addEventListener('drop', e => {
+    e.preventDefault(); dropzone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+        try {
+            const tabs = JSON.parse(evt.target.result);
+            tabs.forEach(tabData => createTab(tabData.title, tabData.code));
+            saveAllTabs();
+        } catch {
+            createTab(file.name, evt.target.result);
+            saveAllTabs();
+        }
+    };
+    reader.readAsText(file, "UTF-8");
+});
+</script>
+</body>
+</html>

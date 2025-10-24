@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub File Manager</title>
+<style>
+  body {
+    font-family: "Segoe UI", sans-serif;
+    background: #f5f6fa;
+    margin: 0;
+    color: #222;
+  }
+  header {
+    background: #24292f;
+    color: #fff;
+    padding: 12px 20px;
+    font-size: 20px;
+  }
+  #setup {
+    background: #fff;
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    border-bottom: 1px solid #ddd;
+  }
+  #setup input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    flex: 1;
+    min-width: 200px;
+  }
+  #setup button {
+    background: #2ea44f;
+    border: none;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  #setup button:hover { background: #2c974b; }
+
+  #fileControls {
+    background: #fff;
+    padding: 10px 20px;
+    display: flex;
+    gap: 10px;
+    border-bottom: 1px solid #ddd;
+  }
+  #fileControls button, #fileControls input {
+    padding: 6px 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+  #fileList {
+    padding: 20px;
+  }
+  .file {
+    padding: 8px 12px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .file button {
+    border: none;
+    background: #f0f0f0;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .file button:hover { background: #ddd; }
+
+  #editor {
+    margin: 20px;
+    display: none;
+    flex-direction: column;
+  }
+  textarea {
+    width: 100%;
+    height: 350px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    font-family: monospace;
+  }
+  #saveBtn {
+    margin-top: 10px;
+    padding: 8px 15px;
+    background: #0969da;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <header>📂 GitHub File Manager</header>
+
+  <section id="setup">
+    <input type="text" id="username" placeholder="👤 GitHub Username">
+    <input type="text" id="repo" placeholder="📘 Repository Name">
+    <input type="password" id="token" placeholder="🔑 Personal Access Token">
+    <button id="connectBtn">Kết nối</button>
+  </section>
+
+  <section id="fileControls" style="display:none;">
+    <input type="text" id="newFolder" placeholder="Tên thư mục mới">
+    <button id="createFolderBtn">📁 Tạo thư mục</button>
+    <input type="file" id="uploadFile">
+    <button id="uploadBtn">📤 Upload file</button>
+    <button id="backBtn">⬅️ Quay lại</button>
+  </section>
+
+  <div id="fileList"></div>
+
+  <div id="editor">
+    <h3 id="fileName"></h3>
+    <textarea id="fileContent"></textarea>
+    <button id="saveBtn">💾 Lưu thay đổi</button>
+  </div>
+
+<script>
+let currentPath = "";
+let currentSha = "";
+let currentFile = "";
+
+document.getElementById('connectBtn').onclick = loadFiles;
+
+async function loadFiles() {
+  const user = username.value.trim();
+  const repoName = repo.value.trim();
+  const tokenVal = token.value.trim();
+
+  if (!user || !repoName || !tokenVal) {
+    alert("Vui lòng nhập đầy đủ Username, Repo và Token!");
+    return;
+  }
+
+  const api = `https://api.github.com/repos/${user}/${repoName}/contents${currentPath}`;
+  const res = await fetch(api, {
+    headers: { Authorization: `token ${tokenVal}` }
+  });
+  const data = await res.json();
+
+  fileList.innerHTML = "";
+  document.getElementById('fileControls').style.display = "flex";
+
+  data.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "file";
+    div.innerHTML = `
+      <span>${item.type === "dir" ? "📁" : "📄"} ${item.name}</span>
+      <div>
+        ${item.type === "file" ? `<button onclick="editFile('${item.path}','${item.sha}')">Sửa</button>` : ""}
+        <button onclick="deleteItem('${item.path}','${item.sha}')">Xóa</button>
+      </div>
+    `;
+    div.onclick = (e) => {
+      if (e.target.tagName === "BUTTON") return;
+      if (item.type === "dir") {
+        currentPath = "/" + item.path;
+        loadFiles();
+      }
+    };
+    fileList.appendChild(div);
+  });
+}
+
+async function editFile(path, sha) {
+  currentFile = path;
+  currentSha = sha;
+  const user = username.value.trim();
+  const repoName = repo.value.trim();
+  const tokenVal = token.value.trim();
+
+  const api = `https://api.github.com/repos/${user}/${repoName}/contents/${path}`;
+  const res = await fetch(api, { headers: { Authorization: `token ${tokenVal}` }});
+  const data = await res.json();
+
+  const content = atob(data.content);
+  fileName.innerText = path;
+  fileContent.value = content;
+  document.getElementById('editor').style.display = "flex";
+}
+
+document.getElementById('saveBtn').onclick = async () => {
+  const user = username.value.trim();
+  const repoName = repo.value.trim();
+  const tokenVal = token.value.trim();
+  const api = `https://api.github.com/repos/${user}/${repoName}/contents/${currentFile}`;
+  const content = btoa(fileContent.value);
+
+  const res = await fetch(api, {
+    method: "PUT",
+    headers: {
+      Authorization: `token ${tokenVal}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: "Cập nhật file qua File Manager",
+      content: content,
+      sha: currentSha
+    })
+  });
+
+  if (res.ok) {
+    alert("✅ Lưu thành công!");
+    loadFiles();
+  } else {
+    alert("❌ Lỗi khi lưu file!");
+  }
+};
+
+document.getElementById('createFolderBtn').onclick = async () => {
+  const folderName = newFolder.value.trim();
+  if (!folderName) return alert("Nhập tên thư mục!");
+  const user = username.value.trim();
+  const repoName = repo.value.trim();
+  const tokenVal = token.value.trim();
+  const api = `https://api.github.com/repos/${user}/${repoName}/contents${currentPath}/${folderName}/.gitkeep`;
+
+  const res = await fetch(api, {
+    method: "PUT",
+    headers: {
+      Authorization: `token ${tokenVal}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: "Tạo thư mục mới",
+      content: btoa("")
+    })
+  });
+  if (res.ok) {
+    alert("📁 Đã tạo thư mục!");
+    newFolder.value = "";
+    loadFiles();
+  } else {
+    alert("❌ Không thể tạo thư mục!");
+  }
+};
+
+document.getElementById('uploadBtn').onclick = async () => {
+  const file = uploadFile.files[0];
+  if (!file) return alert("Chọn file để upload!");
+  const user = username.value.trim();
+  const repoName = repo.value.trim();
+  const tokenVal = token.value.trim();
+
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const base64 = reader.result.split(",")[1];
+    const api = `https://api.github.com/repos/${user}/${repoName}/contents${currentPath}/${file.name}`;
+    const res = await fetch(api, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${tokenVal}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: `Upload ${file.name}`,
+        content: base64
+      })
+    });
+    if (res.ok) {
+      alert("📤 Upload thành công!");
+      loadFiles();
+    } else {
+      alert("❌ Upload thất bại!");
+    }
+  };
+  reader.readAsDataURL(file);
+};
+
+document.getElementById('backBtn').onclick = () => {
+  if (currentPath === "") return;
+  currentPath = currentPath.split("/").slice(0, -1).join("/");
+  if (currentPath === "") currentPath = "";
+  loadFiles();
+};
+
+async function deleteItem(path, sha) {
+  if (!confirm("Bạn có chắc muốn xóa file/thư mục này?")) return;
+  const user = username.value.trim();
+  const repoName = repo.value.trim();
+  const tokenVal = token.value.trim();
+  const api = `https://api.github.com/repos/${user}/${repoName}/contents/${path}`;
+
+  const res = await fetch(api, {
+    method: "DELETE",
+    headers: { Authorization: `token ${tokenVal}` },
+    body: JSON.stringify({ message: "Xóa file", sha })
+  });
+
+  if (res.ok) {
+    alert("🗑️ Đã xóa!");
+    loadFiles();
+  } else {
+    alert("❌ Không thể xóa!");
+  }
+}
+</script>
+</body>
+</html>

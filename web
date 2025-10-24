@@ -1,0 +1,383 @@
+#!/bin/bash
+set -e
+
+# ====================================================
+# All-in-one: Remove old WP stack (optional), then install
+# WordPress + Apache/httpd + MariaDB + PHP + mod_evasive + KodExplorer
+# Supports Debian/Ubuntu (apt) and RHEL family (yum/dnf)
+# Uses sudo, and falls back between systemctl and service
+# ====================================================
+
+# ---------------------
+# Config (edit if needed)
+# ---------------------
+WP_DIR="/var/www/html/wordpress"
+WP_USER="admin"
+WP_PASS="admin123"
+WP_DB="wordpress"
+WP_DB_USER="wpuser"
+WP_DB_PASS="wppass123"
+SERVER_NAME="127.0.01"
+
+# ---------------------
+# Detect package manager
+# ---------------------
+if command -v apt >/dev/null 2>&1; then
+    PKG="apt"
+    PKG_INSTALL="sudo apt install -y"
+    PKG_REMOVE="sudo apt purge -y"
+    PKG_CLEAN="sudo apt autoremove -y && sudo apt autoclean -y"
+elif command -v dnf >/dev/null 2>&1; then
+    PKG="dnf"
+    PKG_INSTALL="sudo dnf install -y"
+    PKG_REMOVE="sudo dnf remove -y"
+    PKG_CLEAN="sudo dnf autoremove -y && sudo dnf clean all"
+elif command -v yum >/dev/null 2>&1; then
+    PKG="yum"
+    PKG_INSTALL="sudo yum install -y"
+    PKG_REMOVE="sudo yum remove -y"
+    PKG_CLEAN="sudo yum autoremove -y && sudo yum clean all"
+else
+    echo "[!] Không tìm thấy apt/dnf/yum. Dừng."
+    exit 1
+fi
+
+# ---------------------
+# Service control with fallback
+# ---------------------
+start_service() {
+    local svc="$1"
+    echo "[>] Kích hoạt dịch vụ: $svc"
+    if command -v systemctl >/dev/null 2>&1; then
+        sudo systemctl enable --now "$svc" 2>/dev/null || sudo systemctl start "$svc" 2>/dev/null || echo "[!] systemctl start lỗi: $svc"
+    fi
+    if command -v service >/dev/null 2>&1; then
+        sudo service "$svc" start 2>/dev/null || true
+    fi
+}
+
+stop_service() {
+    local svc="$1"
+    echo "[>] Dừng dịch vụ: $svc"
+    if command -v systemctl >/dev/null 2>&1; then
+        sudo systemctl stop "$svc" 2>/dev/null || echo "[!] systemctl stop lỗi: $svc"
+        sudo systemctl disable "$svc" 2>/dev/null || true
+        sudo systemctl reset-failed "$svc" 2>/dev/null || true
+    fi
+    if command -v service >/dev/null 2>&1; then
+        sudo service "$svc" stop 2>/dev/null || true
+    fi
+}
+
+# ---------------------
+# Optional: clean old install (uncomment if you want to remove first)
+# ---------------------
+# echo "=== CLEAN OLD STACK (skip if not needed) ==="
+# for svc in apache2 httpd mariadb mysql; do stop_service "$svc"; done
+# $PKG_REMOVE apache2 httpd mariadb-server mariadb-client mysql-server mysql-client php* libapache2-mod-php* mod_evasive || true
+# sudo rm -rf /var/www/html/wordpress /var/www/html/kodexplorer /var/www/html/files
+# sudo rm -f /etc/apache2/sites-available/wordpress.conf /etc/apache2/sites-enabled/wordpress.conf
+# sudo rm -f /etc/apache2/conf-available/performance.conf /etc/apache2/mods-available/evasive.conf
+# sudo rm -rf /var/log/mod_evasive /var/log/apache2/wp-*.log
+# sudo mysql -e "DROP DATABASE IF EXISTS ${WP_DB};" 2>/dev/null || true
+# sudo mysql -e "DROP USER IF EXISTS '${WP_DB_USER}'@'localhost';" 2>/dev/null || true
+# $PKG_CLEAN
+
+# ---------------------
+# Update & Install packages
+# ---------------------
+echo "=== [1/16] Cập nhật hệ thống ==="
+if [ "$PKG" = "apt" ]; then
+    sudo apt update -y && sudo apt upgrade -y
+fi
+# install common packages
+echo "=== [2/16] Cài Apache/httpd, PHP, MariaDB và công cụ cần thiết ==="
+if [ "$PKG" = "apt" ]; then
+    $PKG_INSTALL apache2 php php-mysql php-zip php-curl php-xml php-gd php-mbstring unzip wget mariadb-server curl
+elif [ "$PKG" = "dnf" ] || [ "$PKG" = "yum" ]; then
+    $PKG_INSTALL httpd php php-mysqlnd php-zip php-curl php-xml php-gd php-mbstring unzip wget mariadb-server curl
+fi
+
+# ---------------------
+# Start services (with fallback)
+# ---------------------
+echo "=== [3/16] Kích hoạt dịch vụ web và DB ==="
+start_service apache2
+start_service httpd
+start_service mariadb
+start_service mysql
+sleep 2
+
+# ---------------------
+# Create DB and user
+# ---------------------
+echo "=== [4/16] Cấu hình MariaDB (DB + user) ==="
+sudo mysql -e "CREATE DATABASE IF NOT EXISTS ${WP_DB} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>/dev/null || true
+sudo mysql -e "CREATE USER IF NOT EXISTS '${WP_DB_USER}'@'localhost' IDENTIFIED BY '${WP_DB_PASS}';" 2>/dev/null || true
+sudo mysql -e "GRANT ALL PRIVILEGES ON ${WP_DB}.* TO '${WP_DB_USER}'@'localhost';" 2>/dev/null || true
+sudo mysql -e "FLUSH PRIVILEGES;" 2>/dev/null || true
+
+# ---------------------
+# Install WordPress
+# ---------------------
+echo "=== [5/16] Cài WordPress ==="
+sudo rm -rf "${WP_DIR}"
+sudo mkdir -p "${WP_DIR}"
+cd /tmp
+wget -q https://wordpress.org/latest.tar.gz -O wordpress.tar.gz
+tar -xzf wordpress.tar.gz
+# move files safely
+sudo rsync -a --delete wordpress/ "${WP_DIR}/"
+sudo chown -R www-data:www-data "${WP_DIR}" 2>/dev/null || sudo chown -R apache:apache "${WP_DIR}" 2>/dev/null
+sudo find "${WP_DIR}" -type d -exec chmod 755 {} \;
+sudo find "${WP_DIR}" -type f -exec chmod 644 {} \;
+
+# ---------------------
+# Configure wp-config.php
+# ---------------------
+echo "=== [6/16] Cấu hình wp-config.php ==="
+
+define('DB_NAME', 'wordpress');
+define('DB_USER', 'wpuser');
+define('DB_PASSWORD', 'wppass123');
+define('DB_HOST', 'localhost');
+define('DB_CHARSET', 'utf8mb4');
+define('DB_COLLATE', '');
+
+sudo -u "$WEBUSER" wp core install --url="${WP_URL}" --title="My WordPress" \
+    --admin_user="${WP_USER}" --admin_password="${WP_PASS}" \
+    --admin_email="admin@${SERVER_NAME}" --skip-email --path="${WP_DIR}"
+
+if [ -f "${WP_DIR}/wp-config.php" ]; then
+    echo "wp-config.php đã tồn tại, sẽ cập nhật các thông số DB nếu cần"
+    sudo sed -i "s/database_name_here/${WP_DB}/" "${WP_DIR}/wp-config.php" || true
+    sudo sed -i "s/username_here/${WP_DB_USER}/" "${WP_DIR}/wp-config.php" || true
+    sudo sed -i "s/password_here/${WP_DB_PASS}/" "${WP_DIR}/wp-config.php" || true
+else
+    sudo cp "${WP_DIR}/wp-config-sample.php" "${WP_DIR}/wp-config.php"
+    sudo sed -i "s/database_name_here/${WP_DB}/" "${WP_DIR}/wp-config.php"
+    sudo sed -i "s/username_here/${WP_DB_USER}/" "${WP_DIR}/wp-config.php"
+    sudo sed -i "s/password_here/${WP_DB_PASS}/" "${WP_DIR}/wp-config.php"
+fi
+
+# ---------------------
+# Ensure WP-CLI available
+# ---------------------
+
+# === [7/16] Đảm bảo MariaDB sẵn sàng trước khi cài WordPress ===
+echo ">>> Đợi MariaDB khởi động..."
+start_service mariadb
+sleep 5
+
+# Vòng lặp kiểm tra MariaDB sẵn sàng
+until mysql -u"${WP_DB_USER}" -p"${WP_DB_PASS}" -e "SHOW DATABASES;" >/dev/null 2>&1; do
+    echo "MariaDB chưa sẵn sàng, đợi 3s..."
+    sleep 3
+done
+echo "MariaDB đã sẵn sàng!"
+
+# === Tạo database & user (nếu chưa có) ===
+sudo mysql -e "CREATE DATABASE IF NOT EXISTS ${WP_DB} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+sudo mysql -e "CREATE USER IF NOT EXISTS '${WP_DB_USER}'@'localhost' IDENTIFIED BY '${WP_DB_PASS}';"
+sudo mysql -e "GRANT ALL PRIVILEGES ON ${WP_DB}.* TO '${WP_DB_USER}'@'localhost'; FLUSH PRIVILEGES;"
+
+# === [8/16] Cài WordPress core & tạo admin ===
+echo "=== Cài WordPress core & tạo admin ==="
+sudo -u www-data wp core install --url="http://${SERVER_NAME}" \
+    --title="My WordPress" \
+    --admin_user="${WP_USER}" \
+    --admin_password="${WP_PASS}" \
+    --admin_email="admin@${SERVER_NAME}" \
+    --path="${WP_DIR}" --skip-email || true
+
+# ---------------------
+# Install WP core and create admin
+# ---------------------
+echo "=== [8/16] Cài WordPress core & tạo admin ==="
+WP_URL="http://${SERVER_NAME}/wordpress"
+cd "${WP_DIR}"
+sudo -u "${WEBUSER}" wp core install --url="${WP_URL}" --title="My WordPress" \
+    --admin_user="${WP_USER}" --admin_password="${WP_PASS}" --admin_email="admin@${SERVER_NAME}" --skip-email --path="${WP_DIR}" || true
+
+# ensure password/user exists and set password
+if sudo -u "${WEBUSER}" wp user get "${WP_USER}" --path="${WP_DIR}" >/dev/null 2>&1; then
+    sudo -u "${WEBUSER}" wp user update "${WP_USER}" --user_pass="${WP_PASS}" --path="${WP_DIR}" || true
+else
+    sudo -u "${WEBUSER}" wp user create "${WP_USER}" "admin@${SERVER_NAME}" --user_pass="${WP_PASS}" --role=administrator --path="${WP_DIR}" || true
+fi
+
+# ---------------------
+# VirtualHost / site config
+# ---------------------
+echo "=== [9/16] Tạo VirtualHost Apache ==="
+APACHE_CONF_DIR="/etc/apache2/sites-available"
+if [ ! -d "${APACHE_CONF_DIR}" ]; then
+    APACHE_CONF_DIR="/etc/httpd/conf.d"
+fi
+
+sudo tee "${APACHE_CONF_DIR}/wordpress.conf" >/dev/null <<EOF
+<VirtualHost *:80>
+    ServerName ${SERVER_NAME}
+    DocumentRoot ${WP_DIR}
+    <Directory ${WP_DIR}>
+        AllowOverride All
+        Require all granted
+    </Directory>
+    ErrorLog \${APACHE_LOG_DIR:-/var/log/httpd}/wp-error.log
+    CustomLog \${APACHE_LOG_DIR:-/var/log/httpd}/wp-access.log combined
+</VirtualHost>
+EOF
+
+if [ "$PKG" = "apt" ]; then
+    sudo a2ensite wordpress.conf 2>/dev/null || true
+    sudo a2enmod rewrite headers expires deflate 2>/dev/null || true
+fi
+
+# ---------------------
+# mod_evasive config
+# ---------------------
+echo "=== [10/16] Cấu hình mod_evasive (nếu có) ==="
+sudo mkdir -p /var/log/mod_evasive
+sudo chown "${WEBUSER}":"${WEBUSER}" /var/log/mod_evasive 2>/dev/null || true
+
+cat <<'EOMOD' | sudo tee /etc/apache2/mods-available/evasive.conf >/dev/null 2>&1 || true
+<IfModule mod_evasive20.c>
+    DOSHashTableSize    3097
+    DOSPageCount        20
+    DOSSiteCount        200
+    DOSPageInterval     1
+    DOSSiteInterval     1
+    DOSBlockingPeriod   60
+    DOSLogDir           "/var/log/mod_evasive"
+</IfModule>
+EOMOD
+
+# ---------------------
+# GZIP + Cache
+# ---------------------
+echo "=== [11/16] Cấu hình GZIP + Expires ==="
+if [ "$PKG" = "apt" ]; then
+    sudo tee /etc/apache2/conf-available/performance.conf >/dev/null <<EOF
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/plain text/html text/xml text/css application/json application/javascript
+</IfModule>
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault "access plus 2 days"
+</IfModule>
+EOF
+    sudo a2enconf performance 2>/dev/null || true
+else
+    # on httpd, drop file to conf.d
+    sudo tee /etc/httpd/conf.d/performance.conf >/dev/null <<EOF
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/plain text/html text/xml text/css application/json application/javascript
+</IfModule>
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault "access plus 2 days"
+</IfModule>
+EOF
+fi
+
+# ---------------------
+# PHP tuning
+# ---------------------
+echo "=== [12/16] Tối ưu PHP ==="
+PHP_INI=$(php --ini 2>/dev/null | grep "Loaded Configuration" | awk -F: '{print $2}' | xargs)
+if [ -n "$PHP_INI" ] && [ -f "$PHP_INI" ]; then
+    sudo sed -i 's/^memory_limit.*/memory_limit = 512M/' "$PHP_INI" || true
+    sudo sed -i 's/^upload_max_filesize.*/upload_max_filesize = 64M/' "$PHP_INI" || true
+    sudo sed -i 's/^post_max_size.*/post_max_size = 64M/' "$PHP_INI" || true
+    sudo sed -i 's/^max_execution_time.*/max_execution_time = 300/' "$PHP_INI" || true
+    sudo sed -i 's/^max_input_time.*/max_input_time = 300/' "$PHP_INI" || true
+fi
+
+# ---------------------
+# Install KodExplorer
+# ---------------------
+echo "=== [13/16] Cài KodExplorer ==="
+cd /var/www/html
+wget -q https://github.com/kalcaddle/kodbox/archive/refs/heads/master.zip -O kodbox.zip
+unzip -q kodbox.zip || true
+mv kodbox-* kodexplorer 2>/dev/null || true
+rm -f kodbox.zip
+mkdir -p /var/www/html/files
+sudo chown -R "${WEBUSER}":"${WEBUSER}" /var/www/html/kodexplorer /var/www/html/files 2>/dev/null || true
+sudo chmod -R 755 /var/www/html/kodexplorer /var/www/html/files 2>/dev/null || true
+
+# KodExplorer default config + admin
+echo "=== [14/16] Cấu hình KodExplorer ==="
+sudo mkdir -p /var/www/html/kodexplorer/data/system
+cat <<'EOF' | sudo tee /var/www/html/kodexplorer/data/system/system_setting.php >/dev/null
+<?php
+return array (
+  'systemName' => 'KodExplorer',
+  'systemDesc' => 'Trình quản lý file trực tuyến',
+  'language' => 'vi',
+  'theme' => 'mac',
+  'systemPassword' => 'yes',
+  'autoLogin' => '0',
+  'systemDefault' => '1',
+  'menuTop' => 'explorer,editor,adminer',
+  'installApp' => 'yes',
+  'rootPath' => '/var/www/html/files',
+);
+EOF
+
+cat <<'EOF' | sudo tee /var/www/html/kodexplorer/data/system/system_member.php >/dev/null
+<?php
+return array (
+  'admin' =>
+  array (
+    'name' => 'admin',
+    'password' => md5('admin123'),
+    'roleID' => '1',
+    'status' => '1',
+    'createTime' => time(),
+  ),
+);
+EOF
+
+sudo chown -R "${WEBUSER}":"${WEBUSER}" /var/www/html/kodexplorer 2>/dev/null || true
+sudo chmod -R 755 /var/www/html/kodexplorer 2>/dev/null || true
+
+# ---------------------
+# Restart services
+# ---------------------
+echo "=== [15/16] Khởi động lại dịch vụ web ==="
+start_service apache2
+start_service httpd
+sleep 2
+
+# ---------------------
+# UFW firewall (install + enable) and open ports
+# ---------------------
+echo "=== [16/16] Cài & bật UFW (nếu có apt) và mở port 80/443 ==="
+if [ "$PKG" = "apt" ]; then
+    sudo apt install -y ufw
+    sudo ufw allow 22/tcp || true
+    sudo ufw allow 80/tcp || true
+    sudo ufw allow 443/tcp || true
+    sudo ufw --force enable || true
+    sudo systemctl enable --now ufw 2>/dev/null || true
+elif command -v firewall-cmd >/dev/null 2>&1; then
+    sudo firewall-cmd --permanent --add-service=http >/dev/null 2>&1 || true
+    sudo firewall-cmd --permanent --add-service=https >/dev/null 2>&1 || true
+    sudo firewall-cmd --reload >/dev/null 2>&1 || true
+else
+    if command -v iptables >/dev/null 2>&1; then
+        sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT >/dev/null 2>&1 || true
+        sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT >/dev/null 2>&1 || true
+    fi
+fi
+
+# Final message
+echo "===================================================="
+echo "✅ Hoàn tất!"
+echo "🌐 WordPress: http://${SERVER_NAME}/wordpress"
+echo "🔐 Admin WordPress: ${WP_USER} / ${WP_PASS}"
+echo "----------------------------------------------------"
+echo "📁 KodExplorer: http://${SERVER_NAME}/kodexplorer"
+echo "🔑 Admin KodExplorer: admin / admin123"
+echo "===================================================="

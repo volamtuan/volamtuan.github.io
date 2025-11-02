@@ -1,0 +1,198 @@
+#!/usr/bin/env bash
+# 3proxy IPv6 auto installer (no user:pass) - universal Linux
+
+set -e
+
+WORKDIR="/root"
+IP4=$(curl -s4 ifconfig.me)
+main_interface=$(ip route get 8.8.8.8 | awk -- '{print $5; exit}')
+IP6=$(ip -6 addr show dev $main_interface | grep -oP 'inet6 \K[0-9a-f:]+(?=/)' | head -n1 | cut -f1-4 -d':')
+
+if [ -z "$IP6" ]; then
+    echo "[ERROR] Không phát hiện được IPv6 prefix, vui lòng bật IPv6."
+    exit 1
+fi
+
+echo "Phát hiện:"
+echo "IPv4: $IP4"
+echo "IPv6 Prefix: $IP6::/64"
+echo "Interface: $main_interface"
+echo "----------------------------------------"
+
+# Cài đặt công cụ cần thiết
+install_packages() {
+    if [ -f /etc/debian_version ]; then
+        apt-get update -y
+        apt-get install -y gcc make git curl net-tools bsdtar zip psmisc
+    elif [ -f /etc/redhat-release ]; then
+        yum install -y gcc make git curl net-tools bsdtar zip psmisc
+    else
+        echo "Không nhận dạng được hệ điều hành."
+        exit 1
+    fi
+}
+
+install_3proxy() {
+    echo "[+] Cài đặt 3proxy..."
+    cd $WORKDIR
+    rm -rf 3proxy
+    git clone https://github.com/z3apa3a/3proxy
+    cd 3proxy
+    ln -s Makefile.Linux Makefile
+    make && make install
+    cd $WORKDIR
+}
+
+gen_ipv6_64() {
+    rm -f $WORKDIR/ipv6.txt
+    for ((i=1; i<=MAXCOUNT; i++)); do
+        array=(1 2 3 4 5 6 7 8 9 0 a b c d e f)
+        ip64() { echo "${array[$RANDOM % 16]}${array[$RANDOM % 16]}${array[$RANDOM % 16]}${array[$RANDOM % 16]}"; }
+        echo "$IP6:$(ip64):$(ip64):$(ip64):$(ip64)" >> $WORKDIR/ipv6.txt
+    done
+}
+
+gen_ifconfig() {
+    echo "[+] Gán IPv6..."
+    while read -r line; do
+        ip -6 addr add "$line/64" dev "$main_interface" || true
+    done < $WORKDIR/ipv6.txt
+}
+
+gen_iptables() {
+    echo "[+] Mở port..."
+    port=$START_PORT
+    for ((i=1; i<=MAXCOUNT; i++)); do
+        iptables -I INPUT -p tcp --dport $port -j ACCEPT
+        ((port+=1))
+    done
+}
+
+gen_3proxy_cfg() {
+    mkdir -p /etc/3proxy
+    cat <<EOF >/etc/3proxy/3proxy.cfg
+daemon
+maxconn 3000
+nserver 1.1.1.1
+nserver [2606:4700:4700::1111]
+nserver [2606:4700:4700::1001]
+nserver [2001:4860:4860::8888]
+nscache 65536
+timeouts 1 5 30 60 180 1800 15 60
+setgid 65535
+setuid 65535
+stacksize 6291456 
+flush
+auth none
+EOF
+    port=$START_PORT
+    while read -r ip; do
+        echo "proxy -6 -n -a -p$port -i$IP4 -e$ip" >> /etc/3proxy/3proxy.cfg
+        ((port+=1))
+    done < $WORKDIR/ipv6.txt
+}
+
+export_proxy_list() {
+    echo "[+] Xuất danh sách proxy..."
+    port=$START_PORT
+    rm -f $WORKDIR/proxy.txt
+    for ((i=1; i<=MAXCOUNT; i++)); do
+        echo "$IP4:$port" >> $WORKDIR/proxy.txt
+        ((port+=1))
+    done
+}
+
+upload_proxy() {
+    URL=$(curl -s --upload-file $WORKDIR/proxy.txt https://transfer.sh/proxy.txt)
+    echo "Proxy đã tạo xong!"
+    echo "Tải danh sách: $URL"
+}
+
+xoay_proxy_script() {
+    cat <<EOF > $WORKDIR/xoay.sh
+#!/usr/bin/env bash
+set -e
+WORKDIR="/root"
+main_interface="$main_interface"
+IP4="$IP4"
+IP6="$IP6"
+START_PORT=$START_PORT
+MAXCOUNT=$MAXCOUNT
+
+gen_ipv6_64() {
+    rm -f \$WORKDIR/ipv6.txt
+    for ((i=1; i<=\$MAXCOUNT; i++)); do
+        array=(1 2 3 4 5 6 7 8 9 0 a b c d e f)
+        ip64() { echo "\${array[\$RANDOM % 16]}\${array[\$RANDOM % 16]}\${array[\$RANDOM % 16]}\${array[\$RANDOM % 16]}"; }
+        echo "\$IP6:\$(ip64):\$(ip64):\$(ip64):\$(ip64)" >> \$WORKDIR/ipv6.txt
+    done
+}
+
+gen_ifconfig() {
+    while read -r line; do
+        ip -6 addr add "\$line/64" dev "\$main_interface" || true
+    done < \$WORKDIR/ipv6.txt
+}
+
+gen_3proxy_cfg() {
+    cat <<EOC >/etc/3proxy/3proxy.cfg
+daemon
+maxconn 3000
+nserver 1.1.1.1
+nserver [2606:4700:4700::1111]
+nserver [2606:4700:4700::1001]
+nserver [2001:4860:4860::8888]
+nscache 65536
+timeouts 1 5 30 60 180 1800 15 60
+setgid 65535
+setuid 65535
+stacksize 6291456
+flush
+auth none
+EOC
+    port=\$START_PORT
+    while read -r ip; do
+        echo "proxy -6 -n -a -p\$port -i\$IP4 -e\$ip" >> /etc/3proxy/3proxy.cfg
+        ((port+=1))
+    done < \$WORKDIR/ipv6.txt
+}
+
+echo "[+] Xoay IPv6..."
+gen_ipv6_64
+gen_ifconfig
+gen_3proxy_cfg
+pkill 3proxy || true
+3proxy /etc/3proxy/3proxy.cfg &
+echo "Hoàn tất xoay proxy!"
+EOF
+    chmod +x $WORKDIR/xoay.sh
+}
+
+#=== Bắt đầu cài ===#
+
+if [ "x$(id -u)" != 'x0' ]; then
+    echo "Vui lòng chạy script bằng quyền root."
+    exit 1
+fi
+
+install_packages
+install_3proxy
+
+read -p "Nhập port bắt đầu cho proxy: " START_PORT
+read -p "Nhập số lượng proxy muốn tạo: " MAXCOUNT
+
+gen_ipv6_64
+gen_ifconfig
+gen_iptables
+gen_3proxy_cfg
+pkill 3proxy || true
+3proxy /etc/3proxy/3proxy.cfg &
+export_proxy_list
+upload_proxy
+xoay_proxy_script
+
+echo "----------------------------------------"
+echo "Cài đặt hoàn tất."
+echo "File proxy: $WORKDIR/proxy.txt"
+echo "Script xoay IPv6: $WORKDIR/xoay.sh"
+echo "----------------------------------------"

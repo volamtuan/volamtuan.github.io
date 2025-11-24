@@ -1,461 +1,588 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Quản lý tài khoản theo domain</title>
-  <link
-    rel="stylesheet"
-    href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
-  />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Super Fast Logs Parser & SQL Extractor</title>
+
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f9f9f9;
-      padding: 20px;
-    }
-    textarea,
-    input[type='file'] {
-      width: 100%;
-      padding: 8px;
-      margin: 10px 0;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      resize: vertical;
-    }
-    #domainTable {
-      display: block;
-      max-height: 320px;
-      overflow-y: auto;
-      border-collapse: separate;
-      border-spacing: 0;
-    }
-    #domainTable thead,
-    #domainTable tbody {
-      display: block;
-    }
-    #domainTable tbody {
-      max-height: 280px;
-      overflow-y: auto;
-    }
-    #domainTable thead tr {
-      display: table;
-      width: 100%;
-      table-layout: fixed;
-    }
-    #domainTable tbody tr {
-      display: table;
-      width: 100%;
-      table-layout: fixed;
-      user-select: none;
-      cursor: pointer;
-    }
-    #domainTable tbody tr:hover {
-      background-color: #f1f8ff;
-    }
-    #domainTable tbody tr.selected {
-      background-color: #c3ddff !important;
-    }
-    .copy-btn {
-      background-color: #17a2b8;
-      border: none;
-      color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    #copyMessage {
-      color: green;
-      font-weight: 600;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      margin-left: 10px;
-    }
-    #accountList {
-      max-height: 300px;
-      overflow-y: auto;
-      background: white;
-      border: 1px solid #dee2e6;
-      border-radius: 4px;
-      padding: 10px;
-      font-family: monospace;
-    }
-  </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f9f9f9;
+            padding: 20px;
+        }
+ 
+        textarea,
+        input[type='file'] {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            resize: vertical;
+        }
+ 
+        #domainTable {
+            display: block;
+            max-height: 320px;
+            overflow-y: auto;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+ 
+        #domainTable thead,
+        #domainTable tbody {
+            display: block;
+        }
+ 
+        #domainTable tbody {
+            max-height: 280px;
+            overflow-y: auto;
+        }
+ 
+        #domainTable thead tr {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+ 
+        #domainTable tbody tr {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+            user-select: none;
+            cursor: pointer;
+        }
+ 
+        #domainTable tbody tr:hover {
+            background-color: #f1f8ff;
+        }
+ 
+        #domainTable tbody tr.selected {
+            background-color: #c3ddff !important;
+        }
+ 
+        .copy-btn {
+            background-color: #17a2b8;
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+ 
+        #copyMessage {
+            color: green;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            margin-left: 10px;
+        }
+ 
+        #accountList {
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+    /* Modern UI Tweaks */
+    body { font-family: 'Segoe UI', Roboto, sans-serif; background-color: #f0f2f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    
+    /* Header & Input Area */
+    .top-section { background: #fff; padding: 15px; border-bottom: 1px solid #ddd; flex-shrink: 0; }
+    .btn-file { position: relative; overflow: hidden; }
+    .btn-file input[type=file] { position: absolute; top: 0; right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0; outline: none; background: white; cursor: inherit; display: block; }
+    
+    /* Deep Extract Box */
+    #deepExtractArea { display: none; background: #fff3cd; padding: 10px; border: 1px solid #ffeeba; margin-top: 10px; border-radius: 4px; }
+    #deepExtractText { width: 100%; height: 80px; font-family: monospace; font-size: 11px; border: 1px solid #ddd; resize: vertical; }
+
+    /* Main Content (Split View) */
+    .main-content { flex-grow: 1; display: flex; padding: 15px; gap: 15px; overflow: hidden; }
+    
+    /* Left Panel (Domains) */
+    .left-panel { width: 35%; display: flex; flex-direction: column; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .domain-list-wrapper { flex-grow: 1; overflow-y: auto; border-top: 1px solid #eee; }
+    .domain-row { padding: 8px 15px; cursor: pointer; border-bottom: 1px solid #f1f1f1; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+    .domain-row:hover { background-color: #f8f9fa; }
+    .domain-row.active { background-color: #e7f1ff; color: #0056b3; font-weight: 600; border-left: 4px solid #0056b3; }
+    .badge-count { background: #e2e6ea; color: #333; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+
+    /* Right Panel (Accounts) */
+    .right-panel { width: 65%; display: flex; flex-direction: column; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .account-list-wrapper { flex-grow: 1; overflow-y: auto; padding: 0; }
+    .acc-row { padding: 6px 15px; border-bottom: 1px solid #f1f1f1; font-family: monospace; font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .acc-row:hover { background-color: #fafafa; }
+    .acc-data { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 10px; }
+
+    /* Utils */
+    .progress { height: 5px; margin-top: 10px; }
+    .copy-btn-sm { font-size: 10px; padding: 2px 6px; }
+    #statusText { font-size: 12px; color: #666; margin-left: 10px; }
+</style>
 </head>
 <body>
-  <div class="text-container">
-    <h3 class="mb-4">📋 Quản lý tài khoản theo domain</h3>
 
-    <textarea
-      id="manualInput"
-      rows="6"
-      placeholder="Dán dữ liệu vào đây. Mỗi tài khoản một dòng."
-    ></textarea>
-    <button class="btn btn-success mb-3" onclick="processManualInput()">Xử lý thủ công</button>
-    
-    <input type="file" id="fileInput" multiple accept=".txt,.zip" />
-
-    <hr />
-<div class="mb-3">
-  <button class="btn btn-primary" id="copyAllDomainsBtn">Copy tất cả tài khoản (tất cả domain)</button>
-  <span id="copyAllDomainsMsg" style="color: green; font-weight: 600; opacity: 0; margin-left: 10px; transition: opacity 0.3s ease;">✅ Đã copy!</span>
-</div>
-    <h4>📚 Danh sách domain</h4>
-    <div class="form-group">
-  <input
-    type="text"
-    id="searchDomainInput"
-    class="form-control"
-    placeholder="Tìm domain..."
-    oninput="filterDomainTable()"
-    autocomplete="off"
-  />
-</div>
-    <table id="domainTable" class="table table-bordered table-hover" aria-label="Bảng thống kê domain">
-      <thead class="thead-light">
-        <tr>
-          <th>Domain</th>
-          <th>Số tài khoản</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    <div id="accountListBox" style="display: none;">
-      <h4 class="mt-4">
-        📜 Tài khoản trong domain: <span id="selectedDomain"></span>
-        <button class="btn btn-warning btn-sm ml-3" id="copyAllButton" onclick="copyAllAccounts()">Copy tất cả</button>
-        <span id="copyMessage">✅ Đã copy!</span>
-      </h4>
-
-      <div id="accountList"></div>
+<div class="top-section">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <h5 class="m-0 text-primary"><i class="fas fa-bolt"></i> Super Tool All-in-One</h5>
+        <div id="statusText">Sẵn sàng.</div>
     </div>
-  </div>
 
-  <script>
-    const domainAccounts = new Map();
+    <div class="d-flex">
+        <span class="btn btn-primary btn-file mr-2 btn-sm"> 
+      Chọn Folder   <i class="fas fa-folder-open"></i> 
+            <input type="file" id="folderInput" webkitdirectory directory multiple>
+        </span>
+        <span class="btn btn-info btn-file mr-2 btn-sm">Chọn File <i class="fas fa-file-alt"></i> 
+            <input type="file" id="fileInput" multiple accept=".txt,.zip,.sqlite,.db,.log">
+        </span>
+        <button class="btn btn-outline-secondary btn-sm mr-2" onclick="toggleManualInput()">Nhập thủ công</button>
+        <div class="flex-grow-1"></div>
+        <button class="btn btn-success btn-sm" onclick="exportAll()">Xuất Tất Cả  <i class="fas fa-file-alt"></i> </button>
+    </div>
 
-    // Hàm phân tích 1 dòng
-    function parseAccount(line) {
-      if (!line) return null;
+    <div id="manualInputArea" style="display:none; margin-top:10px;">
+        <textarea id="manualText" class="form-control form-control-sm" rows="5" placeholder="✍️ Nhập thủ công list user|pass (mỗi ô 1 dòng)"></textarea>
+        <button class="btn btn-sm btn-secondary mt-1" onclick="processManual()">Xử lý ngay</button>
+    </div>
 
-      // Dạng user|pass
-      const parts = line.trim().split("|");
-      if (parts.length >= 2 && parts[0].includes("@")) {
-        const user = parts[0];
-        const pass = parts[1];
-        const domain = user.split("@")[1].toLowerCase();
-        return { user, pass, domain };
-      }
+    <div class="progress">
+        <div id="progressBar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+    </div>
 
-      // Dạng URL:... Username:... Password:...
-      const blockMatch = line.match(/URL:\s*(.*?)\s*Username:\s*(.*?)\s*Password:\s*(.*)/i);
-      if (blockMatch) {
-        try {
-          const domain = new URL(blockMatch[1].trim()).hostname.toLowerCase();
-          const user = blockMatch[2].trim();
-          const pass = blockMatch[3].trim();
-          return { user, pass, domain };
-        } catch {
-          return null;
-        }
-      }
-      return null;
+    <div id="deepExtractArea">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <strong><i class="fas fa-database"></i> Dữ liệu Full Info từ DB (Uid|Pass|Cookie|Mail...)</strong>
+            <div>
+                <button class="btn btn-xs btn-warning copy-btn-sm" onclick="copyDeepData()">Copy All</button>
+                <button class="btn btn-xs btn-light copy-btn-sm" onclick="clearDeepData()">Xóa</button>
+            </div>
+        </div>
+        <textarea id="deepExtractText" readonly></textarea>
+    </div>
+</div>
+
+<div class="main-content">
+    
+    <div class="left-panel">
+        <div class="p-2 border-bottom bg-light d-flex">
+            <input type="text" id="searchDomain" class="form-control form-control-sm" placeholder="🔍 Lọc domain..." onkeyup="filterDomains()">
+        </div>
+        <div class="domain-list-wrapper" id="domainList">
+            <div class="text-center text-muted mt-5 small">Chưa có dữ liệu</div>
+        </div>
+        <div class="p-2 border-top bg-light text-right small">
+            <span id="totalDomains">0</span> domains / <span id="totalAccounts">0</span> accs
+        </div>
+    </div>
+
+    <div class="right-panel">
+        <div class="p-2 border-bottom bg-light d-flex justify-content-between align-items-center">
+            <strong id="selectedDomainName" class="text-primary">---</strong>
+            <button id="copyCurrentBtn" class="btn btn-sm btn-outline-primary" disabled onclick="copyCurrentDomain()">Copy List Này</button>
+        </div>
+        <div class="account-list-wrapper" id="accountList">
+            <div class="text-center text-muted mt-5 small">Chọn domain bên trái để xem</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// ==========================================
+// 1. CONFIG & STATE
+// ==========================================
+let SQL = null;
+const domainMap = new Map(); // Map<domain, Set<"user|pass">> -> Dùng Set để tự loại trùng
+let deepDataBuffer = [];     // Lưu trữ mảng các dòng full info
+let isProcessing = false;
+
+// UI Refs
+const els = {
+    status: document.getElementById('statusText'),
+    progress: document.getElementById('progressBar'),
+    domainList: document.getElementById('domainList'),
+    accList: document.getElementById('accountList'),
+    selDomName: document.getElementById('selectedDomainName'),
+    copyBtn: document.getElementById('copyCurrentBtn'),
+    deepArea: document.getElementById('deepExtractArea'),
+    deepText: document.getElementById('deepExtractText'),
+    totalDom: document.getElementById('totalDomains'),
+    totalAcc: document.getElementById('totalAccounts')
+};
+
+// ==========================================
+// 2. INITIALIZATION
+// ==========================================
+(async function init() {
+    try {
+        SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${f}` });
+        els.status.innerHTML = '<span class="text-success"><i class="fas fa-check-circle"></i> Hệ thống đã sẵn sàng</span>';
+    } catch (e) {
+        els.status.innerHTML = '<span class="text-danger">Lỗi tải thư viện SQL.js! Vui lòng kiểm tra mạng.</span>';
     }
+})();
 
-    // Xử lý block nhiều dòng dạng URL, Username, Password
-    function processMultiLineAccounts(text) {
-      const lines = text.split(/\r?\n/);
-      const results = [];
-      for (let i = 0; i < lines.length; i++) {
-        const urlLine = lines[i].trim();
-        if (urlLine.toLowerCase().startsWith("url:") && i + 2 < lines.length) {
-          const userLine = lines[i + 1].trim();
-          const passLine = lines[i + 2].trim();
+// ==========================================
+// 3. CORE PROCESSING LOGIC
+// ==========================================
 
-          const userPrefix = userLine.match(/^username:/i)
-            ? "username:"
-            : userLine.match(/^user:/i)
-            ? "user:"
-            : null;
-          const passPrefix = passLine.match(/^password:/i)
-            ? "password:"
-            : passLine.match(/^pass:/i)
-            ? "pass:"
-            : null;
+// Hàm thêm tài khoản vào bộ nhớ (Dùng Set để siêu tốc độ và tự loại trùng)
+function addAccount(user, pass, domain) {
+    if (!user || !pass || !domain) return;
+    if (domain.length < 3 || !domain.includes('.')) return;
 
-          if (userPrefix && passPrefix) {
-            try {
-              const url = urlLine.substring(4).trim();
-              const domain = new URL(url).hostname.toLowerCase();
-              const user = userLine.substring(userPrefix.length).trim();
-              const pass = passLine.substring(passPrefix.length).trim();
-              results.push({ user, pass, domain });
-              i += 2;
-            } catch {}
-          }
-        }
-      }
-      return results;
+    if (!domainMap.has(domain)) {
+        domainMap.set(domain, new Set());
     }
+    domainMap.get(domain).add(`${user}|${pass}`);
+}
 
-    // Xử lý block dạng url/login/password
-    function processUrlLoginPassBlock(text) {
-      const lines = text.split(/\r?\n/);
-      const results = [];
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].toLowerCase().startsWith("url:")) {
-          if (i + 2 < lines.length) {
-            const urlLine = lines[i].trim();
-            const loginLine = lines[i + 1].trim();
-            const passLine = lines[i + 2].trim();
-            const urlMatch = urlLine.match(/^url:\s*(.+)$/i);
-            const loginMatch = loginLine.match(/^login:\s*(.+)$/i);
-            const passMatch = passLine.match(/^password:\s*(.+)$/i);
-            if (urlMatch && loginMatch && passMatch) {
-              try {
-                const domain = new URL(urlMatch[1].trim()).hostname.toLowerCase();
-                const user = loginMatch[1].trim();
-                const pass = passMatch[1].trim();
-                results.push({ user, pass, domain });
-                i += 2;
-              } catch {}
+// Hàm Parser Text (Tối ưu hóa không dùng Regex phức tạp cho từng dòng)
+function parseTextChunk(text) {
+    const lines = text.split(/\r?\n/);
+    const len = lines.length;
+    
+    for (let i = 0; i < len; i++) {
+        let line = lines[i].trim();
+        if (!line) continue;
+
+        // 1. Fast Check: user|pass or user:pass
+        let sep = line.indexOf('|');
+        if (sep === -1) sep = line.indexOf(':');
+
+        if (sep > 0 && sep < line.length - 1) {
+            // Kiểm tra sơ bộ xem có phải email không
+            if (line.indexOf('@') > -1 && line.indexOf('@') < sep) {
+                const user = line.substring(0, sep).trim();
+                const pass = line.substring(sep + 1).trim();
+                const atIdx = user.lastIndexOf('@');
+                if (atIdx !== -1) {
+                    const domain = user.substring(atIdx + 1).toLowerCase();
+                    addAccount(user, pass, domain);
+                    continue; // Done row
+                }
             }
-          }
         }
-      }
-      return results;
-    }
 
-    // Xử lý block dạng UR1/U53RN4M3/P455W0RD
-    function processUR1Format(text) {
-      const lines = text.split(/\r?\n/);
-      const results = [];
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].toLowerCase().startsWith("ur1:")) {
-          const urlLine = lines[i].trim();
-          const userLine = lines[i + 1]?.trim() || "";
-          const passLine = lines[i + 2]?.trim() || "";
-          const urlMatch = urlLine.match(/^ur1:\s*(.+)$/i);
-          const userMatch = userLine.match(/^u53rn4m3:\s*(.+)$/i);
-          const passMatch = passLine.match(/^p455w0rd:\s*(.+)$/i);
-          if (urlMatch && userMatch && passMatch) {
+        // 2. Block Check (URL/User/Pass) - Chỉ chạy khi dòng bắt đầu bằng URL
+        if (line.toLowerCase().startsWith('url:') && i + 2 < len) {
             try {
-              const domain = new URL(urlMatch[1].trim()).hostname.toLowerCase();
-              const user = userMatch[1].trim();
-              const pass = passMatch[1].trim();
-              results.push({ user, pass, domain });
-              i += 2;
-            } catch {}
-          }
+                // Lấy URL
+                let uStr = line.substring(4).trim();
+                if (!uStr.startsWith('http')) uStr = 'http://' + uStr;
+                const domain = new URL(uStr).hostname.toLowerCase().replace('www.', '');
+
+                // Quét 5 dòng tiếp theo tìm User/Pass
+                let user, pass;
+                for (let j = 1; j <= 5; j++) {
+                    if (i + j >= len) break;
+                    const next = lines[i+j];
+                    if (!user && (next.match(/^use?r(?:name)?[:|]/i) || next.match(/^mail[:|]/i) || next.match(/^login[:|]/i))) {
+                        user = next.split(/[:|]/).slice(1).join(':').trim();
+                    }
+                    if (!pass && (next.match(/^pass(?:word)?[:|]/i) || next.match(/^pwd[:|]/i))) {
+                        pass = next.split(/[:|]/).slice(1).join(':').trim();
+                    }
+                }
+                if (domain && user && pass) {
+                    addAccount(user, pass, domain);
+                    i += 2; // Skip lines
+                }
+            } catch (e) {}
         }
-      }
-      return results;
+    }
+}
+
+// Handler SQLite (Dual Mode: Extract & Scan)
+function processSQLiteDB(uint8Array, fileName) {
+    if (!SQL) return;
+    let db = null;
+    try {
+        db = new SQL.Database(uint8Array);
+        
+        // MODE 1: DEEP EXTRACT (Lấy Full Data)
+        try {
+            // Query ưu tiên các cột quan trọng
+            const stmt = db.prepare("SELECT * FROM accounts LIMIT 1"); // Check columns first
+            const cols = stmt.getColumnNames();
+            stmt.free();
+
+            // Xây dựng câu query động dựa trên cột có sẵn
+            const targetCols = ["uid", "id", "user", "username", "email", "pass", "password", "cookie", "cookies", "fa2", "2fa", "token"];
+            const availableCols = cols.filter(c => targetCols.includes(c.toLowerCase()));
+            
+            if (availableCols.length > 2) {
+                const res = db.exec(`SELECT ${availableCols.join(',')} FROM accounts`);
+                if (res.length) {
+                    const rows = res[0].values;
+                    const header = `[FILE: ${fileName}] Columns: ${availableCols.join('|')}`;
+                    const content = rows.map(r => r.join('|')).join('\n');
+                    
+                    // Add to Deep Buffer
+                    deepDataBuffer.push(header);
+                    deepDataBuffer.push(content);
+                    deepDataBuffer.push("-".repeat(20));
+
+                    // Add to Parser (để lọc user|pass vào list domain)
+                    parseTextChunk(content);
+                }
+            }
+        } catch (e) { /* Table accounts not found */ }
+
+        // MODE 2: GENERIC SCAN (Quét mọi bảng)
+        const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table'")[0]?.values.flat() || [];
+        for (const tbl of tables) {
+            try {
+                // Check 1 dòng để xem cột
+                const check = db.exec(`SELECT * FROM "${tbl}" LIMIT 1`);
+                if (!check.length) continue;
+                
+                const cols = check[0].columns.map(c => c.toLowerCase());
+                const uIdx = cols.findIndex(c => c.includes('user') || c.includes('mail') || c.includes('login') || c.includes('uid'));
+                const pIdx = cols.findIndex(c => c.includes('pass') || c.includes('pwd'));
+                
+                if (uIdx > -1 && pIdx > -1) {
+                    // Lấy dữ liệu (Limit để tránh treo nếu bảng quá lớn)
+                    const data = db.exec(`SELECT * FROM "${tbl}" LIMIT 50000`);
+                    let tempTxt = "";
+                    data[0].values.forEach(row => {
+                        const u = row[uIdx];
+                        const p = row[pIdx];
+                        if (u && p) tempTxt += `${u}|${p}\n`;
+                    });
+                    parseTextChunk(tempTxt);
+                }
+            } catch (err) {}
+        }
+
+    } catch (e) { console.error(e); } 
+    finally { if (db) db.close(); }
+}
+
+// ==========================================
+// 4. FILE SYSTEM HANDLERS
+// ==========================================
+
+async function handleFile(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    
+    if (ext === 'txt' || ext === 'log') {
+        const text = await file.text();
+        parseTextChunk(text);
+    } 
+    else if (ext === 'db' || ext === 'sqlite') {
+        const buf = await file.arrayBuffer();
+        processSQLiteDB(new Uint8Array(buf), file.name);
+    } 
+    else if (ext === 'zip') {
+        try {
+            const zip = await JSZip.loadAsync(file);
+            // Lọc file để xử lý
+            const filesInside = Object.values(zip.files).filter(e => !e.dir);
+            for (const entry of filesInside) {
+                const subExt = entry.name.split('.').pop().toLowerCase();
+                if (['txt', 'log'].includes(subExt)) {
+                    const t = await entry.async('string');
+                    parseTextChunk(t);
+                } else if (['db', 'sqlite'].includes(subExt)) {
+                    const b = await entry.async('uint8array');
+                    processSQLiteDB(b, file.name + "/" + entry.name);
+                }
+            }
+        } catch (e) { console.error("Zip Error", e); }
+    }
+}
+
+// MAIN PROCESSOR (With Chunking to prevent freeze)
+async function startProcessing(fileList) {
+    if (isProcessing) return;
+    isProcessing = true;
+    
+    els.progress.style.width = '0%';
+    els.status.innerText = `Đang xử lý ${fileList.length} file...`;
+    
+    // Chunking: Process 10 files then wait 0ms to let UI update
+    const chunkSize = 5; 
+    let processed = 0;
+
+    for (let i = 0; i < fileList.length; i += chunkSize) {
+        const chunk = Array.from(fileList).slice(i, i + chunkSize);
+        await Promise.all(chunk.map(f => handleFile(f)));
+        
+        processed += chunk.length;
+        const pct = Math.min(100, Math.round((processed / fileList.length) * 100));
+        els.progress.style.width = pct + '%';
+        els.status.innerText = `Đã xử lý ${processed}/${fileList.length}`;
+        
+        // Update UI (Deep Extract) real-time if needed
+        if (deepDataBuffer.length > 0) {
+            els.deepArea.style.display = 'block';
+            els.deepText.value = deepDataBuffer.join('\n'); // Show preview
+        }
+        
+        // Yield to main thread
+        await new Promise(r => setTimeout(r, 0));
     }
 
-    function addAccount({ user, pass, domain }) {
-      if (!domain) return;
-      if (!domainAccounts.has(domain)) domainAccounts.set(domain, []);
-      const list = domainAccounts.get(domain);
-      if (!list.some(acc => acc.user === user && acc.pass === pass)) {
-        list.push({ user, pass });
-      }
-    }
+    renderDomainList();
+    els.status.innerHTML = `<span class="text-success font-weight-bold">Hoàn tất!</span>`;
+    isProcessing = false;
+}
 
-    function processLines(text) {
-      for (const line of text.split(/\r?\n/)) {
-        const acc = parseAccount(line);
-        if (acc) addAccount(acc);
-      }
-      processMultiLineAccounts(text).forEach(acc => addAccount(acc));
-      processUrlLoginPassBlock(text).forEach(acc => addAccount(acc));
-      processUR1Format(text).forEach(acc => addAccount(acc));
-    }
+// ==========================================
+// 5. RENDERING & UI LOGIC
+// ==========================================
 
-    function processManualInput() {
-      const content = document.getElementById("manualInput").value;
-      if (!content.trim()) return alert("Bạn chưa nhập dữ liệu.");
-      domainAccounts.clear();
-      processLines(content);
-      updateDomainTable();
-      document.getElementById("accountListBox").style.display = "none";
-    }
+function renderDomainList() {
+    els.domainList.innerHTML = "";
+    const sorted = [...domainMap.entries()].sort((a, b) => b[1].size - a[1].size);
+    
+    let totalDoms = 0;
+    let totalAccs = 0;
 
-    function readTxtFile(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = e => {
-          processLines(e.target.result);
-          resolve();
-        };
-        reader.onerror = e => reject(e);
-        reader.readAsText(file);
-      });
-    }
+    // Sử dụng DocumentFragment để render cực nhanh
+    const frag = document.createDocumentFragment();
+    
+    sorted.forEach(([domain, set]) => {
+        const count = set.size;
+        totalDoms++;
+        totalAccs += count;
 
-    async function readZipFile(file) {
-      const zip = await JSZip.loadAsync(file);
-      const entries = Object.values(zip.files);
-      for (const entry of entries) {
-        if (!entry.name.toLowerCase().endsWith(".txt")) continue;
-        const content = await entry.async("string");
-        processLines(content);
-      }
-    }
-
-    document.getElementById("fileInput").addEventListener("change", async function () {
-      if (!this.files.length) return;
-      domainAccounts.clear();
-      const files = [...this.files];
-      const tasks = files.map(file => {
-        if (file.name.toLowerCase().endsWith(".txt")) return readTxtFile(file);
-        if (file.name.toLowerCase().endsWith(".zip")) return readZipFile(file);
-        return Promise.resolve();
-      });
-      try {
-        await Promise.all(tasks);
-        updateDomainTable();
-        document.getElementById("accountListBox").style.display = "none";
-      } catch (e) {
-        alert("Lỗi khi đọc file: " + e.message);
-      }
+        const div = document.createElement('div');
+        div.className = 'domain-row';
+        div.innerHTML = `<span>${domain}</span> <span class="badge-count">${count}</span>`;
+        div.onclick = () => selectDomain(div, domain);
+        frag.appendChild(div);
     });
 
-    function updateDomainTable() {
-      const tbody = document.querySelector("#domainTable tbody");
-      tbody.innerHTML = "";
-      const sorted = [...domainAccounts.entries()].sort((a, b) => b[1].length - a[1].length);
-      for (const [domain, accounts] of sorted) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${domain}</td><td>${accounts.length}</td>`;
-        tbody.appendChild(tr);
-      }
-      initMultiSelect(tbody);
-    }
+    els.domainList.appendChild(frag);
+    els.totalDom.innerText = totalDoms;
+    els.totalAcc.innerText = totalAccs;
+}
 
-    function initMultiSelect(tbody) {
-      let isMouseDown = false;
-      let startIndex = null;
-      const MAX_SELECT = 10;
-      function clearSelection() {
-        tbody.querySelectorAll("tr.selected").forEach(tr => tr.classList.remove("selected"));
-      }
-      function selectRange(start, end) {
-        clearSelection();
-        const rows = tbody.children;
-        let from = Math.min(start, end);
-        let to = Math.max(start, end);
-        if (to - from + 1 > MAX_SELECT) {
-          if (start < end) {
-            to = from + MAX_SELECT - 1;
-          } else {
-            from = to - MAX_SELECT + 1;
-            if (from < 0) from = 0;
-          }
+function selectDomain(el, domain) {
+    // Highlight UI
+    document.querySelectorAll('.domain-row').forEach(e => e.classList.remove('active'));
+    el.classList.add('active');
+    
+    // Render Accounts
+    els.selDomName.innerText = domain;
+    els.copyBtn.disabled = false;
+    els.accList.innerHTML = "";
+    
+    const set = domainMap.get(domain);
+    const frag = document.createDocumentFragment();
+    
+    // Limit view to 1000 to prevent lag, but copy will copy all
+    let i = 0;
+    for (const item of set) {
+        if (i++ > 500) {
+            const more = document.createElement('div');
+            more.className = 'text-center p-2 text-muted font-italic';
+            more.innerText = `...và ${set.size - 500} tài khoản khác...`;
+            frag.appendChild(more);
+            break;
         }
-        for (let i = from; i <= to && i < rows.length; i++) {
-          rows[i].classList.add("selected");
-        }
-      }
-      tbody.onmousedown = e => {
-        if (e.target.tagName !== "TD") return;
-        e.preventDefault();
-        isMouseDown = true;
-        const tr = e.target.closest("tr");
-        if (!tr) return;
-        startIndex = Array.from(tbody.children).indexOf(tr);
-        selectRange(startIndex, startIndex);
-      };
-      tbody.onmouseover = e => {
-        if (!isMouseDown) return;
-        if (e.target.tagName !== "TD") return;
-        const tr = e.target.closest("tr");
-        if (!tr) return;
-        const currentIndex = Array.from(tbody.children).indexOf(tr);
-        selectRange(startIndex, currentIndex);
-      };
-      document.addEventListener("mouseup", () => { isMouseDown = false; });
-      tbody.querySelectorAll("tr").forEach(tr => {
-        tr.onclick = () => {
-          const domain = tr.cells[0].textContent;
-          showAccounts(domain);
-        };
-      });
+        
+        const row = document.createElement('div');
+        row.className = 'acc-row';
+        row.innerHTML = `
+            <span class="acc-data">${item}</span>
+            <button class="btn btn-light btn-sm py-0 border" onclick="copyText('${item}')"><i class="fas fa-copy"></i></button>
+        `;
+        frag.appendChild(row);
     }
+    
+    els.accList.appendChild(frag);
+}
 
-    function showAccounts(domain) {
-      const container = document.getElementById("accountList");
-      container.innerHTML = "";
-      const accounts = domainAccounts.get(domain) || [];
-      accounts.forEach(({ user, pass }) => {
-        const item = document.createElement("div");
-        item.style.display = "flex";
-        item.style.justifyContent = "space-between";
-        item.style.alignItems = "center";
-        item.style.padding = "4px 0";
-        item.style.borderBottom = "1px solid #eee";
-        const textSpan = document.createElement("span");
-        textSpan.textContent = `${user}|${pass}`;
-        const btn = document.createElement("button");
-        btn.textContent = "Copy";
-        btn.className = "copy-btn";
-        btn.onclick = e => {
-          e.stopPropagation();
-          navigator.clipboard.writeText(`${user}|${pass}`).then(() => {
-            alert(`✅ Đã copy: ${user}|${pass}`);
-          });
-        };
-        item.appendChild(textSpan);
-        item.appendChild(btn);
-        container.appendChild(item);
-      });
-      document.getElementById("selectedDomain").textContent = domain;
-      document.getElementById("accountListBox").style.display = "block";
-    }
-
-    function copyAllAccounts() {
-      const domain = document.getElementById("selectedDomain").textContent;
-      const accounts = domainAccounts.get(domain);
-      if (!accounts?.length) return alert("Không có tài khoản.");
-      const content = accounts.map(acc => `${acc.user}|${acc.pass}`).join("\n");
-      navigator.clipboard.writeText(content).then(() => {
-        const msg = document.getElementById("copyMessage");
-        msg.style.opacity = 1;
-        setTimeout(() => (msg.style.opacity = 0), 1500);
-      });
-    }
-
-    document.getElementById("copyAllDomainsBtn").addEventListener("click", () => {
-      if (domainAccounts.size === 0) {
-        alert("Chưa có tài khoản nào.");
-        return;
-      }
-      const allEntries = new Set();
-      domainAccounts.forEach((accounts, domain) => {
-        for (const acc of accounts) {
-          allEntries.add(`${domain}|${acc.user}|${acc.pass}`);
-        }
-      });
-      if (allEntries.size === 0) {
-        alert("Chưa có tài khoản nào.");
-        return;
-      }
-      const content = [...allEntries].join("\n");
-      navigator.clipboard.writeText(content).then(() => {
-        const msg = document.getElementById("copyAllDomainsMsg");
-        msg.style.opacity = 1;
-        setTimeout(() => { msg.style.opacity = 0; }, 1500);
-      });
+function filterDomains() {
+    const term = document.getElementById('searchDomain').value.toLowerCase();
+    const rows = document.querySelectorAll('.domain-row');
+    rows.forEach(row => {
+        const txt = row.firstChild.textContent;
+        row.style.display = txt.includes(term) ? 'flex' : 'none';
     });
+}
 
-    function filterDomainTable() {
-      const filter = document.getElementById("searchDomainInput").value.toLowerCase();
-      const tbody = document.querySelector("#domainTable tbody");
-      tbody.querySelectorAll("tr").forEach(row => {
-        row.style.display = row.cells[0].textContent.toLowerCase().includes(filter) ? "" : "none";
-      });
+// ==========================================
+// 6. ACTIONS (COPY, EXPORT, MANUAL)
+// ==========================================
+
+function copyText(txt) {
+    navigator.clipboard.writeText(txt);
+}
+
+function copyCurrentDomain() {
+    const dom = els.selDomName.innerText;
+    const set = domainMap.get(dom);
+    if(set) {
+        navigator.clipboard.writeText(Array.from(set).join('\n'));
+        alert(`Đã copy ${set.size} tài khoản!`);
     }
-  </script>
+}
+
+function copyDeepData() {
+    els.deepText.select();
+    document.execCommand('copy');
+    alert("Copied SQL Data!");
+}
+
+function clearDeepData() {
+    deepDataBuffer = [];
+    els.deepText.value = "";
+    els.deepArea.style.display = 'none';
+}
+
+function toggleManualInput() {
+    const area = document.getElementById('manualInputArea');
+    area.style.display = area.style.display === 'none' ? 'block' : 'none';
+}
+
+function processManual() {
+    const txt = document.getElementById('manualText').value;
+    if(txt) {
+        parseTextChunk(txt);
+        renderDomainList();
+        document.getElementById('manualText').value = "";
+        toggleManualInput();
+    }
+}
+
+function exportAll() {
+    if(domainMap.size === 0) return alert("Chưa có dữ liệu!");
+    let content = "";
+    for (const [dom, set] of domainMap) {
+        content += Array.from(set).join('\n') + "\n";
+    }
+    const blob = new Blob([content], {type: "text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `All_Accounts_${Date.now()}.txt`;
+    a.click();
+}
+
+// Event Listeners
+document.getElementById('fileInput').addEventListener('change', function() { startProcessing(this.files); });
+document.getElementById('folderInput').addEventListener('change', function() { startProcessing(this.files); });
+
+</script>
 </body>
 </html>
+

@@ -4,586 +4,581 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Super Fast Logs Parser & SQL Extractor</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>📂 Tool Quét & Trích xuất</title>
 
+<!-- Bootstrap CSS -->
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
+<!-- JSZip + sql.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.js"></script>
-  <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f9f9f9;
-            padding: 20px;
-        }
- 
-        textarea,
-        input[type='file'] {
-            width: 100%;
-            padding: 8px;
-            margin: 10px 0;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            resize: vertical;
-        }
- 
-        #domainTable {
-            display: block;
-            max-height: 320px;
-            overflow-y: auto;
-            border-collapse: separate;
-            border-spacing: 0;
-        }
- 
-        #domainTable thead,
-        #domainTable tbody {
-            display: block;
-        }
- 
-        #domainTable tbody {
-            max-height: 280px;
-            overflow-y: auto;
-        }
- 
-        #domainTable thead tr {
-            display: table;
-            width: 100%;
-            table-layout: fixed;
-        }
- 
-        #domainTable tbody tr {
-            display: table;
-            width: 100%;
-            table-layout: fixed;
-            user-select: none;
-            cursor: pointer;
-        }
- 
-        #domainTable tbody tr:hover {
-            background-color: #f1f8ff;
-        }
- 
-        #domainTable tbody tr.selected {
-            background-color: #c3ddff !important;
-        }
- 
-        .copy-btn {
-            background-color: #17a2b8;
-            border: none;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
- 
-        #copyMessage {
-            color: green;
-            font-weight: 600;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            margin-left: 10px;
-        }
- 
-        #accountList {
-            max-height: 300px;
-            overflow-y: auto;
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            padding: 10px;
-            font-family: monospace;
-        }
-    </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <style>
-    /* Modern UI Tweaks */
-    body { font-family: 'Segoe UI', Roboto, sans-serif; background-color: #f0f2f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-    
-    /* Header & Input Area */
-    .top-section { background: #fff; padding: 15px; border-bottom: 1px solid #ddd; flex-shrink: 0; }
-    .btn-file { position: relative; overflow: hidden; }
-    .btn-file input[type=file] { position: absolute; top: 0; right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0; outline: none; background: white; cursor: inherit; display: block; }
-    
-    /* Deep Extract Box */
-    #deepExtractArea { display: none; background: #fff3cd; padding: 10px; border: 1px solid #ffeeba; margin-top: 10px; border-radius: 4px; }
-    #deepExtractText { width: 100%; height: 80px; font-family: monospace; font-size: 11px; border: 1px solid #ddd; resize: vertical; }
+:root {
+  --bg: #f6f8fa;
+  --card: #fff;
+  --muted: #6c757d;
+  --accent: #17a2b8;
+}
+body { background: var(--bg); font-family: Inter, "Segoe UI", Arial, sans-serif; padding:18px; color:#222; }
+.card { border: none; box-shadow: 0 6px 18px rgba(20,20,30,0.06); }
+.left-col { max-height: 60vh; overflow:auto; border-right:1px solid #e6e9ee; }
+.domain-row { padding:10px 12px; border-bottom:1px solid #f1f3f5; display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
+.domain-row:hover { background:#eef9ff; }
+.domain-row.active { background: #dff3ff; }
+#accountList { max-height: 60vh; overflow:auto; background:#fff; border:1px solid #e6e9ee; border-radius:6px; padding:6px; }
+.acc-item { display:flex; justify-content:space-between; align-items:center; padding:6px 8px; border-bottom:1px solid #f5f6f7; font-family: monospace; font-size:13px; }
+.acc-item .left { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:82%; }
+.progress { height: 22px; }
+#statusBox { background:#0b1320; color:#6ef08a; font-family:monospace; font-size:12px; padding:8px; border-radius:6px; max-height:6.5rem; overflow:auto; }
+#sqlPreview { font-family:monospace; font-size:13px; }
+.small-muted { color:var(--muted); font-size:13px; }
+.controls-row > * { margin-right:8px; }
+.search-autocomplete { position:relative; }
+#autocompleteList { position:absolute; z-index:1200; background:#fff; border:1px solid #ddd; width:100%; max-height:220px; overflow:auto; display:none; border-radius:4px; }
+#autocompleteList div { padding:8px; cursor:pointer; border-bottom:1px solid #f3f3f3; }
+#autocompleteList div:hover { background:#f6f9fb; }
+.badge-count { min-width:48px; text-align:center; }
+.note { color:#666; font-size:13px; }
 
-    /* Main Content (Split View) */
-    .main-content { flex-grow: 1; display: flex; padding: 15px; gap: 15px; overflow: hidden; }
-    
-    /* Left Panel (Domains) */
-    .left-panel { width: 35%; display: flex; flex-direction: column; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .domain-list-wrapper { flex-grow: 1; overflow-y: auto; border-top: 1px solid #eee; }
-    .domain-row { padding: 8px 15px; cursor: pointer; border-bottom: 1px solid #f1f1f1; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
-    .domain-row:hover { background-color: #f8f9fa; }
-    .domain-row.active { background-color: #e7f1ff; color: #0056b3; font-weight: 600; border-left: 4px solid #0056b3; }
-    .badge-count { background: #e2e6ea; color: #333; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
-
-    /* Right Panel (Accounts) */
-    .right-panel { width: 65%; display: flex; flex-direction: column; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .account-list-wrapper { flex-grow: 1; overflow-y: auto; padding: 0; }
-    .acc-row { padding: 6px 15px; border-bottom: 1px solid #f1f1f1; font-family: monospace; font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
-    .acc-row:hover { background-color: #fafafa; }
-    .acc-data { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 10px; }
-
-    /* Utils */
-    .progress { height: 5px; margin-top: 10px; }
-    .copy-btn-sm { font-size: 10px; padding: 2px 6px; }
-    #statusText { font-size: 12px; color: #666; margin-left: 10px; }
+/* Notify bar */
+#notifyBar {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    padding: 8px 14px;
+    background: rgba(0,0,0,0.65);
+    color: #fff;
+    border-radius: 4px;
+    font-size: 14px;
+    display: none;
+    z-index: 99999;
+}
 </style>
 </head>
 <body>
+<div class="text-container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">📂 
+<i class="fas fa-bolt"></i> Super Tool All-in-One</h5>
 
-<div class="top-section">
-    <div class="d-flex align-items-center justify-content-between mb-2">
-        <h5 class="m-0 text-primary"><i class="fas fa-bolt"></i> Super Tool All-in-One</h5>
-        <div id="statusText">Sẵn sàng.</div>
+      <span class="badge badge-secondary" id="totalCountBadge">Total: 0 accs</span>
     </div>
 
-    <div class="d-flex">
-        <span class="btn btn-primary btn-file mr-2 btn-sm"> 
-      Chọn Folder   <i class="fas fa-folder-open"></i> 
-            <input type="file" id="folderInput" webkitdirectory directory multiple>
-        </span>
-        <span class="btn btn-info btn-file mr-2 btn-sm">Chọn File <i class="fas fa-file-alt"></i> 
-            <input type="file" id="fileInput" multiple accept=".txt,.zip,.sqlite,.db,.log">
-        </span>
-        <button class="btn btn-outline-secondary btn-sm mr-2" onclick="toggleManualInput()">Nhập thủ công</button>
-        <div class="flex-grow-1"></div>
-        <button class="btn btn-success btn-sm" onclick="exportAll()">Xuất Tất Cả  <i class="fas fa-file-alt"></i> </button>
-    </div>
-
-    <div id="manualInputArea" style="display:none; margin-top:10px;">
-        <textarea id="manualText" class="form-control form-control-sm" rows="5" placeholder="✍️ Nhập thủ công list user|pass (mỗi ô 1 dòng)"></textarea>
-        <button class="btn btn-sm btn-secondary mt-1" onclick="processManual()">Xử lý ngay</button>
-    </div>
-
-    <div class="progress">
-        <div id="progressBar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
-    </div>
-
-    <div id="deepExtractArea">
-        <div class="d-flex justify-content-between align-items-center mb-1">
-            <strong><i class="fas fa-database"></i> Dữ liệu Full Info từ DB (Uid|Pass|Cookie|Mail...)</strong>
-            <div>
-                <button class="btn btn-xs btn-warning copy-btn-sm" onclick="copyDeepData()">Copy All</button>
-                <button class="btn btn-xs btn-light copy-btn-sm" onclick="clearDeepData()">Xóa</button>
+        <div class="col-md-4">
+            <div class="input-zone">
+                <label class="font-weight-bold"><i class="fad fa-file-import"></i> Chọn File (.txt, .zip, .db)</label>
+                <input type="file" id="fileInput" multiple accept=".txt,.zip,.sqlite,.db,.log">
             </div>
         </div>
-        <textarea id="deepExtractText" readonly></textarea>
+        <div class="col-md-4">
+            <div class="input-zone">
+                <label class="font-weight-bold"><i class="fad fa-folder-open"></i> Chọn Folder</label>
+                <input type="file" id="folderInput" webkitdirectory directory multiple>
+            </div>
+        </div>
+
+    <div class="row mt-3">
+      <div class="col-md-9">
+        <textarea id="manualInput" rows="4" class="form-control" placeholder="Nhập thủ công (mỗi dòng user|pass hoặc block URL/Username/Password)"></textarea>
+        <div class="mt-2 d-flex align-items-center">
+          <button class="btn btn-success mr-2" id="btnManual">Xử lý thủ công</button>
+          <button class="btn btn-outline-primary mr-2" id="clearAllBtn">Xóa tất cả</button>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <label class="font-weight-bold">Tiến độ / Log</label>
+        <div class="mb-2">
+          <div class="progress">
+            <div id="progressBar" class="progress-bar bg-info" role="progressbar" style="width:0%">0%</div>
+          </div>
+        </div>
+        <div id="statusBox"></div>
+      </div>
     </div>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-2" id="mainTabs">
+    <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#tabResult">Kết quả & Lọc</a></li>
+    <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tabSql">SQL Preview</a></li>
+  </ul>
+
+  <div class="tab-content">
+    <div id="tabResult" class="tab-pane fade show active">
+      <div class="row">
+        <!-- Left: search + domain list -->
+        <div class="col-md-4 pr-0">
+          <div class="card left-col p-0">
+            <div class="p-3">
+              <div class="search-autocomplete">
+                <input id="searchDomainInput" class="form-control" placeholder="Tìm domain hoặc gõ để lọc..." />
+                <div id="autocompleteList"></div>
+              </div>
+              <div class="d-flex mt-2 controls-row">
+                <button id="copyAllDomainsBtn" class="btn btn-warning btn-sm">Copy All</button>
+                <button id="exportAllBtn" class="btn btn-outline-success btn-sm">Export All</button>
+                <div class="ml-auto small-muted">Domains: <span id="domainCount">0</span></div>
+              </div>
+            </div>
+
+            <div id="domainListBody">
+              <!-- domain rows injected here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: account list -->
+        <div class="col-md-8">
+          <div class="card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div>
+                <h5 class="mb-0">Accounts <small class="text-muted" id="selectedDomainName">— chưa chọn domain</small></h5>
+              </div>
+              <div>
+                <button id="copyDomainAllBtn" class="btn btn-info btn-sm" disabled>Copy domain</button>
+                <button id="downloadDomainBtn" class="btn btn-outline-secondary btn-sm" disabled>Download domain</button>
+              </div>
+            </div>
+            <div id="accountList" class="mb-2">
+              <div class="text-center text-muted p-3">Chưa có domain được chọn</div>
+            </div>
+            <div class="d-flex justify-content-between">
+              <div>
+                <button id="removeDupBtn" class="btn btn-light btn-sm">Remove Duplicates</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tabSql" class="tab-pane fade">
+      <div class="card p-3">
+
+        <textarea id="sqlPreview" rows="10" class="form-control" placeholder="dữ liệu trích xuất từ..."></textarea>
+        <div class="mt-2">
+          <button id="copySqlBtn" class="btn btn-primary btn-sm">Copy preview</button>
+          <button id="exportSqlBtn" class="btn btn-outline-secondary btn-sm">Export preview</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div class="main-content">
-    
-    <div class="left-panel">
-        <div class="p-2 border-bottom bg-light d-flex">
-            <input type="text" id="searchDomain" class="form-control form-control-sm" placeholder="🔍 Lọc domain..." onkeyup="filterDomains()">
-        </div>
-        <div class="domain-list-wrapper" id="domainList">
-            <div class="text-center text-muted mt-5 small">Chưa có dữ liệu</div>
-        </div>
-        <div class="p-2 border-top bg-light text-right small">
-            <span id="totalDomains">0</span> domains / <span id="totalAccounts">0</span> accs
-        </div>
-    </div>
+<!-- Notify bar -->
+<div id="notifyBar"></div>
 
-    <div class="right-panel">
-        <div class="p-2 border-bottom bg-light d-flex justify-content-between align-items-center">
-            <strong id="selectedDomainName" class="text-primary">---</strong>
-            <button id="copyCurrentBtn" class="btn btn-sm btn-outline-primary" disabled onclick="copyCurrentDomain()">Copy List Này</button>
-        </div>
-        <div class="account-list-wrapper" id="accountList">
-            <div class="text-center text-muted mt-5 small">Chọn domain bên trái để xem</div>
-        </div>
-    </div>
-
-</div>
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-// ==========================================
-// 1. CONFIG & STATE
-// ==========================================
+/* =============================================================
+   Config & State
+   ============================================================= */
+const COLUMNS_CHECK = ["uid","pass","password","username","user","email","mail","cookie","token","passmail","mailrecovery"];
 let SQL = null;
-const domainMap = new Map(); // Map<domain, Set<"user|pass">> -> Dùng Set để tự loại trùng
-let deepDataBuffer = [];     // Lưu trữ mảng các dòng full info
-let isProcessing = false;
+const domainAccounts = new Map();
+let totalAccounts = 0;
+let processedFiles = 0;
 
-// UI Refs
-const els = {
-    status: document.getElementById('statusText'),
-    progress: document.getElementById('progressBar'),
-    domainList: document.getElementById('domainList'),
-    accList: document.getElementById('accountList'),
-    selDomName: document.getElementById('selectedDomainName'),
-    copyBtn: document.getElementById('copyCurrentBtn'),
-    deepArea: document.getElementById('deepExtractArea'),
-    deepText: document.getElementById('deepExtractText'),
-    totalDom: document.getElementById('totalDomains'),
-    totalAcc: document.getElementById('totalAccounts')
-};
+/* UI refs */
+const statusBox = document.getElementById("statusBox");
+const progressBar = document.getElementById("progressBar");
+const totalBadge = document.getElementById("totalCountBadge");
+const domainListBody = document.getElementById("domainListBody");
+const domainCountSpan = document.getElementById("domainCount");
+const sqlPreview = document.getElementById("sqlPreview");
+const autocompleteList = document.getElementById("autocompleteList");
 
-// ==========================================
-// 2. INITIALIZATION
-// ==========================================
-(async function init() {
-    try {
-        SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${f}` });
-        els.status.innerHTML = '<span class="text-success"><i class="fas fa-check-circle"></i> Hệ thống đã sẵn sàng</span>';
-    } catch (e) {
-        els.status.innerHTML = '<span class="text-danger">Lỗi tải thư viện SQL.js! Vui lòng kiểm tra mạng.</span>';
-    }
-})();
+/* init sql.js */
+initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${file}` })
+  .then(lib => { SQL = lib; logStatus("Hello loaded"); })
+  .catch(e => logStatus("sql.js load error: " + e.message));
 
-// ==========================================
-// 3. CORE PROCESSING LOGIC
-// ==========================================
+/* =============================================================
+   Notify helper
+   ============================================================= */
+function showNotify(msg, timeout=1500) {
+    const bar = document.getElementById("notifyBar");
+    bar.innerText = msg;
+    bar.style.display = "block";
+    clearTimeout(window.__notifyTimer);
+    window.__notifyTimer = setTimeout(() => { bar.style.display = "none"; }, timeout);
+}
 
-// Hàm thêm tài khoản vào bộ nhớ (Dùng Set để siêu tốc độ và tự loại trùng)
+/* =============================================================
+   UI Helpers
+   ============================================================= */
+function logStatus(msg) {
+  const ts = new Date().toLocaleTimeString();
+  statusBox.innerText = `[${ts}] ${msg}`;
+}
+
+function setProgress(current, total) {
+  const pct = total ? Math.round((current/total)*100) : 0;
+  progressBar.style.width = pct + "%";
+  progressBar.textContent = pct + "%";
+}
+
+function setTotalBadge() { totalBadge.innerText = `Total: ${totalAccounts} accs`; }
+
+function uniqArray(arr, keyFn) {
+  const seen = new Set();
+  return arr.filter(item => {
+    const k = keyFn(item);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+/* =============================================================
+   Add & parse
+   ============================================================= */
 function addAccount(user, pass, domain) {
-    if (!user || !pass || !domain) return;
-    if (domain.length < 3 || !domain.includes('.')) return;
+  if (!user || !pass) return;
+  domain = domain || (user.includes("@") ? user.split("@")[1].toLowerCase() : null);
+  if (!domain || domain.length < 3 || domain.indexOf('.') === -1) return;
 
-    if (!domainMap.has(domain)) {
-        domainMap.set(domain, new Set());
-    }
-    domainMap.get(domain).add(`${user}|${pass}`);
+  if (!domainAccounts.has(domain)) domainAccounts.set(domain, []);
+  const list = domainAccounts.get(domain);
+
+  if (!list.some(a => a.user === user && a.pass === pass)) {
+    list.push({ user, pass });
+    totalAccounts++;
+  }
 }
 
-// Hàm Parser Text (Tối ưu hóa không dùng Regex phức tạp cho từng dòng)
-function parseTextChunk(text) {
-    const lines = text.split(/\r?\n/);
-    const len = lines.length;
-    
-    for (let i = 0; i < len; i++) {
-        let line = lines[i].trim();
-        if (!line) continue;
+function parseSingleLine(line) {
+  if (!line) return null;
+  line = line.trim();
+  if (!line) return null;
 
-        // 1. Fast Check: user|pass or user:pass
-        let sep = line.indexOf('|');
-        if (sep === -1) sep = line.indexOf(':');
+  let sep = null;
+  if (line.includes("|")) sep = "|";
+  else if (line.includes(":")) sep = ":";
+  else if (line.includes(";")) sep = ";";
 
-        if (sep > 0 && sep < line.length - 1) {
-            // Kiểm tra sơ bộ xem có phải email không
-            if (line.indexOf('@') > -1 && line.indexOf('@') < sep) {
-                const user = line.substring(0, sep).trim();
-                const pass = line.substring(sep + 1).trim();
-                const atIdx = user.lastIndexOf('@');
-                if (atIdx !== -1) {
-                    const domain = user.substring(atIdx + 1).toLowerCase();
-                    addAccount(user, pass, domain);
-                    continue; // Done row
-                }
-            }
-        }
-
-        // 2. Block Check (URL/User/Pass) - Chỉ chạy khi dòng bắt đầu bằng URL
-        if (line.toLowerCase().startsWith('url:') && i + 2 < len) {
-            try {
-                // Lấy URL
-                let uStr = line.substring(4).trim();
-                if (!uStr.startsWith('http')) uStr = 'http://' + uStr;
-                const domain = new URL(uStr).hostname.toLowerCase().replace('www.', '');
-
-                // Quét 5 dòng tiếp theo tìm User/Pass
-                let user, pass;
-                for (let j = 1; j <= 5; j++) {
-                    if (i + j >= len) break;
-                    const next = lines[i+j];
-                    if (!user && (next.match(/^use?r(?:name)?[:|]/i) || next.match(/^mail[:|]/i) || next.match(/^login[:|]/i))) {
-                        user = next.split(/[:|]/).slice(1).join(':').trim();
-                    }
-                    if (!pass && (next.match(/^pass(?:word)?[:|]/i) || next.match(/^pwd[:|]/i))) {
-                        pass = next.split(/[:|]/).slice(1).join(':').trim();
-                    }
-                }
-                if (domain && user && pass) {
-                    addAccount(user, pass, domain);
-                    i += 2; // Skip lines
-                }
-            } catch (e) {}
-        }
+  if (sep) {
+    const parts = line.split(sep).map(p => p.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      return { user: parts[0], pass: parts[1] };
     }
+  }
+
+  const uMatch = line.match(/(?:email|user(?:name)?|login)[\s:=]*([^\s|;]+)/i);
+  const pMatch = line.match(/(?:password|pass|pwd)[\s:=]*([^\s|;]+)/i);
+  if (uMatch && pMatch) return { user: uMatch[1].trim(), pass: pMatch[1].trim() };
+
+  return null;
 }
 
-// Handler SQLite (Dual Mode: Extract & Scan)
-function processSQLiteDB(uint8Array, fileName) {
-    if (!SQL) return;
-    let db = null;
+function processMultiLineBlocks(lines) {
+  for (let i=0;i<lines.length;i++){
+    const l = lines[i].trim();
+    if(!l) continue;
+    if(l.toLowerCase().startsWith("url:")||l.toLowerCase().startsWith("host:")){
+      let url = l.split(":").slice(1).join(":").trim();
+      if(!/^https?:\/\//i.test(url)) url="http://"+url;
+      let domain=null,user=null,pass=null;
+      try{domain=new URL(url).hostname.replace(/^www\./,"").toLowerCase();}catch(e){}
+      for(let j=1;j<=6;j++){
+        if(i+j>=lines.length) break;
+        const nx=lines[i+j];
+        const um=nx.match(/^(?:username|user|email|login)[\s:=]*(.+)/i);
+        const pm=nx.match(/^(?:password|pass|pwd)[\s:=]*(.+)/i);
+        if(um) user=um[1].trim();
+        if(pm) pass=pm[1].trim();
+      }
+      if(user && pass) addAccount(user,pass,domain);
+    }
+  }
+}
+
+function processTextContent(text) {
+  if(!text) return;
+  const lines = text.split(/\r?\n/);
+  for(const line of lines){
+    const acc=parseSingleLine(line);
+    if(acc){
+      const domain = acc.user.includes("@") ? acc.user.split("@")[1].toLowerCase() : null;
+      addAccount(acc.user,acc.pass,domain);
+    }
+  }
+  processMultiLineBlocks(lines);
+}
+
+/* =============================================================
+   ZIP / SQLite / File Handlers
+   ============================================================= */
+async function processSQLiteBuffer(uint8arr, label = "") {
+  if (!SQL) {
+    logStatus("sql.js not ready — skipping SQLite: " + label);
+    return;
+  }
+  try {
+    const db = new SQL.Database(uint8arr);
+    // Try deep query first (accounts table)
     try {
-        db = new SQL.Database(uint8Array);
-        
-        // MODE 1: DEEP EXTRACT (Lấy Full Data)
-        try {
-            // Query ưu tiên các cột quan trọng
-            const stmt = db.prepare("SELECT * FROM accounts LIMIT 1"); // Check columns first
-            const cols = stmt.getColumnNames();
-            stmt.free();
-
-            // Xây dựng câu query động dựa trên cột có sẵn
-            const targetCols = ["uid", "id", "user", "username", "email", "pass", "password", "cookie", "cookies", "fa2", "2fa", "token"];
-            const availableCols = cols.filter(c => targetCols.includes(c.toLowerCase()));
-            
-            if (availableCols.length > 2) {
-                const res = db.exec(`SELECT ${availableCols.join(',')} FROM accounts`);
-                if (res.length) {
-                    const rows = res[0].values;
-                    const header = `[FILE: ${fileName}] Columns: ${availableCols.join('|')}`;
-                    const content = rows.map(r => r.join('|')).join('\n');
-                    
-                    // Add to Deep Buffer
-                    deepDataBuffer.push(header);
-                    deepDataBuffer.push(content);
-                    deepDataBuffer.push("-".repeat(20));
-
-                    // Add to Parser (để lọc user|pass vào list domain)
-                    parseTextChunk(content);
-                }
-            }
-        } catch (e) { /* Table accounts not found */ }
-
-        // MODE 2: GENERIC SCAN (Quét mọi bảng)
-        const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table'")[0]?.values.flat() || [];
-        for (const tbl of tables) {
-            try {
-                // Check 1 dòng để xem cột
-                const check = db.exec(`SELECT * FROM "${tbl}" LIMIT 1`);
-                if (!check.length) continue;
-                
-                const cols = check[0].columns.map(c => c.toLowerCase());
-                const uIdx = cols.findIndex(c => c.includes('user') || c.includes('mail') || c.includes('login') || c.includes('uid'));
-                const pIdx = cols.findIndex(c => c.includes('pass') || c.includes('pwd'));
-                
-                if (uIdx > -1 && pIdx > -1) {
-                    // Lấy dữ liệu (Limit để tránh treo nếu bảng quá lớn)
-                    const data = db.exec(`SELECT * FROM "${tbl}" LIMIT 50000`);
-                    let tempTxt = "";
-                    data[0].values.forEach(row => {
-                        const u = row[uIdx];
-                        const p = row[pIdx];
-                        if (u && p) tempTxt += `${u}|${p}\n`;
-                    });
-                    parseTextChunk(tempTxt);
-                }
-            } catch (err) {}
-        }
-
-    } catch (e) { console.error(e); } 
-    finally { if (db) db.close(); }
-}
-
-// ==========================================
-// 4. FILE SYSTEM HANDLERS
-// ==========================================
-
-async function handleFile(file) {
-    const ext = file.name.split('.').pop().toLowerCase();
-    
-    if (ext === 'txt' || ext === 'log') {
-        const text = await file.text();
-        parseTextChunk(text);
-    } 
-    else if (ext === 'db' || ext === 'sqlite') {
-        const buf = await file.arrayBuffer();
-        processSQLiteDB(new Uint8Array(buf), file.name);
-    } 
-    else if (ext === 'zip') {
-        try {
-            const zip = await JSZip.loadAsync(file);
-            // Lọc file để xử lý
-            const filesInside = Object.values(zip.files).filter(e => !e.dir);
-            for (const entry of filesInside) {
-                const subExt = entry.name.split('.').pop().toLowerCase();
-                if (['txt', 'log'].includes(subExt)) {
-                    const t = await entry.async('string');
-                    parseTextChunk(t);
-                } else if (['db', 'sqlite'].includes(subExt)) {
-                    const b = await entry.async('uint8array');
-                    processSQLiteDB(b, file.name + "/" + entry.name);
-                }
-            }
-        } catch (e) { console.error("Zip Error", e); }
-    }
-}
-
-// MAIN PROCESSOR (With Chunking to prevent freeze)
-async function startProcessing(fileList) {
-    if (isProcessing) return;
-    isProcessing = true;
-    
-    els.progress.style.width = '0%';
-    els.status.innerText = `Đang xử lý ${fileList.length} file...`;
-    
-    // Chunking: Process 10 files then wait 0ms to let UI update
-    const chunkSize = 5; 
-    let processed = 0;
-
-    for (let i = 0; i < fileList.length; i += chunkSize) {
-        const chunk = Array.from(fileList).slice(i, i + chunkSize);
-        await Promise.all(chunk.map(f => handleFile(f)));
-        
-        processed += chunk.length;
-        const pct = Math.min(100, Math.round((processed / fileList.length) * 100));
-        els.progress.style.width = pct + '%';
-        els.status.innerText = `Đã xử lý ${processed}/${fileList.length}`;
-        
-        // Update UI (Deep Extract) real-time if needed
-        if (deepDataBuffer.length > 0) {
-            els.deepArea.style.display = 'block';
-            els.deepText.value = deepDataBuffer.join('\n'); // Show preview
-        }
-        
-        // Yield to main thread
-        await new Promise(r => setTimeout(r, 0));
+      const cols = ["uid","pass","fa2","cookie","email","passmail","mailrecovery","birthday","name"];
+      const q = `SELECT ${cols.join(", ")} FROM accounts`;
+      const res = db.exec(q);
+      if (res.length) {
+        const rows = res[0].values;
+        const preview = rows.map(r => r.join("|")).join("\n");
+        sqlPreview.value += preview + "\n";
+        processTextContent(preview);
+        logStatus(`Extracted ${rows.length} rows from accounts table in ${label}`);
+      }
+    } catch(e) {
+      // ignore - table may not exist
     }
 
-    renderDomainList();
-    els.status.innerHTML = `<span class="text-success font-weight-bold">Hoàn tất!</span>`;
-    isProcessing = false;
+    // If nothing or to find more, enumerate tables
+    try {
+      const tRes = db.exec("SELECT name FROM sqlite_master WHERE type='table'");
+      const tables = tRes.length ? tRes[0].values.flat() : [];
+      for (const t of tables) {
+        try {
+          const sample = db.exec(`SELECT * FROM "${t}" LIMIT 1`);
+          if (!sample.length) continue;
+          const cols = sample[0].columns.map(c => c.toLowerCase());
+          const idxUser = cols.findIndex(c => c.includes("user") || c.includes("mail") || c.includes("login") || c === "uid");
+          const idxPass = cols.findIndex(c => c.includes("pass") || c.includes("pwd"));
+          if (idxUser !== -1 && idxPass !== -1) {
+            const res = db.exec(`SELECT * FROM "${t}" LIMIT 50000`);
+            if (!res.length) continue;
+            const rows = res[0].values;
+            const buf = [];
+            for (const r of rows) {
+              const u = String(r[idxUser] || "").trim();
+              const p = String(r[idxPass] || "").trim();
+              if (u && p) {
+                let domain = null;
+                if (u.includes("@")) domain = u.split("@")[1].toLowerCase();
+                addAccount(u, p, domain);
+                buf.push(`${u}|${p}`);
+              }
+            }
+            if (buf.length) {
+              sqlPreview.value += buf.slice(0, 200).join("\n") + "\n";
+              logStatus(`Scanned ${buf.length} rows from table ${t}`);
+            }
+          }
+        } catch(err) {
+          // ignore table-level errors
+        }
+      }
+    } catch(e) {
+      // ignore
+    }
+    db.close();
+  } catch(e) {
+    logStatus("SQLite parse error: " + e.message);
+  }
 }
 
-// ==========================================
-// 5. RENDERING & UI LOGIC
-// ==========================================
 
+async function processZipFile(file){
+  try{
+    const zip=await JSZip.loadAsync(file);
+    for(const entry of Object.values(zip.files)){
+      if(entry.dir) continue;
+      const n=entry.name.toLowerCase();
+      if(n.endsWith(".txt")||n.endsWith(".log")||n.endsWith(".csv")){
+        const txt=await entry.async("string");
+        processTextContent(txt);
+      }else if(n.endsWith(".sqlite")||n.endsWith(".db")){
+        const arr=await entry.async("uint8array");
+        await processSQLiteBuffer(arr,file.name+" -> "+entry.name);
+      }
+    }
+    logStatus("Processed ZIP: "+file.name);
+  }catch(e){ logStatus("ZIP error: "+file.name+" -> "+e.message);}
+}
+
+async function handleFile(file){
+  const ext=(file.name.split(".").pop()||"").toLowerCase();
+  showNotify(`Đang xử lý file: ${file.name}...`,2000);
+  if(ext==="zip") await processZipFile(file);
+  else if(ext==="sqlite"||ext==="db") {
+    const arr=await file.arrayBuffer();
+    await processSQLiteBuffer(new Uint8Array(arr),file.name);
+  }else{
+    const txt=await file.text();
+    processTextContent(txt);
+  }
+  processedFiles++;
+  setProgress(processedFiles, document.getElementById("fileInput").files.length);
+  showNotify(`Xong file: ${file.name}`,1000);
+  renderDomainList();
+  setTotalBadge();
+}
+
+/* =============================================================
+   Render UI
+   ============================================================= */
 function renderDomainList() {
-    els.domainList.innerHTML = "";
-    const sorted = [...domainMap.entries()].sort((a, b) => b[1].size - a[1].size);
-    
-    let totalDoms = 0;
-    let totalAccs = 0;
+  domainListBody.innerHTML="";
+  let idx=0;
+  for(const [d,list] of domainAccounts.entries()){
+    const div=document.createElement("div");
+    div.className="domain-row";
+    div.dataset.domain=d;
+    div.innerHTML=`<span>${d}</span><span class="badge badge-pill badge-count">${list.length}</span>`;
+    div.addEventListener("click",()=>selectDomain(d));
+    domainListBody.appendChild(div);
+    idx++;
+  }
+  domainCountSpan.innerText=domainAccounts.size;
+}
 
-    // Sử dụng DocumentFragment để render cực nhanh
-    const frag = document.createDocumentFragment();
-    
-    sorted.forEach(([domain, set]) => {
-        const count = set.size;
-        totalDoms++;
-        totalAccs += count;
-
-        const div = document.createElement('div');
-        div.className = 'domain-row';
-        div.innerHTML = `<span>${domain}</span> <span class="badge-count">${count}</span>`;
-        div.onclick = () => selectDomain(div, domain);
-        frag.appendChild(div);
+function selectDomain(domain){
+  const rows=document.querySelectorAll(".domain-row");
+  rows.forEach(r=>r.classList.remove("active"));
+  const selRow=[...rows].find(r=>r.dataset.domain===domain);
+  if(selRow) selRow.classList.add("active");
+  document.getElementById("selectedDomainName").innerText=domain;
+  document.getElementById("selectedDomainName").dataset.domain=domain;
+  const list=domainAccounts.get(domain)||[];
+  const accList=document.getElementById("accountList");
+  accList.innerHTML="";
+  if(list.length){
+    list.slice(0,500).forEach(a=>{
+      const d=document.createElement("div");
+      d.className="acc-item";
+      d.innerHTML=`<span class="left">${a.user}|${a.pass}</span>`;
+      accList.appendChild(d);
     });
-
-    els.domainList.appendChild(frag);
-    els.totalDom.innerText = totalDoms;
-    els.totalAcc.innerText = totalAccs;
+  } else accList.innerHTML='<div class="text-center text-muted p-3">Chưa có acc</div>';
+  document.getElementById("copyDomainAllBtn").disabled = !list.length;
+  document.getElementById("downloadDomainBtn").disabled = !list.length;
 }
 
-function selectDomain(el, domain) {
-    // Highlight UI
-    document.querySelectorAll('.domain-row').forEach(e => e.classList.remove('active'));
-    el.classList.add('active');
-    
-    // Render Accounts
-    els.selDomName.innerText = domain;
-    els.copyBtn.disabled = false;
-    els.accList.innerHTML = "";
-    
-    const set = domainMap.get(domain);
-    const frag = document.createDocumentFragment();
-    
-    // Limit view to 1000 to prevent lag, but copy will copy all
-    let i = 0;
-    for (const item of set) {
-        if (i++ > 500) {
-            const more = document.createElement('div');
-            more.className = 'text-center p-2 text-muted font-italic';
-            more.innerText = `...và ${set.size - 500} tài khoản khác...`;
-            frag.appendChild(more);
-            break;
-        }
-        
-        const row = document.createElement('div');
-        row.className = 'acc-row';
-        row.innerHTML = `
-            <span class="acc-data">${item}</span>
-            <button class="btn btn-light btn-sm py-0 border" onclick="copyText('${item}')"><i class="fas fa-copy"></i></button>
-        `;
-        frag.appendChild(row);
-    }
-    
-    els.accList.appendChild(frag);
-}
+/* =============================================================
+   Event Listeners
+   ============================================================= */
+document.getElementById("fileInput").addEventListener("change",(e)=>{
+  const files=[...e.target.files];
+  processedFiles=0;
+  showNotify(`Đang quét ${files.length} file...`,1000);
+  files.forEach(f=>handleFile(f));
+});
 
-function filterDomains() {
-    const term = document.getElementById('searchDomain').value.toLowerCase();
-    const rows = document.querySelectorAll('.domain-row');
-    rows.forEach(row => {
-        const txt = row.firstChild.textContent;
-        row.style.display = txt.includes(term) ? 'flex' : 'none';
-    });
-}
+document.getElementById("folderInput").addEventListener("change",(e)=>{
+  const files=[...e.target.files];
+  processedFiles=0;
+  showNotify(`Đang quét thư mục (${files.length} file)...`,1000);
+  files.forEach(f=>handleFile(f));
+});
 
-// ==========================================
-// 6. ACTIONS (COPY, EXPORT, MANUAL)
-// ==========================================
+document.getElementById("btnManual").addEventListener("click",()=>{
+  const txt=document.getElementById("manualInput").value;
+  if(!txt) return showNotify("Chưa nhập dữ liệu thủ công");
+  processTextContent(txt);
+  renderDomainList();
+  setTotalBadge();
+  showNotify("Đã xử lý thủ công",1500);
+});
 
-function copyText(txt) {
-    navigator.clipboard.writeText(txt);
-}
+document.getElementById("clearAllBtn").addEventListener("click",()=>{
+  domainAccounts.clear();
+  totalAccounts=0;
+  renderDomainList();
+  setTotalBadge();
+  showNotify("Đã xóa tất cả dữ liệu",1500);
+});
 
-function copyCurrentDomain() {
-    const dom = els.selDomName.innerText;
-    const set = domainMap.get(dom);
-    if(set) {
-        navigator.clipboard.writeText(Array.from(set).join('\n'));
-        alert(`Đã copy ${set.size} tài khoản!`);
-    }
-}
+/* Copy / Export */
+document.getElementById("copyAllDomainsBtn").addEventListener("click",()=>{
+  let txt="";
+  domainAccounts.forEach((arr)=>txt+=arr.map(a=>`${a.user}|${a.pass}`).join("\n")+"\n");
+  if(!txt) return showNotify("Không có dữ liệu để copy");
+  navigator.clipboard.writeText(txt).then(()=>showNotify(`Đã sao chép toàn bộ ${totalAccounts} accs`));
+});
 
-function copyDeepData() {
-    els.deepText.select();
-    document.execCommand('copy');
-    alert("Copied SQL Data!");
-}
+document.getElementById("exportAllBtn").addEventListener("click",()=>{
+  let txt="";
+  domainAccounts.forEach((arr)=>txt+=arr.map(a=>`${a.user}|${a.pass}`).join("\n")+"\n");
+  if(!txt) return showNotify("Không có dữ liệu để export");
+  const blob=new Blob([txt],{type:"text/plain;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download=`accounts_all_${Date.now()}.txt`; a.click();
+  URL.revokeObjectURL(url);
+  showNotify("Đã xuất toàn bộ accounts");
+});
 
-function clearDeepData() {
-    deepDataBuffer = [];
-    els.deepText.value = "";
-    els.deepArea.style.display = 'none';
-}
+document.getElementById("copyDomainAllBtn").addEventListener("click",()=>{
+  const domain=document.getElementById("selectedDomainName").dataset.domain;
+  if(!domain) return showNotify("Chưa chọn domain");
+  const list=domainAccounts.get(domain)||[];
+  const txt=list.map(a=>`${a.user}|${a.pass}`).join("\n");
+  navigator.clipboard.writeText(txt).then(()=>showNotify(`Đã sao chép ${list.length} dòng từ ${domain}`));
+});
 
-function toggleManualInput() {
-    const area = document.getElementById('manualInputArea');
-    area.style.display = area.style.display === 'none' ? 'block' : 'none';
-}
+document.getElementById("downloadDomainBtn").addEventListener("click",()=>{
+  const domain=document.getElementById("selectedDomainName").dataset.domain;
+  if(!domain) return showNotify("Chưa chọn domain");
+  const list=domainAccounts.get(domain)||[];
+  const blob=new Blob([list.map(a=>`${a.user}|${a.pass}`).join("\n")],{type:"text/plain;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download=`${domain}_accounts_${Date.now()}.txt`; a.click();
+  URL.revokeObjectURL(url);
+  showNotify(`Đã tải về file ${domain}_accounts`);
+});
 
-function processManual() {
-    const txt = document.getElementById('manualText').value;
-    if(txt) {
-        parseTextChunk(txt);
-        renderDomainList();
-        document.getElementById('manualText').value = "";
-        toggleManualInput();
-    }
-}
+document.getElementById("removeDupBtn").addEventListener("click",()=>{
+  const combined=[];
+  domainAccounts.forEach((arr,d)=>arr.forEach(a=>combined.push({domain:d,user:a.user,pass:a.pass})));
+  const uniq=uniqArray(combined,x=>`${x.domain}|${x.user}|${x.pass}`);
+  domainAccounts.clear(); totalAccounts=0;
+  for(const it of uniq){
+    if(!domainAccounts.has(it.domain)) domainAccounts.set(it.domain,[]);
+    domainAccounts.get(it.domain).push({user:it.user,pass:it.pass});
+    totalAccounts++;
+  }
+  renderDomainList(); setTotalBadge();
+  showNotify(`Removed duplicates. Total now: ${totalAccounts}`);
+});
 
-function exportAll() {
-    if(domainMap.size === 0) return alert("Chưa có dữ liệu!");
-    let content = "";
-    for (const [dom, set] of domainMap) {
-        content += Array.from(set).join('\n') + "\n";
-    }
-    const blob = new Blob([content], {type: "text/plain;charset=utf-8"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `All_Accounts_${Date.now()}.txt`;
-    a.click();
-}
+document.getElementById("copySqlBtn").addEventListener("click",()=>{
+  const t=sqlPreview.value;
+  if(!t) return showNotify("Không có preview SQL");
+  navigator.clipboard.writeText(t).then(()=>showNotify("Đã sao chép SQL preview"));
+});
 
-// Event Listeners
-document.getElementById('fileInput').addEventListener('change', function() { startProcessing(this.files); });
-document.getElementById('folderInput').addEventListener('change', function() { startProcessing(this.files); });
+document.getElementById("exportSqlBtn").addEventListener("click",()=>{
+  const t=sqlPreview.value;
+  if(!t) return showNotify("Không có preview SQL");
+  const blob=new Blob([t],{type:"text/plain;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download=`sql_preview_${Date.now()}.txt`; a.click();
+  URL.revokeObjectURL(url);
+  showNotify("Đã xuất SQL preview");
+});
 
+/* Search filter + autocomplete */
+document.getElementById("searchDomainInput").addEventListener("input",(e)=>{
+  const v=e.target.value.toLowerCase();
+  const rows=document.querySelectorAll(".domain-row");
+  let visible=0;
+  rows.forEach(r=>{
+    const txt=r.dataset.domain.toLowerCase();
+    if(txt.includes(v)){ r.style.display="flex"; visible++; }
+    else r.style.display="none";
+  });
+  autocompleteList.style.display=visible? "block":"none";
+});
+
+/* =============================================================
+   Done — ready
+   ============================================================= */
+showNotify("Tool ready!",1200);
 </script>
 </body>
 </html>
-

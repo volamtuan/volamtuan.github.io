@@ -1,169 +1,309 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<title>GitHub File Manager</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-<style>
-body { background:#f9f9f9; font-family: monospace; }
-header { background:#212529; color:white; padding:10px; text-align:center; font-size:1.2em; }
-#loginBox, #fileManager { max-width:900px; margin:20px auto; background:white; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1); padding:20px; }
-#fileList td { vertical-align: middle; }
-.folder { color:#007bff; }
-.file { color:#495057; }
-.notice { margin-top:10px; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lọc Dữ Liệu Nâng Cao </title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/2.4.2/sha.js"></script>
+  <style>
+    body { background: #f4f7f6; padding: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .text-container { background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 1000px; margin: auto; }
+    textarea { font-family: 'Cascadia Code', 'Courier New', monospace; font-size: 13px; resize: vertical; }
+    .nav-tabs .nav-link { color: #495057; font-weight: 600; border: none; border-bottom: 2px solid transparent; }
+    .nav-tabs .nav-link.active { color: #007bff; border: none; border-bottom: 2px solid #007bff; background: transparent; }
+    .btn-custom { border-radius: 8px; font-weight: 600; transition: all 0.3s; }
+    .btn-custom:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+    
+    /* === CSS cho Toast Notification === */
+    #toast {
+      visibility: hidden;
+      min-width: 280px;
+      background-color: #28a745; 
+      color: #fff;
+      text-align: center;
+      border-radius: 8px;
+      padding: 16px;
+      position: fixed;
+      z-index: 9999;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 30px;
+      font-size: 16px;
+      opacity: 0;
+      transition: opacity 0.4s, visibility 0.4s;
+    }
+    #toast.show {
+      visibility: visible;
+      opacity: 1;
+    }
+    .totp-section { text-align: center; padding: 20px; background: #e9ecef; border-radius: 10px; margin-top: 15px; }
+    #auth-code { font-size: 2.5rem; letter-spacing: 5px; color: #007bff; cursor: pointer; display: block; }
+    .countdown { font-weight: bold; color: #dc3545; }
+  </style>
 </head>
 <body>
 
-<header>📁 GitHub File Manager</header>
+<div id="toast"></div>
 
-<div id="loginBox">
-  <h5>🔐 Kết nối đến Repository</h5>
-  <div class="mb-2">
-    <label>👤 Username</label>
-    <input id="user" class="form-control" placeholder="vd: volamtuan">
-  </div>
-  <div class="mb-2">
-    <label>📦 Repository</label>
-    <input id="repo" class="form-control" placeholder="vd: volamtuan.github.io">
-  </div>
-  <div class="mb-2">
-    <label>🔑 GitHub Token</label>
-    <input id="token" class="form-control" placeholder="Personal Access Token (PAT)">
-  </div>
-  <button class="btn btn-primary w-100" id="connectBtn">Kết nối Repository</button>
-</div>
+<div class="text-container">
+  <h2 class="text-center mb-4">Công cụ Xử lý Dữ liệu</h2>
 
-<div id="fileManager" style="display:none;">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h5>📂 <span id="currentPath">/</span></h5>
-    <div>
-      <button class="btn btn-success btn-sm" id="newFolderBtn"><i class="bi bi-folder-plus"></i> Tạo thư mục</button>
-      <button class="btn btn-primary btn-sm" id="newFileBtn"><i class="bi bi-file-earmark-plus"></i> Tạo file</button>
-      <button class="btn btn-danger btn-sm" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Đăng xuất</button>
+  <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link active" id="cut-tab" data-toggle="tab" href="#cut" role="tab">Cắt Chuỗi</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="remove-duplicates-tab" data-toggle="tab" href="#remove-duplicates" role="tab">Lọc Trùng</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="merge-tab" data-toggle="tab" href="#merge" role="tab">Ghép File</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="filter-tab" data-toggle="tab" href="#filter" role="tab">Lọc Chuỗi</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="totp-tab" data-toggle="tab" href="#totp" role="tab">Lấy Mã 2FA</a>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="myTabContent">
+    <div class="tab-pane fade show active" id="cut" role="tabpanel">
+      <div class="form-group">
+        <textarea id="cutInput" rows="6" class="form-control" placeholder="Dán nội dung cần xử lý tại đây..."></textarea>
+      </div>
+      <div class="row">
+        <div class="col-md-3">
+          <label>Dấu phân cách</label>
+          <input type="text" id="delimiter" class="form-control" value="|" />
+        </div>
+        <div class="col-md-3">
+          <label>Bắt đầu từ cột</label>
+          <input type="number" id="start" class="form-control" value="1" />
+        </div>
+        <div class="col-md-3">
+          <label>Kết thúc ở cột</label>
+          <input type="number" id="end" class="form-control" value="1" />
+        </div>
+        <div class="col-md-3">
+          <label>Bỏ qua dòng</label>
+          <input type="number" id="excludeLines" class="form-control" value="0" />
+        </div>
+      </div>
+      <button type="button" onclick="processData('cut')" class="btn btn-primary btn-block btn-custom mt-3">Thực hiện Cắt</button>
+      <div class="mt-3">
+        <label>Kết quả (Đã tự động copy):</label>
+        <textarea id="cutResult" class="form-control" rows="6" readonly></textarea>
+      </div>
+    </div>
+
+    <div class="tab-pane fade" id="remove-duplicates" role="tabpanel">
+      <textarea id="filterInput" rows="8" class="form-control" placeholder="Dán danh sách cần lọc trùng..."></textarea>
+      <button type="button" onclick="processData('unique')" class="btn btn-primary btn-block btn-custom mt-3">Lọc Trùng & Copy</button>
+      <div class="mt-3">
+        <textarea id="filterResult" class="form-control" rows="8" readonly></textarea>
+      </div>
+    </div>
+
+    <div class="tab-pane fade" id="merge" role="tabpanel">
+      <div class="row">
+        <div class="col-md-6">
+          <label>Cột A</label>
+          <textarea id="mergeInput1" rows="6" class="form-control"></textarea>
+        </div>
+        <div class="col-md-6">
+          <label>Cột B</label>
+          <textarea id="mergeInput2" rows="6" class="form-control"></textarea>
+        </div>
+      </div>
+      <div class="form-group mt-2">
+        <label>Ký tự nối giữa A và B</label>
+        <input type="text" id="mergeDelimiter" class="form-control" placeholder="Ví dụ: : hoặc |" />
+      </div>
+      <button type="button" onclick="processData('merge')" class="btn btn-primary btn-block btn-custom">Ghép & Copy</button>
+      <textarea id="mergeResult" class="form-control mt-3" rows="6" readonly></textarea>
+    </div>
+
+    <div class="tab-pane fade" id="filter" role="tabpanel">
+      <textarea id="inputText" rows="6" class="form-control" placeholder="Dữ liệu nguồn..."></textarea>
+      <div class="form-group mt-3">
+        <label>Từ khóa lọc (cách nhau bằng dấu phẩy)</label>
+        <textarea id="filterWords" rows="2" class="form-control"></textarea>
+      </div>
+      <div class="btn-group w-100">
+        <button class="btn btn-success btn-custom" type="button" onclick="processData('filterIn')">Lấy dòng CHỨA từ khóa</button>
+        <button class="btn btn-danger btn-custom" type="button" onclick="processData('filterOut')">Lấy dòng KHÔNG CHỨA</button>
+      </div>
+      <textarea id="outputText" rows="6" class="form-control mt-3" readonly></textarea>
+    </div>
+
+    <div class="tab-pane fade" id="totp" role="tabpanel">
+      <div class="form-group">
+        <label>Dán Secret Key (Base32)</label>
+        <textarea id="secret-key" rows="2" class="form-control" placeholder="JBSWY3DPEHPK3PXP..."></textarea>
+      </div>
+      <div class="totp-section">
+        <strong id="auth-code" onclick="copy2FA()">--- ---</strong>
+        <p class="mt-2" id="countdown">Đang chờ Key...</p>
+        <button type="button" onclick="clearInput()" class="btn btn-outline-danger btn-sm">Xóa Key</button>
+      </div>
     </div>
   </div>
-  <table class="table table-hover" id="fileList">
-    <thead><tr><th>Tên</th><th>Kích thước</th><th>Hành động</th></tr></thead>
-    <tbody></tbody>
-  </table>
-  <div class="notice" id="status"></div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
-const apiBase = "https://api.github.com";
-let user, repo, token, path = "";
-
-function saveConfig() {
-  localStorage.setItem("gh_user", user);
-  localStorage.setItem("gh_repo", repo);
-  localStorage.setItem("gh_token", token);
-}
-function loadConfig() {
-  user = localStorage.getItem("gh_user");
-  repo = localStorage.getItem("gh_repo");
-  token = localStorage.getItem("gh_token");
-  return user && repo && token;
+// --- Hệ thống Thông báo ---
+function showToast(message) {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.className = "show";
+  setTimeout(() => { toast.className = ""; }, 2500);
 }
 
-async function github(method, endpoint, body=null) {
-  const res = await fetch(`${apiBase}${endpoint}`, {
-    method,
-    headers: {
-      "Authorization": "token " + token,
-      "Accept": "application/vnd.github+json"
-    },
-    body: body ? JSON.stringify(body) : null
-  });
-  if (!res.ok) throw new Error(res.status + " " + res.statusText);
-  return await res.json();
-}
-
-async function listFiles() {
-  document.getElementById("status").innerText = "🔄 Đang tải...";
+async function autoCopyToClipboard(text) {
+  if (!text || text.trim() === "") return;
   try {
-    const files = await github("GET", `/repos/${user}/${repo}/contents/${path}`);
-    const tbody = document.querySelector("#fileList tbody");
-    tbody.innerHTML = "";
-    files.forEach(f=>{
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><i class="bi ${f.type==="dir"?"bi-folder-fill folder":"bi-file-earmark file"}"></i> 
-          <a href="#" onclick="openPath('${f.path}')">${f.name}</a></td>
-        <td>${f.size || "-"}</td>
-        <td>
-          <button class="btn btn-sm btn-danger" onclick="deleteItem('${f.path}','${f.sha}')"><i class="bi bi-trash"></i></button>
-        </td>`;
-      tbody.appendChild(tr);
-    });
-    document.getElementById("status").innerText = "✅ Hoàn tất!";
-  } catch(e){
-    document.getElementById("status").innerText = "❌ Lỗi: " + e.message;
+    await navigator.clipboard.writeText(text);
+    showToast("Đã tự động sao chép kết quả!");
+  } catch (err) {
+    console.error('Lỗi sao chép:', err);
   }
 }
 
-async function openPath(newPath) {
-  path = newPath;
-  document.getElementById("currentPath").innerText = "/" + path;
-  await listFiles();
+// --- Logic Xử lý Dữ liệu Tập trung (Optimized for Large Data) ---
+function processData(type) {
+  let resultText = "";
+  
+  if (type === 'cut') {
+    const input = document.getElementById("cutInput").value.trim().split("\n");
+    const delimiter = document.getElementById("delimiter").value;
+    const start = parseInt(document.getElementById("start").value) - 1;
+    const end = parseInt(document.getElementById("end").value) - 1;
+    const exclude = parseInt(document.getElementById("excludeLines").value);
+    
+    resultText = input
+      .filter((_, idx) => (idx + 1) !== exclude)
+      .map(line => {
+        const parts = line.split(delimiter);
+        return parts.slice(start, end + 1).join(delimiter);
+      }).join("\n");
+    document.getElementById("cutResult").value = resultText;
+  } 
+  
+  else if (type === 'unique') {
+    const input = document.getElementById("filterInput").value.trim().split("\n");
+    resultText = [...new Set(input)].join("\n");
+    document.getElementById("filterResult").value = resultText;
+  }
+
+  else if (type === 'merge') {
+    const a = document.getElementById("mergeInput1").value.trim().split("\n");
+    const b = document.getElementById("mergeInput2").value.trim().split("\n");
+    const d = document.getElementById("mergeDelimiter").value;
+    const max = Math.max(a.length, b.length);
+    let res = [];
+    for(let i=0; i<max; i++) res.push((a[i]||"") + d + (b[i]||""));
+    resultText = res.join("\n");
+    document.getElementById("mergeResult").value = resultText;
+  }
+
+  else if (type.startsWith('filter')) {
+    const input = document.getElementById("inputText").value.split("\n");
+    const keys = document.getElementById("filterWords").value.toLowerCase().split(",").map(k => k.trim()).filter(k => k);
+    
+    const filtered = input.filter(line => {
+      const match = keys.some(k => line.toLowerCase().includes(k));
+      return type === 'filterIn' ? match : !match;
+    });
+    
+    resultText = filtered.join("\n");
+    document.getElementById("outputText").value = resultText;
+  }
+
+  autoCopyToClipboard(resultText);
 }
 
-async function deleteItem(p, sha) {
-  if (!confirm("Xoá " + p + " ?")) return;
-  try {
-    await github("DELETE", `/repos/${user}/${repo}/contents/${p}`, { message: "delete "+p, sha });
-    document.getElementById("status").innerText = "🗑️ Đã xoá " + p;
-    await listFiles();
-  } catch(e){ document.getElementById("status").innerText = "❌ Lỗi xoá: " + e.message; }
+// --- TOTP Logic ---
+function base32tohex(base32) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = "", hex = "";
+  for (let c of base32.replace(/\s/g, "").toUpperCase()) {
+    const val = chars.indexOf(c);
+    if (val >= 0) bits += val.toString(2).padStart(5, '0');
+  }
+  for (let i = 0; i + 8 <= bits.length; i += 8) {
+    hex += parseInt(bits.substr(i, 8), 2).toString(16).padStart(2, '0');
+  }
+  return hex;
 }
 
-async function createItem(type) {
-  const name = prompt(`Nhập tên ${type==='dir'?'thư mục':'file'}`);
-  if (!name) return;
+function generateTOTP(secret) {
   try {
-    if (type === "dir") {
-      await github("PUT", `/repos/${user}/${repo}/contents/${path}/${name}/.keep`, {
-        message: "create folder " + name,
-        content: btoa("")
-      });
-    } else {
-      await github("PUT", `/repos/${user}/${repo}/contents/${path}/${name}`, {
-        message: "create file " + name,
-        content: btoa("")
-      });
+    const epoch = Math.floor(Date.now() / 1000);
+    const time = Math.floor(epoch / 30).toString(16).padStart(16, '0');
+    const key = base32tohex(secret);
+    if (!key) return null;
+    const shaObj = new jsSHA("SHA-1", "HEX");
+    shaObj.setHMACKey(key, "HEX");
+    shaObj.update(time);
+    const hmac = shaObj.getHMAC("HEX");
+    const offset = parseInt(hmac.substring(hmac.length - 1), 16);
+    const binary = parseInt(hmac.substr(offset * 2, 8), 16) & 0x7fffffff;
+    return (binary % 1000000).toString().padStart(6, '0');
+  } catch (e) { return null; }
+}
+
+let lastCode = "";
+function updateTOTP() {
+  const secret = document.getElementById("secret-key").value.trim();
+  const codeEl = document.getElementById("auth-code");
+  const countEl = document.getElementById("countdown");
+  
+  if (!secret) {
+    codeEl.textContent = "--- ---";
+    countEl.textContent = "Đang chờ Key...";
+    return;
+  }
+
+  const code = generateTOTP(secret);
+  const remain = 30 - (Math.floor(Date.now() / 1000) % 30);
+  
+  if (code) {
+    codeEl.textContent = code.slice(0, 3) + " " + code.slice(3);
+    countEl.innerHTML = `Làm mới sau: <span class="countdown">${remain}s</span>`;
+    
+    if (code !== lastCode) {
+      navigator.clipboard.writeText(code).catch(()=>{});
+      showToast("Mã 2FA mới đã được sao chép!");
+      lastCode = code;
     }
-    document.getElementById("status").innerText = "✅ Đã tạo " + name;
-    await listFiles();
-  } catch(e){ document.getElementById("status").innerText = "❌ Lỗi tạo: " + e.message; }
+  } else {
+    codeEl.textContent = "KEY SAI";
+    countEl.textContent = "Vui lòng kiểm tra lại secret key.";
+  }
 }
 
-document.getElementById("connectBtn").onclick = async ()=>{
-  user=document.getElementById("user").value.trim();
-  repo=document.getElementById("repo").value.trim();
-  token=document.getElementById("token").value.trim();
-  if(!user||!repo||!token)return alert("Vui lòng nhập đầy đủ!");
-  saveConfig();
-  document.getElementById("loginBox").style.display="none";
-  document.getElementById("fileManager").style.display="block";
-  await listFiles();
-};
-
-document.getElementById("newFolderBtn").onclick=()=>createItem("dir");
-document.getElementById("newFileBtn").onclick=()=>createItem("file");
-document.getElementById("logoutBtn").onclick=()=>{
-  localStorage.clear();
-  location.reload();
-};
-
-if(loadConfig()){
-  document.getElementById("loginBox").style.display="none";
-  document.getElementById("fileManager").style.display="block";
-  listFiles();
+function clearInput() {
+  document.getElementById("secret-key").value = "";
+  lastCode = "";
+  updateTOTP();
 }
+
+function copy2FA() {
+  const code = lastCode;
+  if(code) {
+    navigator.clipboard.writeText(code);
+    showToast("Đã sao chép mã 2FA!");
+  }
+}
+
+// Lắng nghe sự kiện và chạy vòng lặp
+document.getElementById('secret-key').addEventListener('input', updateTOTP);
+setInterval(updateTOTP, 1000);
+
 </script>
-
 </body>
 </html>

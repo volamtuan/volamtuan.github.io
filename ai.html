@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AI Coder</title>
+    <style>
+        :root { --bg: #212121; --user-b: #303030; --text: #ececec; --accent: #10a37f; --input-bg: #2f2f2f; }
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background: var(--bg); color: var(--text); margin: 0;
+            display: flex; flex-direction: column; height: 100vh;
+        }
+        header {
+            padding: env(safe-area-inset-top) 15px 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            background: #171717; border-bottom: 1px solid #333;
+        }
+        .status { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: #ef4444; }
+        .dot.online { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+        
+        #chat-container {
+            flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 15px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .msg { max-width: 85%; padding: 12px; border-radius: 15px; font-size: 15px; line-height: 1.5; word-wrap: break-word; }
+        .user { align-self: flex-end; background: var(--user-b); border-bottom-right-radius: 4px; }
+        .bot { align-self: flex-start; background: transparent; font-family: monospace; white-space: pre-wrap; width: 100%; border-left: 2px solid #444; padding-left: 10px; margin-left: 5px; }
+
+        .input-area { padding: 10px 15px calc(15px + env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid #333; }
+        
+        /* Trạng thái file đính kèm */
+        #file-preview { 
+            display: none; align-items: center; gap: 10px; background: #383838; 
+            padding: 5px 12px; border-radius: 10px; margin-bottom: 8px; font-size: 13px; color: var(--accent);
+        }
+        .remove-file { color: #ff6b6b; font-weight: bold; cursor: pointer; padding: 0 5px; }
+
+        .box { display: flex; background: var(--input-bg); border-radius: 25px; padding: 5px 15px; align-items: center; border: 1px solid #444; }
+        input[type="text"] { flex: 1; background: none; border: none; color: white; padding: 10px; font-size: 16px; outline: none; }
+        
+        .btn-send { background: white; color: black; border: none; width: 32px; height: 32px; border-radius: 50%; font-weight: bold; cursor: pointer; }
+        .btn-del { background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="status">
+        <div id="statusDot" class="dot"></div>
+        <select id="modelSelect" style="background:none;color:white;border:none;outline:none;"><option>Ollama...</option></select>
+    </div>
+    <button id="delBtn" class="btn-del">XÓA SẠCH</button>
+</header>
+
+<div id="chat-container"></div>
+
+<div class="input-area">
+    <div id="file-preview">
+        <span id="file-name"></span>
+        <span class="remove-file" onclick="removeFile()">✕</span>
+    </div>
+    
+    <div class="box">
+        <label for="fileInput" style="padding: 8px; cursor: pointer; color: #acacbe; font-size: 20px;">📎</label>
+        <input type="file" id="fileInput" style="display:none">
+        <input type="text" id="userInput" placeholder="Nhắn tin hoặc đính kèm code..." autocomplete="off">
+        <button id="sendBtn" class="btn-send">▲</button>
+    </div>
+</div>
+
+<script>
+    const chat = document.getElementById('chat-container');
+    const modelSel = document.getElementById('modelSelect');
+    const dot = document.getElementById('statusDot');
+    const input = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const delBtn = document.getElementById('delBtn');
+    const fileInput = document.getElementById('fileInput');
+    const filePreview = document.getElementById('file-preview');
+    const fileNameDisplay = document.getElementById('file-name');
+
+    const API = 'http://viettel.sytes.net:11434';
+    const KEY = 'chat_final_v6';
+
+    let attachedFileContent = "";
+
+    // Xóa lịch sử
+    delBtn.onclick = function() {
+        localStorage.setItem(KEY, JSON.stringify([]));
+        chat.innerHTML = "";
+    };
+
+    // Xử lý chọn file
+    fileInput.onchange = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                attachedFileContent = ev.target.result;
+                fileNameDisplay.innerText = `📁 ${file.name}`;
+                filePreview.style.display = "flex";
+            };
+            reader.readAsText(file);
+        }
+    };
+
+    // Gỡ file đã chọn
+    function removeFile() {
+        attachedFileContent = "";
+        fileInput.value = "";
+        filePreview.style.display = "none";
+    }
+
+    async function getModels() {
+        try {
+            const res = await fetch(`${API}/api/tags`);
+            const data = await res.json();
+            dot.classList.add('online');
+            modelSel.innerHTML = data.models.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+        } catch (e) { dot.classList.remove('online'); }
+    }
+
+    function save(role, text, update = false) {
+        let h = JSON.parse(localStorage.getItem(KEY) || '[]');
+        if (update && h.length > 0) h[h.length-1].text = text;
+        else h.push({role, text});
+        localStorage.setItem(KEY, JSON.stringify(h));
+    }
+
+    function addUI(role, text) {
+        const d = document.createElement('div');
+        d.className = `msg ${role}`;
+        d.innerText = text;
+        chat.appendChild(d);
+        chat.scrollTop = chat.scrollHeight;
+        return d;
+    }
+
+    async function send() {
+        const val = input.value.trim();
+        if(!val && !attachedFileContent) return;
+        
+        // Gộp nội dung file vào prompt nếu có
+        let finalPrompt = attachedFileContent ? `NỘI DUNG FILE:\n${attachedFileContent}\n\nYÊU CẦU: ${val || "Phân tích file này"}` : val;
+        let displayUserMsg = attachedFileContent ? `📁 [File: ${fileInput.files[0].name}]\n${val}` : val;
+
+        addUI('user', displayUserMsg);
+        save('user', displayUserMsg);
+        
+        input.value = '';
+        removeFile(); // Reset file sau khi nhấn gửi
+        sendBtn.disabled = true;
+
+        const botMsg = addUI('bot', '...');
+        let full = "";
+        save('bot', "");
+
+        try {
+            const res = await fetch(`${API}/api/generate`, {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    model: modelSel.value, 
+                    prompt: finalPrompt, 
+                    system: "Bạn là một chuyên gia lập trình. Hãy trả lời bằng tiếng Việt, ngắn gọn và chính xác.", 
+                    stream: true 
+                })
+            });
+            const reader = res.body.getReader();
+            const dec = new TextDecoder();
+            botMsg.innerText = "";
+
+            while (true) {
+                const {done, value} = await reader.read();
+                if (done) break;
+                const chunk = dec.decode(value);
+                const lines = chunk.split('\n');
+                for (const l of lines) {
+                    if(!l) continue;
+                    try {
+                        const data = JSON.parse(l);
+                        if(data.response) {
+                            full += data.response;
+                            botMsg.innerText = full;
+                            save('bot', full, true);
+                            chat.scrollTop = chat.scrollHeight;
+                        }
+                    } catch(err) {}
+                }
+            }
+        } catch (e) { botMsg.innerText = "Lỗi kết nối!"; }
+        finally { sendBtn.disabled = false; }
+    }
+
+    sendBtn.onclick = send;
+    input.onkeypress = (e) => { if(e.key === 'Enter') send(); };
+    window.onload = () => {
+        getModels();
+        const h = JSON.parse(localStorage.getItem(KEY) || '[]');
+        h.forEach(x => addUI(x.role, x.text));
+        chat.scrollTop = chat.scrollHeight;
+    };
+</script>
+</body>
+</html>

@@ -10006,6 +10006,8 @@ MaxCircuitDirtiness 86400
 IPv6Exit 1
 ClientUseIPv6 1
 ClientPreferIPv6ORPort 1
+ReachableAddresses reject *:*
+ReachableAddresses accept6 *:*
 StrictNodes 1
 AvoidDiskWrites 1
 UseMicrodescriptors 1

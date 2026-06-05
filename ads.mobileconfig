@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PayloadContent</key>
+	<array>
+		<dict>
+			<key>DNSSettings</key>
+			<dict>
+				<key>DNSProtocol</key>
+				<string>HTTPS</string>
+				<key>ServerAddresses</key>
+				<array/>
+				<key>ServerName</key>
+				<string>Tiktok: Kenapple96</string>
+				<key>ServerURL</key>
+				<string>https://apple.dns.nextdns.io/eab6bf/fullsevice-sangtao</string>
+			</dict>
+			<key>OnDemandRules</key>
+			<array>
+				<dict>
+					<key>Action</key>
+					<string>Connect</string>
+					<key>InterfaceTypeMatch</key>
+					<string>WiFi</string>
+				</dict>
+				<dict>
+					<key>Action</key>
+					<string>Connect</string>
+					<key>InterfaceTypeMatch</key>
+					<string>Cellular</string>
+				</dict>
+			</array>
+			<key>PayloadDisplayName</key>
+			<string>Tiktok: Kenapple96</string>
+			<key>PayloadIdentifier</key>
+			<string>io.nextdns.eab6bf.profile.dnsSettings.managed</string>
+			<key>PayloadType</key>
+			<string>com.apple.dnsSettings.managed</string>
+			<key>PayloadUUID</key>
+			<string>A1E2F262-DB73-40F6-BD22-2E42A43A3C94.eab6bf.dnsSettings.managed</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+		</dict>
+	</array>
+	<key>PayloadDescription</key>
+	<string>Các chức năng của phần mềm:
+❤️Chặn cảnh báo tim iPhone/iPad, Chặn định vị, Chặn báo mất máy,Chặn xóa máy, Chặn khóa máy từ xa
+💚Lưu ý: Không sử dụng VPN để tránh xung đột vd: 1.1.1.1
+💚Đây chi là giải pháp chữa cháy, không nên lạm dụng, đủ tiền lh lại chủ phần mềm để mở trắng Icloud
+🍎TẤT Wifi 4G và BẬT chế độ máy bay trước khi tắt nguồn
+🍎Sau khi mở nguồn lại vô được bên trong đợi 2 phút mới bật Wifi 4G
+
+❤️ Hỗ trợ: Zalo/ĐT 0588567896 Tiktok: (Kenapple96) 
+🍏Hỗ trợ ae thoát ẩn iCloud - off iCloud 
+🍏Thu mua Giá cao miễn không vi phạm pháp luật ạ!!  Ae Gần KV hà nội có thể qua trực tiếp ạ!!!</string>
+	<key>PayloadDisplayName</key>
+	<string>Chặn Xoá iPhone - Sang Táo(kenapple96)</string>
+	<key>PayloadIdentifier</key>
+	<string>com.example.systemwide.dns.nextdns</string>
+	<key>PayloadOrganization</key>
+	<string>0588567896</string>
+	<key>PayloadRemovalDisallowed</key>
+	<false/>
+	<key>PayloadScope</key>
+	<string>System</string>
+	<key>PayloadType</key>
+	<string>Configuration</string>
+	<key>PayloadUUID</key>
+	<string>E6D2B98F-11F2-46E1-84DB-3AA1DAEDE85B</string>
+	<key>PayloadVersion</key>
+	<integer>1</integer>
+</dict>
+</plist>

@@ -3,10 +3,8 @@
 <plist version="1.0">
   <dict>
     <key>PayloadDisplayName</key>
-    <string>Chặn khoá iPhone Vay iCloud - Sang Táo</string>
+    <string>Chặn khoá iPhone Vay iCloud</string>
     <key>PayloadDescription</key>
-    <string>Chặn khoá iPhone Vay iCloud - Sang Táo - Bao uy tins 0588567896 - 
-Dịch vụ mở icloud vay, góp lừa bởi Sang táo, anh em cần alo 0588567896 kv Hà Nội nhé!!! </string>
     <key>PayloadIdentifier</key>
     <string>io.nextdns.467ec2.profile</string>
     <key>PayloadScope</key>
@@ -60,9 +58,9 @@ Dịch vụ mở icloud vay, góp lừa bởi Sang táo, anh em cần alo 058856
         <key>PayloadUUID</key>
         <string>A1E2F262-DB73-40F6-BD22-2E42A43A3C94.467ec2.dnsSettings.managed</string>
         <key>PayloadDisplayName</key>
-        <string>Chặn khoá iPhone Vay iCloud - Sang Táo</string>
+        <string>Chặn khoá iPhone Vay iCloud</string>
         <key>PayloadOrganization</key>
-        <string>Sang Tao</string>
+        <string>Chặn khoá iPhone Vay iCloud</string>
         <key>PayloadVersion</key>
         <integer>1</integer>
       </dict>

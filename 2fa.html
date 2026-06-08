@@ -2,29 +2,368 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>2FA Authenticator</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/2.4.2/sha.js"></script>
-
 <style>
-:root{
-    --bg:#f3f4f6;
-    --card:#fff;
-    --primary:#22c55e;
-    --blue:#3b82f6;
-    --red:#ef4444;
-    --muted:#6b7280;
-    --border:#e5e7eb;
-    --radius:14px;
-    --shadow:0 10px 25px rgba(0,0,0,.1);
+*{
+box-sizing: border-box;
+margin: 0;
+padding: 0;
 }
-*{box-sizing:border-box}
 body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
-    background:linear-gradient(180deg,#eef2ff,#f3f4f6);
-    padding:20px;
+font-family: 'Segoe UI', Arial, sans-serif;
+padding: 20px;
+background: #0d0e12;
+color: #e4e6eb;
+line-height: 1.5;
 }
-.container{
+.container {
+max-width: 700px;
+margin: 0 auto;
+background: #16181f;
+padding: 25px;
+border-radius: 16px;
+box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+border: 1px solid #2a2d38;
+}
+h2{
+font-size: 22px;
+font-weight: 600;
+margin-bottom: 5px;
+color: #fff;
+letter-spacing: 0.5px;
+}
+.subtitle {
+font-size: 13px;
+color: #8a8f9d;
+margin-bottom: 15px;
+}
+textarea{
+width: 100%;
+height: 160px;
+background: #1f222e;
+color: #39e58e;
+border: 1.5px solid #2d3142;
+padding: 14px;
+font-size: 14px;
+font-family: 'Fira Code', monospace;
+border-radius: 10px;
+resize: vertical;
+outline: none;
+transition: border-color 0.2s, box-shadow 0.2s;
+}
+textarea:focus{
+border-color: #0a84ff;
+box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+}
+.control-panel {
+margin-top: 15px;
+display: flex;
+flex-direction: column;
+gap: 10px;
+}
+.limit-box {
+display: flex;
+align-items: center;
+gap: 10px;
+background: #1f222e;
+padding: 10px 14px;
+border-radius: 10px;
+border: 1px solid #2d3142;
+}
+.limit-box label {
+font-size: 14px;
+color: #8a8f9d;
+white-space: nowrap;
+}
+.limit-box input {
+flex: 1;
+background: #16181f;
+border: 1px solid #3f4458;
+color: #ff9f0a;
+padding: 8px 12px;
+font-size: 15px;
+font-weight: 600;
+border-radius: 6px;
+outline: none;
+}
+.btn-group {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 10px;
+}
+button{
+width: 100%;
+padding: 14px;
+font-size: 15px;
+font-weight: 600;
+border: none;
+background: #0a84ff;
+color: #fff;
+border-radius: 10px;
+cursor: pointer;
+transition: background 0.2s, transform 0.1s, filter 0.2s;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+}
+button:hover{
+filter: brightness(1.1);
+}
+button:active{
+transform: scale(0.98);
+}
+.btn-new {
+background: #0a84ff;
+}
+.btn-continue {
+background: #24b45a;
+}
+.btn-copy {
+grid-column: span 2;
+background: #2f3342;
+color: #e4e6eb;
+border: 1px solid #3f4458;
+margin-top: 5px;
+}
+.btn-copy:hover {
+background: #3f4458;
+}
+#counter {
+margin-top: 20px;
+font-size: 14px;
+font-weight: 600;
+color: #ff9f0a;
+background: rgba(255, 159, 10, 0.08);
+padding: 10px 15px;
+border-radius: 8px;
+border: 1px solid rgba(255, 159, 10, 0.2);
+display: inline-block;
+}
+#out{
+margin-top: 15px;
+background: #1f222e;
+border-radius: 10px;
+max-height: 350px;
+overflow: auto;
+border: 1px solid #2d3142;
+}
+.line-item {
+padding: 10px 14px;
+border-bottom: 1px solid #2d3142;
+cursor: pointer;
+font-family: monospace;
+font-size: 13px;
+color: #cbd5e1;
+transition: background 0.15s, color 0.15s;
+}
+.line-item:last-child {
+border-bottom: none;
+}
+.line-item:hover {
+background: #262938;
+color: #0a84ff;
+}
+#toast {
+position: fixed;
+bottom: -50px;
+right: 20px;
+background: #0a84ff;
+color: #fff;
+padding: 12px 24px;
+border-radius: 8px;
+font-size: 14px;
+font-weight: 600;
+z-index: 1000;
+transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+#toast.show {
+bottom: 20px;
+}
+</style>
+<style>
+*{
+box-sizing: border-box;
+margin: 0;
+padding: 0;
+}
+body{
+font-family: 'Segoe UI', Arial, sans-serif;
+padding: 20px;
+background: #0d0e12;
+color: #e4e6eb;
+line-height: 1.5;
+}
+.container {
+max-width: 700px;
+margin: 0 auto;
+background: #16181f;
+padding: 25px;
+border-radius: 16px;
+box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+border: 1px solid #2a2d38;
+}
+h2{
+font-size: 22px;
+font-weight: 600;
+margin-bottom: 5px;
+color: #fff;
+letter-spacing: 0.5px;
+}
+.subtitle {
+font-size: 13px;
+color: #8a8f9d;
+margin-bottom: 15px;
+}
+textarea{
+width: 100%;
+height: 160px;
+background: #1f222e;
+color: #39e58e;
+border: 1.5px solid #2d3142;
+padding: 14px;
+font-size: 14px;
+font-family: 'Fira Code', monospace;
+border-radius: 10px;
+resize: vertical;
+outline: none;
+transition: border-color 0.2s, box-shadow 0.2s;
+}
+textarea:focus{
+border-color: #0a84ff;
+box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+}
+.control-panel {
+margin-top: 15px;
+display: flex;
+flex-direction: column;
+gap: 10px;
+}
+.limit-box {
+display: flex;
+align-items: center;
+gap: 10px;
+background: #1f222e;
+padding: 10px 14px;
+border-radius: 10px;
+border: 1px solid #2d3142;
+}
+.limit-box label {
+font-size: 14px;
+color: #8a8f9d;
+white-space: nowrap;
+}
+.limit-box input {
+flex: 1;
+background: #16181f;
+border: 1px solid #3f4458;
+color: #ff9f0a;
+padding: 8px 12px;
+font-size: 15px;
+font-weight: 600;
+border-radius: 6px;
+outline: none;
+}
+.btn-group {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 10px;
+}
+button{
+width: 100%;
+padding: 14px;
+font-size: 15px;
+font-weight: 600;
+border: none;
+background: #0a84ff;
+color: #fff;
+border-radius: 10px;
+cursor: pointer;
+transition: background 0.2s, transform 0.1s, filter 0.2s;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+}
+button:hover{
+filter: brightness(1.1);
+}
+button:active{
+transform: scale(0.98);
+}
+.btn-new {
+background: #0a84ff;
+}
+.btn-continue {
+background: #24b45a;
+}
+.btn-copy {
+grid-column: span 2;
+background: #2f3342;
+color: #e4e6eb;
+border: 1px solid #3f4458;
+margin-top: 5px;
+}
+.btn-copy:hover {
+background: #3f4458;
+}
+#counter {
+margin-top: 20px;
+font-size: 14px;
+font-weight: 600;
+color: #ff9f0a;
+background: rgba(255, 159, 10, 0.08);
+padding: 10px 15px;
+border-radius: 8px;
+border: 1px solid rgba(255, 159, 10, 0.2);
+display: inline-block;
+}
+#out{
+margin-top: 15px;
+background: #1f222e;
+border-radius: 10px;
+max-height: 350px;
+overflow: auto;
+border: 1px solid #2d3142;
+}
+.line-item {
+padding: 10px 14px;
+border-bottom: 1px solid #2d3142;
+cursor: pointer;
+font-family: monospace;
+font-size: 13px;
+color: #cbd5e1;
+transition: background 0.15s, color 0.15s;
+}
+.line-item:last-child {
+border-bottom: none;
+}
+.line-item:hover {
+background: #262938;
+color: #0a84ff;
+}
+#toast {
+position: fixed;
+bottom: -50px;
+right: 20px;
+background: #0a84ff;
+color: #fff;
+padding: 12px 24px;
+border-radius: 8px;
+font-size: 14px;
+font-weight: 600;
+box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+z-index: 1000;
+transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+#toast.show {
+bottom: 20px;
+}
+</style>
+<style>
+:container{
     max-width:900px;
     margin:auto;
     background:var(--card);
@@ -152,7 +491,7 @@ button{
 
 <!-- TAB 1 -->
 <div id="tab1" class="tab-content active">
-    <textarea id="key1" placeholder="Nhập key (không tự lưu)"></textarea>
+    <textarea id="key1" placeholder="Nhập key 2FA" oninput="updateTab1()"></textarea>
     <div id="auth1" class="big-code"></div>
     <div id="count1" class="count"></div>
     <button class="btn-save" onclick="saveFromTab1()">💾 LƯU</button>
@@ -161,7 +500,7 @@ button{
 <!-- TAB 2 -->
 <div id="tab2" class="tab-content">
     <input id="name2" placeholder="Tên tài khoản (tuỳ chọn)">
-    <textarea id="key2" placeholder="Nhập key để lưu"></textarea>
+    <textarea id="key2" placeholder="Nhập key 2FA"></textarea>
     <button class="btn-save" onclick="saveKey()">💾 LƯU</button>
     <div id="list"></div>
 </div>
@@ -182,7 +521,8 @@ button{
 <div id="toast" class="toast"></div>
 
 <script>
-let deleteIndex=null;
+let deleteIndex = null;
+let lastCode = ""; // Biến theo dõi mã gần nhất
 
 /* TAB */
 function openTab(n){
@@ -192,12 +532,13 @@ function openTab(n){
 
 /* TOAST */
 function showToast(m){
-    toast.textContent=m;
+    const toast = document.getElementById("toast");
+    toast.textContent = m;
     toast.classList.add("show");
-    setTimeout(()=>toast.classList.remove("show"),2000);
+    setTimeout(() => toast.classList.remove("show"), 2000);
 }
 
-/* TOTP */
+/* TOTP LOGIC */
 function base32tohex(b){
     const c="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";let bits="",hex="";
     for(let x of b.replace(/=+/g,"")){
@@ -219,34 +560,61 @@ function totp(secret){
 }
 function remain(){return 30-(Date.now()/1000%30|0)}
 
-/* TAB1 */
-function updateTab1(){
-    if(!key1.value.trim()){auth1.textContent="";count1.textContent="";return;}
-    auth1.textContent=totp(key1.value);
-    count1.textContent="Còn "+remain()+"s";
-}
-auth1.onclick=()=>auth1.textContent&&(navigator.clipboard.writeText(auth1.textContent),showToast("📋 Đã copy "+auth1.textContent));
+/* CẬP NHẬT TAB 1 (Hỗ trợ Dán) */
+function updateTab1() {
+    const key = document.getElementById("key1").value.trim();
+    const auth1 = document.getElementById("auth1");
+    const count1 = document.getElementById("count1");
 
+    if (!key) {
+        auth1.textContent = "";
+        count1.textContent = "";
+        lastCode = "";
+        return;
+    }
+
+    try {
+        const currentCode = totp(key);
+        auth1.textContent = currentCode;
+        count1.textContent = "Còn " + remain() + "s";
+
+        // Tự động copy khi mã thay đổi hoặc vừa dán xong
+        if (currentCode !== lastCode) {
+            navigator.clipboard.writeText(currentCode).then(() => {
+                showToast("📋 Đã tự động copy: " + currentCode);
+                lastCode = currentCode;
+            });
+        }
+    } catch (e) {
+        auth1.textContent = "Key không hợp lệ";
+    }
+}
+
+/* CÁC HÀM KHÁC */
 function saveFromTab1(){
-    if(!key1.value.trim()) return showToast("❌ Chưa có key");
+    const keyVal = document.getElementById("key1").value.trim();
+    if(!keyVal) return showToast("❌ Chưa có key");
     const d=JSON.parse(localStorage.getItem("keys")||"[]");
-    d.push({name:"",key:key1.value.trim()});
+    d.push({name:"",key:keyVal});
     localStorage.setItem("keys",JSON.stringify(d));
     showToast("✅ Đã lưu sang TAB 2");
     openTab(2);
     render();
 }
 
-/* TAB2 */
 function saveKey(){
+    const name = document.getElementById("name2").value;
+    const key = document.getElementById("key2").value;
     const d=JSON.parse(localStorage.getItem("keys")||"[]");
-    d.push({name:name2.value,key:key2.value});
+    d.push({name:name,key:key});
     localStorage.setItem("keys",JSON.stringify(d));
-    name2.value="";key2.value="";
+    document.getElementById("name2").value="";
+    document.getElementById("key2").value="";
     render();
 }
 
 function render(){
+    const list = document.getElementById("list");
     list.innerHTML="";
     const d=JSON.parse(localStorage.getItem("keys")||"[]");
     d.forEach((x,i)=>{
@@ -271,12 +639,13 @@ function render(){
         };
         e.querySelector(".btn-del").onclick=()=>{
             deleteIndex=i;
-            passInput.value="";
-            modal.style.display="flex";
+            document.getElementById("passInput").value="";
+            document.getElementById("modal").style.display="flex";
         };
         list.appendChild(e);
     });
 }
+
 function updateTab2(){
     document.querySelectorAll(".item").forEach((el,i)=>{
         const d=JSON.parse(localStorage.getItem("keys")||"[]");
@@ -286,10 +655,9 @@ function updateTab2(){
     });
 }
 
-/* MODAL */
-function closeModal(){modal.style.display="none"}
+function closeModal(){document.getElementById("modal").style.display="none"}
 function confirmDelete(){
-    if(passInput.value!=="123") return showToast("❌ Sai pass");
+    if(document.getElementById("passInput").value!=="123") return showToast("❌ Sai pass");
     const d=JSON.parse(localStorage.getItem("keys")||"[]");
     d.splice(deleteIndex,1);
     localStorage.setItem("keys",JSON.stringify(d));
@@ -301,6 +669,5 @@ function confirmDelete(){
 setInterval(()=>{updateTab1();updateTab2();},1000);
 render();
 </script>
-
 </body>
 </html>

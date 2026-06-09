@@ -1,47 +1,145 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2FA Authenticator</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/2.4.2/sha.js"></script>
-    <style>
-        /* CSS Tối ưu Safari và Mobile */
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0d0e12; color: #e4e6eb; padding: 20px; -webkit-text-size-adjust: 100%; }
-        .container { max-width: 500px; margin: auto; background: #16181f; padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab { flex: 1; padding: 12px; text-align: center; background: #2d3142; cursor: pointer; border-radius: 8px; font-weight: 600; }
-        .tab.active { background: #0a84ff; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        textarea, input { width: 100%; padding: 12px; margin-bottom: 10px; background: #1f222e; border: 1px solid #3f4458; color: #39e58e; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
-        .big-code { font-size: 3em; text-align: center; margin: 20px 0; font-weight: 800; color: #fff; cursor: pointer; }
-        .btn-save { width: 100%; padding: 14px; background: #24b45a; border: none; color: white; border-radius: 8px; font-weight: 700; cursor: pointer; }
-        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #0a84ff; color: #fff; padding: 12px 24px; border-radius: 25px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-        #toast.show { opacity: 1; }
-        .item { margin-top: 15px; padding: 15px; background: #1f222e; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>2FA Authenticator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/2.4.2/sha.js"></script>
+
+<style>
+body{
+    font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;
+    background:#0d0e12;
+    color:#e4e6eb;
+    padding:20px;
+}
+.container{
+    max-width:520px;
+    margin:auto;
+    background:#16181f;
+    padding:20px;
+    border-radius:16px;
+}
+h2{text-align:center}
+.tabs{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
+.tab{
+    flex:1;
+    padding:12px;
+    text-align:center;
+    background:#2d3142;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:700;
+}
+.tab.active{background:#0a84ff}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+textarea,input{
+    width:100%;
+    box-sizing:border-box;
+    padding:12px;
+    margin-bottom:10px;
+    background:#1f222e;
+    border:1px solid #3f4458;
+    color:#39e58e;
+    border-radius:8px;
+    font-size:16px;
+}
+.big-code{
+    font-size:3em;
+    text-align:center;
+    font-weight:800;
+    margin:20px 0;
+    cursor:pointer;
+    color:#fff;
+    letter-spacing:4px;
+}
+.countdown{
+    text-align:center;
+    color:#aaa;
+    margin-bottom:15px;
+}
+button{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:8px;
+    color:#fff;
+    font-weight:700;
+    cursor:pointer;
+    margin-top:8px;
+}
+.btn-save{background:#24b45a}
+.btn-clear{background:#dc3545}
+.item{
+    margin-top:12px;
+    padding:15px;
+    background:#1f222e;
+    border-radius:10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+.item-code{
+    color:#39e58e;
+    font-weight:bold;
+    font-size:20px;
+    cursor:pointer;
+}
+.del{
+    background:#dc3545;
+    padding:8px 10px;
+    width:auto;
+    margin-left:10px;
+}
+#toast{
+    position:fixed;
+    bottom:30px;
+    left:50%;
+    transform:translateX(-50%);
+    background:#0a84ff;
+    color:white;
+    padding:12px 22px;
+    border-radius:25px;
+    opacity:0;
+    transition:.3s;
+    pointer-events:none;
+}
+#toast.show{opacity:1}
+</style>
 </head>
+
 <body>
 
-<div class="container" onclick="unlockClipboard()">
+<div class="container">
     <h2>🔐 2FA Authenticator</h2>
+
     <div class="tabs">
-        <div class="tab active" onclick="openTab(1)">⚡ Dán & Copy</div>
-        <div class="tab" onclick="openTab(2)">💾 Lưu</div>
+        <div class="tab active" onclick="openTab(1)">⚡ Get 2FA</div>
+        <div class="tab" onclick="openTab(2)">💾 Save 2FA</div>
     </div>
 
     <div id="tab1" class="tab-content active">
-        <textarea id="key1" placeholder="Dán key vào đây..." oninput="updateTab1()"></textarea>
-        <div id="auth1" class="big-code">---</div>
-        <div id="count1" style="text-align:center; color:#8a8f9d"></div>
-        <button class="btn-save" onclick="saveFromTab1()">💾 LƯU VÀO DANH SÁCH</button>
+        <textarea id="key1" rows="5" placeholder="Dán Key 2FA vào đây..."></textarea>
+
+        <div id="auth1" class="big-code" onclick="copyCode(this.textContent)"></div>
+        <div id="count1" class="countdown"></div>
+
+        <button class="btn-save" onclick="saveFromTab1()">💾 Lưu vào danh sách</button>
+        <button class="btn-clear" onclick="clearTab1()">🗑 Xóa</button>
     </div>
 
     <div id="tab2" class="tab-content">
         <input id="name2" placeholder="Tên tài khoản">
-        <textarea id="key2" placeholder="Dán key..."></textarea>
-        <button class="btn-save" onclick="saveKey()">💾 LƯU</button>
+        <textarea id="key2" rows="4" placeholder="Dán key 2FA..."></textarea>
+
+        <button class="btn-save" onclick="saveKey()">💾 Lưu</button>
+
         <div id="list"></div>
     </div>
 </div>
@@ -49,96 +147,182 @@
 <div id="toast"></div>
 
 <script>
-    let lastCode = "";
-    let clipboardUnlocked = false;
+let lastCode = "";
 
-    function unlockClipboard() { clipboardUnlocked = true; }
+function openTab(n){
+    document.querySelectorAll(".tab").forEach((t,i)=>{
+        t.classList.toggle("active", i === n-1);
+    });
+    document.querySelectorAll(".tab-content").forEach((c,i)=>{
+        c.classList.toggle("active", i === n-1);
+    });
+}
 
-    function openTab(n){
-        document.querySelectorAll(".tab").forEach((t,i)=>t.classList.toggle("active",i===n-1));
-        document.querySelectorAll(".tab-content").forEach((c,i)=>c.classList.toggle("active",i===n-1));
+function toast(msg){
+    const t=document.getElementById("toast");
+    t.textContent=msg;
+    t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"),1800);
+}
+
+function base32tohex(base32){
+    const chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+    let bits="", hex="";
+
+    base32 = base32.replace(/\s/g,"").replace(/=+/g,"").toUpperCase();
+
+    for(let i=0;i<base32.length;i++){
+        const val = chars.indexOf(base32[i]);
+        if(val < 0) continue;
+        bits += val.toString(2).padStart(5,"0");
     }
 
-    function showToast(m){
-        const t = document.getElementById("toast");
-        t.textContent = m; t.classList.add("show");
-        setTimeout(() => t.classList.remove("show"), 2000);
+    for(let i=0; i+8<=bits.length; i+=8){
+        hex += parseInt(bits.substring(i,i+8),2).toString(16).padStart(2,"0");
     }
 
-    function base32tohex(b){
-        const c="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"; let bits="", hex="";
-        for(let x of b.replace(/\s/g, "").replace(/=+/g,"")){
-            const v=c.indexOf(x.toUpperCase());
-            if(v>=0) bits+=v.toString(2).padStart(5,"0");
-        }
-        for(let i=0; i+8<=bits.length; i+=8) hex+=parseInt(bits.substr(i,8),2).toString(16).padStart(2,"0");
-        return hex;
+    return hex;
+}
+
+function totp(secret){
+    try{
+        secret = secret.replace(/\s/g,"");
+        if(!secret) return "";
+
+        const epoch = Math.floor(Date.now()/1000);
+        const time = Math.floor(epoch/30).toString(16).padStart(16,"0");
+
+        const sha = new jsSHA("SHA-1","HEX");
+        sha.setHMACKey(base32tohex(secret),"HEX");
+        sha.update(time);
+
+        const hmac = sha.getHMAC("HEX");
+        const offset = parseInt(hmac.substring(hmac.length-1),16);
+        const binary = parseInt(hmac.substr(offset*2,8),16) & 0x7fffffff;
+
+        return (binary % 1000000).toString().padStart(6,"0");
+    }catch(e){
+        return null;
+    }
+}
+
+function updateTab1(){
+    const input=document.getElementById("key1");
+    let key=input.value.replace(/\s/g,"");
+    input.value=key;
+
+    const codeBox=document.getElementById("auth1");
+    const countBox=document.getElementById("count1");
+
+    if(!key){
+        codeBox.textContent="";
+        countBox.textContent="";
+        return;
     }
 
-    function totp(secret){
-        const s = secret.replace(/\s/g, "");
-        const t = Math.floor(Date.now()/1000/30).toString(16).padStart(16,"0");
-        const h = new jsSHA("SHA-1","HEX");
-        h.setHMACKey(base32tohex(s),"HEX");
-        h.update(t);
-        const hash = h.getHMAC("HEX");
-        const o = parseInt(hash.slice(-1),16);
-        return ((parseInt(hash.substr(o*2,8),16)&0x7fffffff)%1e6).toString().padStart(6,"0");
+    const code=totp(key);
+    if(!code){
+        codeBox.textContent="Key lỗi";
+        countBox.textContent="";
+        return;
     }
 
-    function updateTab1(){
-        const area = document.getElementById("key1");
-        let val = area.value.replace(/\s/g, "");
-        if(area.value !== val) area.value = val;
-        
-        if(!val) return;
-        const code = totp(val);
-        document.getElementById("auth1").textContent = code;
-        document.getElementById("count1").textContent = "Còn " + (30 - (Date.now()/1000%30|0)) + "s";
-        
-        if(code !== lastCode && clipboardUnlocked){
-            navigator.clipboard.writeText(code).then(() => {
-                showToast("📋 Đã tự động copy: " + code);
-                lastCode = code;
+    codeBox.textContent=code;
+    countBox.textContent="Còn " + (30 - Math.floor(Date.now()/1000)%30) + "s";
+}
+
+function copyCode(code){
+    code = code.trim();
+    if(!code || code === "Key lỗi") return;
+
+    navigator.clipboard.writeText(code).then(()=>{
+        toast("📋 Đã copy: " + code);
+    });
+}
+
+function clearTab1(){
+    document.getElementById("key1").value="";
+    document.getElementById("auth1").textContent="";
+    document.getElementById("count1").textContent="";
+}
+
+function saveFromTab1(){
+    const key=document.getElementById("key1").value.replace(/\s/g,"");
+    if(!key) return toast("Chưa có key");
+
+    let data=JSON.parse(localStorage.getItem("keys") || "[]");
+    data.push({name:"Tài khoản mới", key:key});
+    localStorage.setItem("keys", JSON.stringify(data));
+
+    toast("Đã lưu");
+    openTab(2);
+    render();
+}
+
+function saveKey(){
+    const name=document.getElementById("name2").value.trim() || "Không tên";
+    const key=document.getElementById("key2").value.replace(/\s/g,"");
+
+    if(!key) return toast("Chưa có key");
+
+    let data=JSON.parse(localStorage.getItem("keys") || "[]");
+    data.push({name:name, key:key});
+    localStorage.setItem("keys", JSON.stringify(data));
+
+    document.getElementById("name2").value="";
+    document.getElementById("key2").value="";
+
+    toast("Đã lưu");
+    render();
+}
+
+function deleteKey(i){
+    let data=JSON.parse(localStorage.getItem("keys") || "[]");
+    data.splice(i,1);
+    localStorage.setItem("keys", JSON.stringify(data));
+    render();
+}
+
+function render(){
+    const list=document.getElementById("list");
+    const data=JSON.parse(localStorage.getItem("keys") || "[]");
+    list.innerHTML="";
+
+    data.forEach((item,i)=>{
+        const code=totp(item.key) || "Lỗi";
+        const div=document.createElement("div");
+        div.className="item";
+        div.innerHTML=`
+            <div>
+                <div>${item.name}</div>
+                <div class="item-code" onclick="copyCode('${code}')">${code}</div>
+            </div>
+            <button class="del" onclick="deleteKey(${i})">Xóa</button>
+        `;
+        list.appendChild(div);
+    });
+}
+
+setInterval(()=>{
+    updateTab1();
+    render();
+},1000);
+
+render();
+document.getElementById("key1").addEventListener("input", function(){
+    updateTab1();
+
+    setTimeout(() => {
+        const code = document.getElementById("auth1").textContent.trim();
+
+        if(code && code !== "Key lỗi"){
+            navigator.clipboard.writeText(code).then(()=>{
+                toast("📋 Auto copy: " + code);
             });
         }
-    }
-
-    function saveFromTab1(){
-        const k = document.getElementById("key1").value.replace(/\s/g, "");
-        if(!k) return;
-        let d = JSON.parse(localStorage.getItem("keys")||"[]");
-        d.push({name: "Mới", key: k});
-        localStorage.setItem("keys", JSON.stringify(d));
-        openTab(2); render();
-    }
-
-    function saveKey(){
-        const n = document.getElementById("name2").value;
-        const k = document.getElementById("key2").value.replace(/\s/g, "");
-        let d = JSON.parse(localStorage.getItem("keys")||"[]");
-        d.push({name: n, key: k});
-        localStorage.setItem("keys", JSON.stringify(d));
-        render();
-    }
-
-    function render(){
-        const list = document.getElementById("list");
-        list.innerHTML = "";
-        JSON.parse(localStorage.getItem("keys")||"[]").forEach((x,i)=>{
-            const div = document.createElement("div");
-            div.className = "item";
-            div.innerHTML = `<div>${x.name}</div><div style="font-weight:bold; color:#39e58e">${totp(x.key)}</div>`;
-            list.appendChild(div);
-        });
-    }
-
-    setInterval(()=>{
-        if(document.querySelector("#tab1").classList.contains("active")) updateTab1();
-        if(document.querySelector("#tab2").classList.contains("active")) render();
-    }, 1000);
-
-    render();
+    }, 200);
+});
 </script>
+
 </body>
 </html>

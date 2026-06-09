@@ -522,7 +522,7 @@ button{
 
 <script>
 let deleteIndex = null;
-let lastCode = ""; // Biến theo dõi mã gần nhất
+let lastCode = ""; 
 
 /* TAB */
 function openTab(n){
@@ -541,7 +541,7 @@ function showToast(m){
 /* TOTP LOGIC */
 function base32tohex(b){
     const c="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";let bits="",hex="";
-    for(let x of b.replace(/=+/g,"")){
+    for(let x of b.replace(/\s/g, "").replace(/=+/g,"")){
         const v=c.indexOf(x.toUpperCase());
         if(v>=0) bits+=v.toString(2).padStart(5,"0");
     }
@@ -549,24 +549,35 @@ function base32tohex(b){
         hex+=parseInt(bits.substr(i,8),2).toString(16).padStart(2,"0");
     return hex;
 }
+
 function totp(secret){
+    const cleanSecret = secret.replace(/\s/g, "");
     const t=Math.floor(Date.now()/1000/30).toString(16).padStart(16,"0");
     const s=new jsSHA("SHA-1","HEX");
-    s.setHMACKey(base32tohex(secret),"HEX");
+    s.setHMACKey(base32tohex(cleanSecret),"HEX");
     s.update(t);
     const h=s.getHMAC("HEX");
     const o=parseInt(h.slice(-1),16);
     return ((parseInt(h.substr(o*2,8),16)&0x7fffffff)%1e6).toString().padStart(6,"0");
 }
+
 function remain(){return 30-(Date.now()/1000%30|0)}
 
-/* CẬP NHẬT TAB 1 (Hỗ trợ Dán) */
+/* TAB 1: TỰ ĐỘNG XỬ LÝ KHI DÁN */
 function updateTab1() {
-    const key = document.getElementById("key1").value.trim();
+    const textarea = document.getElementById("key1");
+    let val = textarea.value;
+    
+    // Tự động làm sạch key nếu có khoảng trắng
+    if (/\s/.test(val)) {
+        val = val.replace(/\s/g, "");
+        textarea.value = val;
+    }
+
     const auth1 = document.getElementById("auth1");
     const count1 = document.getElementById("count1");
 
-    if (!key) {
+    if (!val) {
         auth1.textContent = "";
         count1.textContent = "";
         lastCode = "";
@@ -574,11 +585,11 @@ function updateTab1() {
     }
 
     try {
-        const currentCode = totp(key);
+        const currentCode = totp(val);
         auth1.textContent = currentCode;
         count1.textContent = "Còn " + remain() + "s";
 
-        // Tự động copy khi mã thay đổi hoặc vừa dán xong
+        // Tự động copy
         if (currentCode !== lastCode) {
             navigator.clipboard.writeText(currentCode).then(() => {
                 showToast("📋 Đã tự động copy: " + currentCode);
@@ -586,7 +597,7 @@ function updateTab1() {
             });
         }
     } catch (e) {
-        auth1.textContent = "Key không hợp lệ";
+        auth1.textContent = "Key lỗi";
     }
 }
 
@@ -604,7 +615,7 @@ function saveFromTab1(){
 
 function saveKey(){
     const name = document.getElementById("name2").value;
-    const key = document.getElementById("key2").value;
+    const key = document.getElementById("key2").value.replace(/\s/g, "");
     const d=JSON.parse(localStorage.getItem("keys")||"[]");
     d.push({name:name,key:key});
     localStorage.setItem("keys",JSON.stringify(d));

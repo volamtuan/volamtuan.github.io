@@ -1,40 +1,41 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>2FA Authenticator</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/2.4.2/sha.js"></script>
-<style>
-    body { font-family: sans-serif; background: #0d0e12; color: #e4e6eb; padding: 20px; }
-    .container { max-width: 500px; margin: auto; background: #16181f; padding: 20px; border-radius: 12px; }
-    .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-    .tab { flex: 1; padding: 10px; text-align: center; background: #2d3142; cursor: pointer; border-radius: 8px; }
-    .tab.active { background: #0a84ff; }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-    textarea, input { width: 100%; padding: 10px; margin-bottom: 10px; background: #1f222e; border: 1px solid #2d3142; color: #39e58e; border-radius: 8px; }
-    .big-code { font-size: 2.5em; text-align: center; margin: 15px 0; font-weight: bold; cursor: pointer; }
-    .btn-save { width: 100%; padding: 10px; background: #24b45a; border: none; color: white; border-radius: 8px; cursor: pointer; }
-    #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #0a84ff; padding: 10px 20px; border-radius: 20px; opacity: 0; transition: 0.3s; pointer-events: none; }
-    #toast.show { opacity: 1; }
-    .item { margin-top: 10px; padding: 10px; background: #1f222e; border-radius: 8px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2FA Authenticator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/2.4.2/sha.js"></script>
+    <style>
+        /* CSS Tối ưu Safari và Mobile */
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0d0e12; color: #e4e6eb; padding: 20px; -webkit-text-size-adjust: 100%; }
+        .container { max-width: 500px; margin: auto; background: #16181f; padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab { flex: 1; padding: 12px; text-align: center; background: #2d3142; cursor: pointer; border-radius: 8px; font-weight: 600; }
+        .tab.active { background: #0a84ff; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        textarea, input { width: 100%; padding: 12px; margin-bottom: 10px; background: #1f222e; border: 1px solid #3f4458; color: #39e58e; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        .big-code { font-size: 3em; text-align: center; margin: 20px 0; font-weight: 800; color: #fff; cursor: pointer; }
+        .btn-save { width: 100%; padding: 14px; background: #24b45a; border: none; color: white; border-radius: 8px; font-weight: 700; cursor: pointer; }
+        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #0a84ff; color: #fff; padding: 12px 24px; border-radius: 25px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        #toast.show { opacity: 1; }
+        .item { margin-top: 15px; padding: 15px; background: #1f222e; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
+    </style>
 </head>
 <body>
 
-<div class="container">
+<div class="container" onclick="unlockClipboard()">
     <h2>🔐 2FA Authenticator</h2>
     <div class="tabs">
-        <div class="tab active" onclick="openTab(1)">⚡ Get 2FA</div>
+        <div class="tab active" onclick="openTab(1)">⚡ Dán & Copy</div>
         <div class="tab" onclick="openTab(2)">💾 Lưu</div>
     </div>
 
     <div id="tab1" class="tab-content active">
         <textarea id="key1" placeholder="Dán key vào đây..." oninput="updateTab1()"></textarea>
-        <div id="auth1" class="big-code"></div>
-        <div id="count1" style="text-align:center"></div>
-        <button class="btn-save" onclick="saveFromTab1()">💾 LƯU KEY NÀY</button>
+        <div id="auth1" class="big-code">---</div>
+        <div id="count1" style="text-align:center; color:#8a8f9d"></div>
+        <button class="btn-save" onclick="saveFromTab1()">💾 LƯU VÀO DANH SÁCH</button>
     </div>
 
     <div id="tab2" class="tab-content">
@@ -48,91 +49,96 @@
 <div id="toast"></div>
 
 <script>
-let lastCode = "";
+    let lastCode = "";
+    let clipboardUnlocked = false;
 
-function openTab(n){
-    document.querySelectorAll(".tab").forEach((t,i)=>t.classList.toggle("active",i===n-1));
-    document.querySelectorAll(".tab-content").forEach((c,i)=>c.classList.toggle("active",i===n-1));
-}
+    function unlockClipboard() { clipboardUnlocked = true; }
 
-function showToast(m){
-    const t = document.getElementById("toast");
-    t.textContent = m; t.classList.add("show");
-    setTimeout(() => t.classList.remove("show"), 2000);
-}
-
-function base32tohex(b){
-    const c="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"; let bits="", hex="";
-    for(let x of b.replace(/\s/g, "").replace(/=+/g,"")){
-        const v=c.indexOf(x.toUpperCase());
-        if(v>=0) bits+=v.toString(2).padStart(5,"0");
+    function openTab(n){
+        document.querySelectorAll(".tab").forEach((t,i)=>t.classList.toggle("active",i===n-1));
+        document.querySelectorAll(".tab-content").forEach((c,i)=>c.classList.toggle("active",i===n-1));
     }
-    for(let i=0; i+8<=bits.length; i+=8) hex+=parseInt(bits.substr(i,8),2).toString(16).padStart(2,"0");
-    return hex;
-}
 
-function totp(secret){
-    const s = secret.replace(/\s/g, "");
-    const t = Math.floor(Date.now()/1000/30).toString(16).padStart(16,"0");
-    const h = new jsSHA("SHA-1","HEX");
-    h.setHMACKey(base32tohex(s),"HEX");
-    h.update(t);
-    const hash = h.getHMAC("HEX");
-    const o = parseInt(hash.slice(-1),16);
-    return ((parseInt(hash.substr(o*2,8),16)&0x7fffffff)%1e6).toString().padStart(6,"0");
-}
-
-function updateTab1(){
-    const area = document.getElementById("key1");
-    const val = area.value.replace(/\s/g, "");
-    if(area.value !== val) area.value = val;
-    
-    if(!val) return;
-    const code = totp(val);
-    document.getElementById("auth1").textContent = code;
-    document.getElementById("count1").textContent = "Còn " + (30 - (Date.now()/1000%30|0)) + "s";
-    
-    if(code !== lastCode){
-        navigator.clipboard.writeText(code);
-        showToast("📋 Đã copy: " + code);
-        lastCode = code;
+    function showToast(m){
+        const t = document.getElementById("toast");
+        t.textContent = m; t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 2000);
     }
-}
 
-function saveFromTab1(){
-    const k = document.getElementById("key1").value.replace(/\s/g, "");
-    if(!k) return;
-    let d = JSON.parse(localStorage.getItem("keys")||"[]");
-    d.push({name: "Mới", key: k});
-    localStorage.setItem("keys", JSON.stringify(d));
-    openTab(2); render();
-}
+    function base32tohex(b){
+        const c="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"; let bits="", hex="";
+        for(let x of b.replace(/\s/g, "").replace(/=+/g,"")){
+            const v=c.indexOf(x.toUpperCase());
+            if(v>=0) bits+=v.toString(2).padStart(5,"0");
+        }
+        for(let i=0; i+8<=bits.length; i+=8) hex+=parseInt(bits.substr(i,8),2).toString(16).padStart(2,"0");
+        return hex;
+    }
 
-function saveKey(){
-    const n = document.getElementById("name2").value;
-    const k = document.getElementById("key2").value.replace(/\s/g, "");
-    let d = JSON.parse(localStorage.getItem("keys")||"[]");
-    d.push({name: n, key: k});
-    localStorage.setItem("keys", JSON.stringify(d));
+    function totp(secret){
+        const s = secret.replace(/\s/g, "");
+        const t = Math.floor(Date.now()/1000/30).toString(16).padStart(16,"0");
+        const h = new jsSHA("SHA-1","HEX");
+        h.setHMACKey(base32tohex(s),"HEX");
+        h.update(t);
+        const hash = h.getHMAC("HEX");
+        const o = parseInt(hash.slice(-1),16);
+        return ((parseInt(hash.substr(o*2,8),16)&0x7fffffff)%1e6).toString().padStart(6,"0");
+    }
+
+    function updateTab1(){
+        const area = document.getElementById("key1");
+        let val = area.value.replace(/\s/g, "");
+        if(area.value !== val) area.value = val;
+        
+        if(!val) return;
+        const code = totp(val);
+        document.getElementById("auth1").textContent = code;
+        document.getElementById("count1").textContent = "Còn " + (30 - (Date.now()/1000%30|0)) + "s";
+        
+        if(code !== lastCode && clipboardUnlocked){
+            navigator.clipboard.writeText(code).then(() => {
+                showToast("📋 Đã tự động copy: " + code);
+                lastCode = code;
+            });
+        }
+    }
+
+    function saveFromTab1(){
+        const k = document.getElementById("key1").value.replace(/\s/g, "");
+        if(!k) return;
+        let d = JSON.parse(localStorage.getItem("keys")||"[]");
+        d.push({name: "Mới", key: k});
+        localStorage.setItem("keys", JSON.stringify(d));
+        openTab(2); render();
+    }
+
+    function saveKey(){
+        const n = document.getElementById("name2").value;
+        const k = document.getElementById("key2").value.replace(/\s/g, "");
+        let d = JSON.parse(localStorage.getItem("keys")||"[]");
+        d.push({name: n, key: k});
+        localStorage.setItem("keys", JSON.stringify(d));
+        render();
+    }
+
+    function render(){
+        const list = document.getElementById("list");
+        list.innerHTML = "";
+        JSON.parse(localStorage.getItem("keys")||"[]").forEach((x,i)=>{
+            const div = document.createElement("div");
+            div.className = "item";
+            div.innerHTML = `<div>${x.name}</div><div style="font-weight:bold; color:#39e58e">${totp(x.key)}</div>`;
+            list.appendChild(div);
+        });
+    }
+
+    setInterval(()=>{
+        if(document.querySelector("#tab1").classList.contains("active")) updateTab1();
+        if(document.querySelector("#tab2").classList.contains("active")) render();
+    }, 1000);
+
     render();
-}
-
-function render(){
-    const list = document.getElementById("list");
-    list.innerHTML = "";
-    JSON.parse(localStorage.getItem("keys")||"[]").forEach((x,i)=>{
-        const div = document.createElement("div");
-        div.className = "item";
-        div.innerHTML = `<div>${x.name}</div><div style="font-weight:bold; color:#39e58e">${totp(x.key)}</div>`;
-        list.appendChild(div);
-    });
-}
-
-setInterval(()=>{
-    if(document.querySelector("#tab1").classList.contains("active")) updateTab1();
-}, 1000);
-
-render();
 </script>
 </body>
 </html>

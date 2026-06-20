@@ -1,0 +1,285 @@
+<?php
+
+$user = trim($_GET['user'] ?? '');
+
+function getJson($url)
+{
+    $ch = curl_init($url);
+
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_TIMEOUT => 20,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_HTTPHEADER => [
+            'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        ]
+    ]);
+
+    $res = curl_exec($ch);
+    $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    curl_close($ch);
+
+    return [
+        'http' => $http,
+        'json' => json_decode($res, true)
+    ];
+}
+
+$about = null;
+$posts = [];
+$comments = [];
+$error = '';
+
+if ($user != '') {
+
+    $aboutRes = getJson("https://www.reddit.com/user/" . urlencode($user) . "/about.json");
+    $postsRes = getJson("https://www.reddit.com/user/" . urlencode($user) . "/submitted.json?limit=25");
+    $commentsRes = getJson("https://www.reddit.com/user/" . urlencode($user) . "/comments.json?limit=25");
+
+    if (!isset($aboutRes['json']['data'])) {
+        $error = "Không lấy được dữ liệu user hoặc Reddit chặn request.";
+    } else {
+
+        $about = $aboutRes['json']['data'];
+
+        if (isset($postsRes['json']['data']['children'])) {
+            $posts = $postsRes['json']['data']['children'];
+        }
+
+        if (isset($commentsRes['json']['data']['children'])) {
+            $comments = $commentsRes['json']['data']['children'];
+        }
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Reddit User Analyzer</title>
+
+<style>
+
+body{
+    background:#0f172a;
+    color:#fff;
+    font-family:Arial;
+    margin:0;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+    padding:20px;
+}
+
+.card{
+    background:#1e293b;
+    padding:20px;
+    border-radius:12px;
+    margin-bottom:20px;
+}
+
+input{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:10px;
+    margin-bottom:10px;
+}
+
+button{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:10px;
+    background:#ff4500;
+    color:#fff;
+    cursor:pointer;
+    font-size:16px;
+}
+
+.avatar{
+    width:120px;
+    height:120px;
+    border-radius:50%;
+    object-fit:cover;
+}
+
+.stat{
+    padding:10px;
+    margin:5px 0;
+    background:#334155;
+    border-radius:8px;
+}
+
+.post{
+    padding:10px;
+    border-bottom:1px solid #444;
+}
+
+a{
+    color:#60a5fa;
+    text-decoration:none;
+}
+
+small{
+    color:#94a3b8;
+}
+
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+<div class="card">
+
+<h2>Reddit User Analyzer</h2>
+
+<form method="GET">
+
+<input
+type="text"
+name="user"
+placeholder="Nhập username Reddit..."
+value="<?= htmlspecialchars($user) ?>"
+required>
+
+<button type="submit">
+Quét thông tin
+</button>
+
+</form>
+
+</div>
+
+<?php if($error): ?>
+
+<div class="card">
+<?= htmlspecialchars($error) ?>
+</div>
+
+<?php endif; ?>
+
+<?php if($about): ?>
+
+<div class="card">
+
+<?php if(!empty($about['icon_img'])): ?>
+<img
+class="avatar"
+src="<?= htmlspecialchars($about['icon_img']) ?>">
+<?php endif; ?>
+
+<h2>u/<?= htmlspecialchars($about['name']) ?></h2>
+
+<div class="stat">
+ID: <?= htmlspecialchars($about['id']) ?>
+</div>
+
+<div class="stat">
+Link Karma:
+<?= number_format($about['link_karma']) ?>
+</div>
+
+<div class="stat">
+Comment Karma:
+<?= number_format($about['comment_karma']) ?>
+</div>
+
+<div class="stat">
+Total Karma:
+<?= number_format(
+($about['link_karma'] ?? 0)
++
+($about['comment_karma'] ?? 0)
+) ?>
+</div>
+
+<div class="stat">
+Created:
+<?= date('d/m/Y H:i:s', $about['created_utc']) ?>
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>Bài viết gần đây</h2>
+
+<?php foreach($posts as $row):
+
+$p = $row['data'];
+?>
+
+<div class="post">
+
+<b>
+<?= htmlspecialchars($p['title'] ?? '') ?>
+</b>
+
+<br>
+
+<small>
+r/<?= htmlspecialchars($p['subreddit'] ?? '') ?>
+|
+Score:
+<?= number_format($p['score'] ?? 0) ?>
+</small>
+
+<br><br>
+
+<a
+target="_blank"
+href="https://reddit.com<?= htmlspecialchars($p['permalink'] ?? '') ?>">
+Xem bài viết
+</a>
+
+</div>
+
+<?php endforeach; ?>
+
+</div>
+
+<div class="card">
+
+<h2>Bình luận gần đây</h2>
+
+<?php foreach($comments as $row):
+
+$c = $row['data'];
+?>
+
+<div class="post">
+
+<b>
+r/<?= htmlspecialchars($c['subreddit'] ?? '') ?>
+</b>
+
+<br><br>
+
+<?= nl2br(htmlspecialchars(substr($c['body'] ?? '',0,300))) ?>
+
+<br><br>
+
+<small>
+Score:
+<?= number_format($c['score'] ?? 0) ?>
+</small>
+
+</div>
+
+<?php endforeach; ?>
+
+</div>
+
+<?php endif; ?>
+
+</div>
+
+</body>
+</html>

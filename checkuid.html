@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan UID Live - Lọc UID Facebook</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body { background: #0d1117; color: #c9d1d9; font-family: "Segoe UI", sans-serif; padding: 16px; }
+        .container-fluid { max-width: 1500px; }
+        .cardx { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+        .title { font-weight: 700; color: #58a6ff; }
+        textarea, input[type="text"], select { background: #0d1117 !important; color: #c9d1d9 !important; border: 1px solid #30363d !important; border-radius: 6px; padding: 8px; width: 100%; }
+        textarea:focus, input[type="text"]:focus, select:focus { border-color: #58a6ff !important; box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2) !important; }
+        #dropZone { border: 2px dashed #238636; padding: 24px; text-align: center; border-radius: 10px; background: #0f141b; color: #3fb950; font-weight: 700; cursor: pointer; transition: 0.3s; }
+        #dropZone:hover { background: #141c26; }
+        .selected-row { background: #1f6feb !important; color: #fff; font-weight: 700; }
+        .box { background: #1f242c; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #30363d; }
+        .progress { height: 12px; background-color: #21262d; border-radius: 6px; overflow: hidden; }
+        .progress-bar { background-color: #238636; transition: width 0.1s ease; }
+        #loading { font-weight: bold; color: #ff5722; animation: pulse 1.2s infinite; display: none; }
+        @keyframes pulse { 0% { opacity: .4; } 50% { opacity: 1; } 100% { opacity: .4; } }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="cardx mb-3">
+        <h3 class="title">🛡️ Lọc UID Facebook</h3>
+    </div>
+
+    <div class="row">
+        <div class="col-md-5">
+            <div class="cardx">
+                <h5>📥 Nhập liệu & Cấu hình tệp nặng</h5>
+                <div id="dropZone" class="mb-3">📁 Kéo thả File .TXT nặng hoặc click để chọn</div>
+                <input type="file" id="fileInput" accept=".txt" class="d-none">
+
+                <div class="row mb-2">
+                    <div class="col-6">
+                        <label><b>Tốc độ quét (Batch):</b></label>
+                        <select id="batchSize" class="form-control">
+                            <option value="300" selected>Speed 300</option>
+                            <option value="500">Speed 500</option>
+                            <option value="1000">Speed 1000</option>
+                        </select>
+                    </div>
+                    <div class="col-6 d-flex align-items-end">
+                        <button class="btn btn-success btn-block" onclick="checkUIDs()">✅ Check UID</button>
+                    </div>
+                </div>
+
+                <textarea id="uidInput" rows="6" placeholder="Danh sách UID thô (Hỗ trợ hàng ngàn dòng không giật lag)..."></textarea>
+                
+                <div class="mt-2 d-flex justify-content-between">
+                    <button class="btn btn-outline-danger btn-sm" id="clearBtn" onclick="clearAll()" style="display: none;">🗑 Xoá All</button>
+                    <p id="loading" class="mb-0 align-self-center">⏳ Hệ thống đang xử lý cấu trúc ngầm...</p>
+                </div>
+                
+                <div class="progress mt-2">
+                    <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%;">0%</div>
+                </div>
+            </div>
+
+            <div class="cardx mt-3">
+                <h5>🔎 Bộ lọc từ khóa thông minh</h5>
+                <div class="form-group">
+                    <textarea id="map_have_text" class="form-control" rows="2" placeholder="Nhập từ cần chứa (mỗi từ 1 dòng)..."></textarea>
+                </div>
+                <div class="form-group">
+                    <textarea id="map_havenot_text" class="form-control" rows="2" placeholder="Nhập từ cần loại (mỗi từ 1 dòng)..."></textarea>
+                </div>
+                <button class="btn btn-primary btn-block" onclick="mapText()">⚙️ Thực hiện lọc</button>
+                <textarea id="filteredOutput" class="form-control mt-3" rows="3" placeholder="Kết quả sau khi lọc từ khóa..."></textarea>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="cardx h-100">
+                <h5>📊 Kết quả phân tích phân luồng</h5>
+                
+                <div class="box">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="text-success mb-0">✅ UID Sống (<span id="countLive">0</span>)</h5>
+                        <button class="btn btn-outline-success btn-sm" onclick="copyToClipboard('ListLive')">📋 Copy danh sách sống</button>
+                    </div>
+                    <textarea id="ListLive" class="form-control" rows="8" readonly placeholder="Danh sách UID sống..."></textarea>
+                </div>
+
+                <div class="box">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="text-danger mb-0">❌ UID Die (<span id="countDead">0</span>)</h5>
+                        <button class="btn btn-outline-danger btn-sm" onclick="copyToClipboard('ListDead')">📋 Copy danh sách chết</button>
+                    </div>
+                    <textarea id="ListDead" class="form-control" rows="8" readonly placeholder="Danh sách UID chết..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let isProcessing = false;
+
+    // Kéo thả file xử lý an toàn
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    dropZone.onclick = () => fileInput.click();
+    
+    fileInput.addEventListener('change', function(e) {
+        handleFileSelect(e.target.files[0]);
+    });
+
+    // Hàm đọc file lớn cắt nhỏ (Chunk Reader) tránh crash trình duyệt
+    function handleFileSelect(file) {
+        if (!file) return;
+        document.getElementById("loading").style.display = "block";
+        
+        const reader = new FileReader();
+        const chunkSize = 1024 * 1024 * 2; // Đọc mỗi lượt 2MB dữ liệu
+        let offset = 0;
+
+        reader.onload = function(e) {
+            document.getElementById('uidInput').value += e.target.result;
+            offset += e.target.result.length;
+            
+            if (offset < file.size) {
+                readNextChunk();
+            } else {
+                document.getElementById("loading").style.display = "none";
+                toggleClearButton();
+            }
+        };
+
+        function readNextChunk() {
+            const slice = file.slice(offset, offset + chunkSize);
+            reader.readAsText(slice);
+        }
+
+        readNextChunk();
+    }
+
+    function toggleClearButton() {
+        const input = document.getElementById("uidInput").value.trim();
+        document.getElementById("clearBtn").style.style.display = input ? "inline-block" : "none";
+    }
+
+    // Theo dõi thay đổi thủ công của textarea để hiển thị nút xóa
+    document.getElementById('uidInput').addEventListener('input', toggleClearButton);
+
+    function clearAll() {
+        if(isProcessing) {
+            alert("Hệ thống đang chạy quét, vui lòng không xóa giữa chừng!");
+            return;
+        }
+        ['uidInput', 'ListLive', 'ListDead', 'filteredOutput', 'map_have_text', 'map_havenot_text'].forEach(id => document.getElementById(id).value = "");
+        ['countLive', 'countDead'].forEach(id => document.getElementById(id).textContent = "0");
+        updateProgress(0);
+        toggleClearButton();
+    }
+
+    function updateProgress(val) {
+        let bar = document.getElementById("progressBar");
+        bar.style.width = val + "%";
+        bar.textContent = Math.round(val) + "%";
+    }
+
+    // Hàm check UID chạy mượt, không block UI của trình duyệt
+    async function checkUIDs() {
+        if (isProcessing) return;
+        let rawInput = document.getElementById("uidInput").value;
+        if (!rawInput.trim()) {
+            alert("Vui lòng nhập danh sách hoặc chọn file UID!");
+            return;
+        }
+
+        isProcessing = true;
+        document.getElementById("loading").style.display = "block";
+
+        let raw = rawInput.split("\n").map(e => e.trim()).filter(e => e);
+        let lines = [...new Set(raw)];
+        let batchSize = parseInt(document.getElementById("batchSize").value);
+        let total = lines.length;
+
+        let liveCount = 0;
+        let deadCount = 0;
+        let liveBuffer = "";
+        let deadBuffer = "";
+
+        // Reset bộ đếm trước khi chạy
+        document.getElementById('ListLive').value = "";
+        document.getElementById('ListDead').value = "";
+
+        for (let i = 0; i < total; i += batchSize) {
+            let batch = lines.slice(i, i + batchSize);
+
+            await Promise.all(batch.map(async (line) => {
+                let parts = line.split('|');
+                let uid = parts[0];
+                if (!uid) return;
+
+                try {
+                    let res = await fetch(`https://graph.facebook.com/${uid}/picture?type=normal`);
+                    if (res.ok && !res.url.includes("/static")) {
+                        liveBuffer += line + "\n";
+                        liveCount++;
+                    } else {
+                        deadBuffer += line + "\n";
+                        deadCount++;
+                    }
+                } catch (error) {
+                    deadBuffer += line + "\n";
+                    deadCount++;
+                }
+            }));
+
+            // Cập nhật kết quả vào DOM thông qua RequestAnimationFrame nhằm tránh giật khung hình
+            await new Promise(resolve => requestAnimationFrame(() => {
+                if(liveBuffer) {
+                    document.getElementById('ListLive').value += liveBuffer;
+                    document.getElementById('countLive').textContent = liveCount;
+                    liveBuffer = "";
+                }
+                if(deadBuffer) {
+                    document.getElementById('ListDead').value += deadBuffer;
+                    document.getElementById('countDead').textContent = deadCount;
+                    deadBuffer = "";
+                }
+                updateProgress(((i + batch.length) / total) * 100);
+                resolve();
+            }));
+
+            // Tạo khoảng nghỉ ngắn giải phóng Main Thread giúp trình duyệt phản hồi mượt
+            await new Promise(resolve => setTimeout(resolve, 10));
+        }
+
+        document.getElementById("loading").style.display = "none";
+        isProcessing = false;
+        alert("🎉 Đã hoàn thành tiến trình kiểm tra UID!");
+    }
+
+    function copyToClipboard(id) {
+        let textarea = document.getElementById(id);
+        textarea.select();
+        document.execCommand("copy");
+        flashStatus("Đã sao chép danh sách!");
+    }
+
+    function flashStatus(text) {
+        let toast = document.getElementById("statusMsgToast");
+        toast.textContent = "✅ " + text;
+        toast.style.display = "block";
+        setTimeout(() => toast.style.display = "none", 1500);
+    }
+
+    function mapText() {
+        const input = document.getElementById("uidInput").value.split("\n").map(e => e.trim()).filter(e => e);
+        const includeWords = document.getElementById("map_have_text").value.split("\n").map(e => e.trim().toLowerCase()).filter(e => e);
+        const excludeWords = document.getElementById("map_havenot_text").value.split("\n").map(e => e.trim().toLowerCase()).filter(e => e);
+
+        let filtered = input.filter(line => {
+            const lower = line.toLowerCase();
+            const hasAny = includeWords.length ? includeWords.some(w => lower.includes(w)) : true;
+            const hasNone = excludeWords.every(w => !lower.includes(w));
+            return hasAny && hasNone;
+        });
+
+        filtered = [...new Set(filtered)];
+        document.getElementById("filteredOutput").value = filtered.join("\n");
+        flashStatus("Đã lọc từ khóa xong!");
+    }
+</script>
+</body>
+</html>

